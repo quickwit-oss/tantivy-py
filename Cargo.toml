@@ -1,5 +1,5 @@
 [package]
-name = "tantivy-python"
+name = "tantivy-py"
 version = "0.1.0"
 authors = ["Damir Jelić <poljar@termina.org.uk>"]
 edition = "2018"

@@ -1,5 +1,5 @@
-python-tantivy
-==============
+tantivy-py
+==========
 
 Python bindings for tantivy.
 
@@ -8,15 +8,15 @@ Python bindings for tantivy.
 
 The bindings can be installed using setuptools:
 
-    python setup.py install --user
+    python3 setup.py install --user
 
 Note that this requires setuptools-rust to be installed. Another thing to note
 is that the bindings are using [PyO3](https://github.com/PyO3/pyo3), which
-requires rust nightly currently.
+requires rust nightly and only supports python3.
 
 # Usage
 
-python-tantivy has a similar API to tantivy. To create a index first a schema
+tantivy-py has a similar API to tantivy. To create a index first a schema
 needs to be built. After that documents can be added to the index and a reader
 can be created to search the index.
 
