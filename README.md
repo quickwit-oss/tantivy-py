@@ -37,7 +37,8 @@ can be created to search the index.
                         "the Gulf Stream and he had gone eighty-four days "
                         "now without taking a fish."))
     writer.add_document(doc)
-
+    writer.commit()
+    
     reader = index.reader()
     searcher = reader.searcher()
 

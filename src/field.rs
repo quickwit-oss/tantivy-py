@@ -41,6 +41,7 @@ impl FieldValue {
             schema::Value::Str(text) => Some(text.into_object(py)),
             schema::Value::U64(num) => Some(num.into_object(py)),
             schema::Value::I64(num) => Some(num.into_object(py)),
+            schema::Value::F64(num) => Some(num.into_object(py)),
             schema::Value::Bytes(b) => Some(b.to_object(py)),
             schema::Value::Date(d) => {
                 let date =
