@@ -123,3 +123,54 @@ class TestClass(object):
         # no "bod" field
         with pytest.raises(ValueError):
             q_parser.parse_query("bod:title")
+
+
+class TestFromDiskClass(object):
+
+    @classmethod
+    def setup_class(cls):
+        builder = tantivy.SchemaBuilder()
+        title = builder.add_text_field("title", stored=True)
+        body = builder.add_text_field("body")
+        cls.default_args = [title, body]
+        schema = builder.build()
+        cls.schema = schema
+        cls.index = tantivy.Index(schema)
+
+    def test_exists(self):
+        # prefer to keep it separate in case anyone deletes this
+        # runs from the root directory
+        path_to_index = "tests/test_index/"
+        assert self.index.exists(path_to_index)
+
+    def test_opens_from_dir(self):
+        path_to_index = "tests/test_index/"
+        tantivy.Index(self.schema, path_to_index)
+
+    def test_create_readers(self):
+        path_to_index = "tests/test_index/"
+        idx = tantivy.Index(self.schema, path_to_index)
+        reload_policy = "OnCommit"  # or "Manual"
+        assert idx.reader(reload_policy, 4)
+        assert idx.reader("Manual", 4)
+
+    def test_create_writer_and_reader(self):
+        path_to_index = "tests/test_index/"
+        idx = tantivy.Index(self.schema, path_to_index)
+        writer = idx.writer()
+        reload_policy = "OnCommit"  # or "Manual"
+        reader = idx.reader(reload_policy, 4)
+
+        # check against the opstamp in the meta file
+        with open("tests/test_index/meta.json") as f:
+            expected_last_opstamp = json.load(f)["opstamp"]
+        assert writer.commit_opstamp == expected_last_opstamp
+
+        q_parser = tantivy.QueryParser.for_index(idx, self.default_args)
+        # get all documents
+        query = q_parser.parse_query("*")
+        top_docs = tantivy.TopDocs(10)
+
+        docs = reader.searcher().search(query, top_docs)
+        for (_score, doc_addr) in docs:
+            print(reader.searcher().doc(doc_addr))
