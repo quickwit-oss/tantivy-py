@@ -7,7 +7,7 @@ license = "MIT"
 
 [lib]
 name = "tantivy"
-crate-type = ["dylib"]
+crate-type = ["cdylib"]
 
 [dependencies]
 chrono = "0.4"
