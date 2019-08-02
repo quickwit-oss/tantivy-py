@@ -1,9 +1,15 @@
 import json
 import tantivy
 
+import pytest
+
 
 class TestClass(object):
-    def test_simple_search(self):
+
+    @classmethod
+    def setup_class(cls):
+        # assume all tests will use the same documents for now
+        # other methods may set up function-local indexes
         builder = tantivy.SchemaBuilder()
 
         title = builder.add_text_field("title", stored=True)
@@ -14,13 +20,18 @@ class TestClass(object):
 
         writer = index.writer()
 
+        # 2 ways of adding documents
+        # 1
         doc = tantivy.Document()
+        # create a document instance
+        # add field-value pairs
         doc.add_text(title, "The Old Man and the Sea")
         doc.add_text(body, ("He was an old man who fished alone in a skiff in"
                             "the Gulf Stream and he had gone eighty-four days "
                             "now without taking a fish."))
         writer.add_document(doc)
-
+        # 2 use the built-in json support
+        # keys need to coincide with field names
         doc = schema.parse_document(json.dumps({
             "title": "Of Mice and Men",
             "body": ("A few miles south of Soledad, the Salinas River drops "
@@ -52,23 +63,29 @@ class TestClass(object):
         writer.add_document(doc)
         writer.commit()
 
-        reader = index.reader()
-        searcher = reader.searcher()
+        cls.reader = index.reader()
+        cls.searcher = cls.reader.searcher()
+        cls.index = index
+        cls.schema = schema
+        cls.default_args = [title, body]
+        cls.title = title
+        cls.body = body
 
-        query_parser = tantivy.QueryParser.for_index(index, [title, body])
+    def test_simple_search(self):
+        query_parser = tantivy.QueryParser.for_index(self.index, self.default_args)
         query = query_parser.parse_query("sea whale")
 
         top_docs = tantivy.TopDocs(10)
 
-        result = searcher.search(query, top_docs)
+        result = self.searcher.search(query, top_docs)
         print(result)
 
         assert len(result) == 1
 
         _, doc_address = result[0]
 
-        searched_doc = searcher.doc(doc_address)
-        assert searched_doc.get_first(title) == "The Old Man and the Sea"
+        searched_doc = self.searcher.doc(doc_address)
+        assert searched_doc.get_first(self.title) == "The Old Man and the Sea"
 
     def test_doc(self):
         builder = tantivy.SchemaBuilder()
@@ -83,3 +100,26 @@ class TestClass(object):
 
         assert doc.len == 1
         assert not doc.is_empty
+
+    def test_and_query(self):
+        q_parser = tantivy.QueryParser.for_index(self.index, self.default_args)
+        # look for an intersection of documents
+        query = q_parser.parse_query("title:men AND body:summer")
+        top_docs = tantivy.TopDocs(10)
+
+        result = self.searcher.search(query, top_docs)
+        print(result)
+
+        # summer isn't present
+        assert len(result) == 0
+
+        query = q_parser.parse_query("title:men AND body:winter")
+        result = self.searcher.search(query, top_docs)
+
+        assert len(result) == 1
+
+    def test_query_errors(self):
+        q_parser = tantivy.QueryParser.for_index(self.index, self.default_args)
+        # no "bod" field
+        with pytest.raises(ValueError):
+            q_parser.parse_query("bod:title")
