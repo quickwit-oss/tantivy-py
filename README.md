@@ -24,35 +24,37 @@ needs to be built. After that documents can be added to the index and a reader
 can be created to search the index.
 
 ```python
-    builder = tantivy.SchemaBuilder()
+import tantivy
 
-    title = builder.add_text_field("title", stored=True)
-    body = builder.add_text_field("body")
+# Declaring our schema.
+schema_builder = tantivy.SchemaBuilder()
+schema_builder.add_text_field("title", stored=True)
+schema_builder.add_text_field("body", stored=True)
+schema = schema_builder.build()
 
-    schema = builder.build()
-    index = tantivy.Index(schema)
+# Creating our index (in memory, but filesystem is available too)
+index = tantivy.Index(schema)
 
-    writer = index.writer()
 
-    doc = tantivy.Document()
-    doc.add_text(title, "The Old Man and the Sea")
-    doc.add_text(body, ("He was an old man who fished alone in a skiff in"
-                        "the Gulf Stream and he had gone eighty-four days "
-                        "now without taking a fish."))
-    writer.add_document(doc)
-    writer.commit()
-    
-    reader = index.reader()
-    searcher = reader.searcher()
+# Adding one document.
+writer = index.writer()
+writer.add_document({
+    "title": "The Old Man and the Sea",
+    "body": """He was an old man who fished alone in a skiff in
+               the Gulf Stream and he had gone eighty-four days 
+               now without taking a fish."""
+})
+# ... and committing
+writer.commit()
 
-    query_parser = tantivy.QueryParser.for_index(index, [title, body])
-    query = query_parser.parse_query("sea whale")
 
-    top_docs = tantivy.TopDocs(10)
-    result = searcher.search(query, top_docs)
+# Reload the index to ensure it points to the last commit.
+index.reload();
+searcher = index.searcher()
+query = index.parse_query("sea whale", ["title", "body"])
+top_docs = tantivy.TopDocs(3)
 
-    _, doc_address = result[0]
-
-    searched_doc = searcher.doc(doc_address)
-    assert searched_doc.get_first(title) == "The Old Man and the Sea"
+(best_score, best_doc_address) = searcher.search(query, nhits=3)[0]
+best_doc = searcher.doc(best_doc_address) 
+assert best_doc["title"] == ["The Old Man and the Sea"]
 ```

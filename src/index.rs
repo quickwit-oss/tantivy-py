@@ -4,52 +4,15 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 
 use crate::document::Document;
+use crate::query::Query;
 use crate::schema::Schema;
 use crate::searcher::Searcher;
+use crate::to_pyerr;
 use tantivy as tv;
 use tantivy::directory::MmapDirectory;
+use tantivy::schema::{Field, NamedFieldDocument};
 
 const RELOAD_POLICY: &str = "commit";
-
-/// IndexReader is the entry point to read and search the index.
-///
-/// IndexReader controls when a new version of the index should be loaded and
-/// lends you instances of Searcher for the last loaded version.
-///
-/// To create an IndexReader first create an Index and call the reader() method
-/// on the index object.
-#[pyclass]
-pub(crate) struct IndexReader {
-    inner: tv::IndexReader,
-}
-
-#[pymethods]
-impl IndexReader {
-    /// Update searchers so that they reflect the state of the last .commit().
-    ///
-    /// If you set up the the reload policy to be on 'commit' (which is the
-    /// default) every commit should be rapidly reflected on your IndexReader
-    /// and you should not need to call reload() at all.
-    fn reload(&self) -> PyResult<()> {
-        let ret = self.inner.reload();
-        match ret {
-            Ok(_) => Ok(()),
-            Err(e) => Err(exceptions::ValueError::py_err(e.to_string())),
-        }
-    }
-
-    /// Get a Searcher for the index.
-    ///
-    /// This method should be called every single time a search query is
-    /// performed. The searchers are taken from a pool of num_searchers
-    /// searchers.
-    ///
-    /// Returns a Searcher object, if no searcher is available this may block.
-    fn searcher(&self) -> Searcher {
-        let searcher = self.inner.searcher();
-        Searcher { inner: searcher }
-    }
-}
 
 /// IndexWriter is the user entry-point to add documents to the index.
 ///
@@ -57,7 +20,8 @@ impl IndexReader {
 /// on the index object.
 #[pyclass]
 pub(crate) struct IndexWriter {
-    inner: tv::IndexWriter,
+    inner_index_writer: tv::IndexWriter,
+    schema: tv::schema::Schema,
 }
 
 #[pymethods]
@@ -70,9 +34,24 @@ impl IndexWriter {
     /// by the client to align commits with its own document queue.
     /// The `opstamp` represents the number of documents that have been added
     /// since the creation of the index.
-    fn add_document(&mut self, document: &Document) -> PyResult<()> {
-        self.inner.add_document(document.inner.clone());
-        Ok(())
+    pub fn add_document(&mut self, doc: &Document) -> PyResult<u64> {
+        let named_doc = NamedFieldDocument(doc.field_values.clone());
+        let doc = self.schema.convert_named_doc(named_doc).map_err(to_pyerr)?;
+        Ok(self.inner_index_writer.add_document(doc))
+    }
+
+    /// Helper for the `add_document` method, but passing a json string.
+    ///
+    /// If the indexing pipeline is full, this call may block.
+    ///
+    /// Returns an `opstamp`, which is an increasing integer that can be used
+    /// by the client to align commits with its own document queue.
+    /// The `opstamp` represents the number of documents that have been added
+    /// since the creation of the index.
+    pub fn add_json(&mut self, json: &str) -> PyResult<u64> {
+        let doc = self.schema.parse_document(json).map_err(to_pyerr)?;
+        let opstamp = self.inner_index_writer.add_document(doc);
+        Ok(opstamp)
     }
 
     /// Commits all of the pending changes
@@ -84,12 +63,8 @@ impl IndexWriter {
     /// spared), it will be possible to resume indexing from this point.
     ///
     /// Returns the `opstamp` of the last document that made it in the commit.
-    fn commit(&mut self) -> PyResult<()> {
-        let ret = self.inner.commit();
-        match ret {
-            Ok(_) => Ok(()),
-            Err(e) => Err(exceptions::ValueError::py_err(e.to_string())),
-        }
+    fn commit(&mut self) -> PyResult<u64> {
+        self.inner_index_writer.commit().map_err(to_pyerr)
     }
 
     /// Rollback to the last commit
@@ -97,23 +72,15 @@ impl IndexWriter {
     /// This cancels all of the update that happened before after the last
     /// commit. After calling rollback, the index is in the same state as it
     /// was after the last commit.
-    fn rollback(&mut self) -> PyResult<()> {
-        let ret = self.inner.rollback();
-
-        match ret {
-            Ok(_) => Ok(()),
-            Err(e) => Err(exceptions::ValueError::py_err(e.to_string())),
-        }
+    fn rollback(&mut self) -> PyResult<u64> {
+        self.inner_index_writer.rollback().map_err(to_pyerr)
     }
 
     /// Detect and removes the files that are not used by the index anymore.
     fn garbage_collect_files(&mut self) -> PyResult<()> {
-        let ret = self.inner.garbage_collect_files();
-
-        match ret {
-            Ok(_) => Ok(()),
-            Err(e) => Err(exceptions::ValueError::py_err(e.to_string())),
-        }
+        self.inner_index_writer
+            .garbage_collect_files()
+            .map_err(to_pyerr)
     }
 
     /// The opstamp of the last successful commit.
@@ -125,7 +92,7 @@ impl IndexWriter {
     /// for searchers.
     #[getter]
     fn commit_opstamp(&self) -> u64 {
-        self.inner.commit_opstamp()
+        self.inner_index_writer.commit_opstamp()
     }
 }
 
@@ -142,11 +109,19 @@ impl IndexWriter {
 /// if there was a problem during the opening or creation of the index.
 #[pyclass]
 pub(crate) struct Index {
-    pub(crate) inner: tv::Index,
+    pub(crate) index: tv::Index,
+    reader: tv::IndexReader,
 }
 
 #[pymethods]
 impl Index {
+    #[staticmethod]
+    fn open(path: &str) -> PyResult<Index> {
+        let index = tv::Index::open_in_dir(path).map_err(to_pyerr)?;
+        let reader = index.reader().map_err(to_pyerr)?;
+        Ok(Index { index, reader })
+    }
+
     #[new]
     #[args(reuse = true)]
     fn new(
@@ -157,32 +132,20 @@ impl Index {
     ) -> PyResult<()> {
         let index = match path {
             Some(p) => {
-                let directory = MmapDirectory::open(p);
-
-                let dir = match directory {
-                    Ok(d) => d,
-                    Err(e) => {
-                        return Err(exceptions::OSError::py_err(e.to_string()))
-                    }
-                };
-
-                let i = if reuse {
-                    tv::Index::open_or_create(dir, schema.inner.clone())
+                let directory = MmapDirectory::open(p).map_err(to_pyerr)?;
+                if reuse {
+                    tv::Index::open_or_create(directory, schema.inner.clone())
                 } else {
-                    tv::Index::create(dir, schema.inner.clone())
-                };
-
-                match i {
-                    Ok(index) => index,
-                    Err(e) => {
-                        return Err(exceptions::OSError::py_err(e.to_string()))
-                    }
+                    tv::Index::create(directory, schema.inner.clone())
                 }
+                .map_err(to_pyerr)?
             }
             None => tv::Index::create_in_ram(schema.inner.clone()),
         };
 
-        obj.init(Index { inner: index });
+        let reader = index.reader().map_err(to_pyerr)?;
+        println!("reader {}", reader.searcher().segment_readers().len());
+        obj.init(Index { index, reader });
         Ok(())
     }
 
@@ -206,32 +169,30 @@ impl Index {
         num_threads: usize,
     ) -> PyResult<IndexWriter> {
         let writer = match num_threads {
-            0 => self.inner.writer(heap_size),
-            _ => self.inner.writer_with_num_threads(num_threads, heap_size),
-        };
-
-        match writer {
-            Ok(w) => Ok(IndexWriter { inner: w }),
-            Err(e) => Err(exceptions::ValueError::py_err(e.to_string())),
+            0 => self.index.writer(heap_size),
+            _ => self.index.writer_with_num_threads(num_threads, heap_size),
         }
+        .map_err(to_pyerr)?;
+        let schema = self.index.schema();
+        Ok(IndexWriter {
+            inner_index_writer: writer,
+            schema,
+        })
     }
 
-    /// Create an IndexReader for the index.
+    /// Configure the index reader.
     ///
     /// Args:
     ///     reload_policy (str, optional): The reload policy that the
-    ///         IndexReader should use. Can be manual or OnCommit.
+    ///         IndexReader should use. Can be `Manual` or `OnCommit`.
     ///     num_searchers (int, optional): The number of searchers that the
     ///         reader should create.
-    ///
-    /// Returns the IndexReader on success, raises ValueError if a IndexReader
-    /// couldn't be created.
     #[args(reload_policy = "RELOAD_POLICY", num_searchers = 0)]
-    fn reader(
-        &self,
+    fn config_reader(
+        &mut self,
         reload_policy: &str,
         num_searchers: usize,
-    ) -> PyResult<IndexReader> {
+    ) -> Result<(), PyErr> {
         let reload_policy = reload_policy.to_lowercase();
         let reload_policy = match reload_policy.as_ref() {
             "commit" => tv::ReloadPolicy::OnCommit,
@@ -242,9 +203,7 @@ impl Index {
                 "Invalid reload policy, valid choices are: 'manual' and 'OnCommit'"
             ))
         };
-
-        let builder = self.inner.reader_builder();
-
+        let builder = self.index.reader_builder();
         let builder = builder.reload_policy(reload_policy);
         let builder = if num_searchers > 0 {
             builder.num_searchers(num_searchers)
@@ -252,10 +211,13 @@ impl Index {
             builder
         };
 
-        let reader = builder.try_into();
-        match reader {
-            Ok(r) => Ok(IndexReader { inner: r }),
-            Err(e) => Err(exceptions::ValueError::py_err(e.to_string())),
+        self.reader = builder.try_into().map_err(to_pyerr)?;
+        Ok(())
+    }
+
+    fn searcher(&self) -> Searcher {
+        Searcher {
+            inner: self.reader.searcher(),
         }
     }
 
@@ -268,19 +230,71 @@ impl Index {
     /// Raises OSError if the directory cannot be opened.
     #[staticmethod]
     fn exists(path: &str) -> PyResult<bool> {
-        let directory = MmapDirectory::open(path);
-        let dir = match directory {
-            Ok(d) => d,
-            Err(e) => return Err(exceptions::OSError::py_err(e.to_string())),
-        };
-
-        Ok(tv::Index::exists(&dir))
+        let directory = MmapDirectory::open(path).map_err(to_pyerr)?;
+        Ok(tv::Index::exists(&directory))
     }
 
     /// The schema of the current index.
     #[getter]
     fn schema(&self) -> Schema {
-        let schema = self.inner.schema();
+        let schema = self.index.schema();
         Schema { inner: schema }
+    }
+
+    /// Update searchers so that they reflect the state of the last .commit().
+    ///
+    /// If you set up the the reload policy to be on 'commit' (which is the
+    /// default) every commit should be rapidly reflected on your IndexReader
+    /// and you should not need to call reload() at all.
+    fn reload(&self) -> PyResult<()> {
+        self.reader.reload().map_err(to_pyerr)
+    }
+
+    /// Parse a query
+    ///
+    /// Args:
+    ///     query: the query, following the tantivy query language.
+    ///     default_fields (List[Field]): A list of fields used to search if no
+    ///         field is specified in the query.
+    ///
+    #[args(reload_policy = "RELOAD_POLICY")]
+    pub fn parse_query(
+        &self,
+        query: &str,
+        default_field_names: Option<Vec<String>>,
+    ) -> PyResult<Query> {
+        let mut default_fields = vec![];
+        let schema = self.index.schema();
+        if let Some(default_field_names_vec) = default_field_names {
+            for default_field_name in &default_field_names_vec {
+                if let Some(field) = schema.get_field(default_field_name) {
+                    let field_entry = schema.get_field_entry(field);
+                    if !field_entry.is_indexed() {
+                        return Err(exceptions::ValueError::py_err(format!(
+                            "Field `{}` is not set as indexed in the schema.",
+                            default_field_name
+                        )));
+                    }
+                    default_fields.push(field);
+                } else {
+                    return Err(exceptions::ValueError::py_err(format!(
+                        "Field `{}` is not defined in the schema.",
+                        default_field_name
+                    )));
+                }
+            }
+        } else {
+            for (field_id, field_entry) in
+                self.index.schema().fields().iter().enumerate()
+            {
+                if field_entry.is_indexed() {
+                    default_fields.push(Field(field_id as u32));
+                }
+            }
+        }
+        let parser =
+            tv::query::QueryParser::for_index(&self.index, default_fields);
+        let query = parser.parse_query(query).map_err(to_pyerr)?;
+        Ok(Query { inner: query })
     }
 }
