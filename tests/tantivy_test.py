@@ -4,10 +4,8 @@ import tantivy
 import pytest
 
 
-class TestClass(object):
-
-    @classmethod
-    def setup_class(cls):
+@pytest.fixture(scope="class")
+def ram_index():
         # assume all tests will use the same documents for now
         # other methods may set up function-local indexes
         builder = tantivy.SchemaBuilder()
@@ -63,29 +61,33 @@ class TestClass(object):
         writer.add_document(doc)
         writer.commit()
 
-        cls.reader = index.reader()
-        cls.searcher = cls.reader.searcher()
-        cls.index = index
-        cls.schema = schema
-        cls.default_args = [title, body]
-        cls.title = title
-        cls.body = body
+        reader = index.reader()
+        searcher = reader.searcher()
+        index = index
+        schema = schema
+        default_args = [title, body]
+        ret = (index, searcher, schema, default_args, title, body)
+        return ret
 
-    def test_simple_search(self):
-        query_parser = tantivy.QueryParser.for_index(self.index, self.default_args)
+
+class TestClass(object):
+
+    def test_simple_search(self, ram_index):
+        index, searcher, schema, default_args, title, body = ram_index
+        query_parser = tantivy.QueryParser.for_index(index, default_args)
         query = query_parser.parse_query("sea whale")
 
         top_docs = tantivy.TopDocs(10)
 
-        result = self.searcher.search(query, top_docs)
+        result = searcher.search(query, top_docs)
         print(result)
 
         assert len(result) == 1
 
         _, doc_address = result[0]
 
-        searched_doc = self.searcher.doc(doc_address)
-        assert searched_doc.get_first(self.title) == "The Old Man and the Sea"
+        searched_doc = searcher.doc(doc_address)
+        assert searched_doc.get_first(title) == "The Old Man and the Sea"
 
     def test_doc(self):
         builder = tantivy.SchemaBuilder()
@@ -101,66 +103,74 @@ class TestClass(object):
         assert doc.len == 1
         assert not doc.is_empty
 
-    def test_and_query(self):
-        q_parser = tantivy.QueryParser.for_index(self.index, self.default_args)
+    def test_and_query(self, ram_index):
+        index, searcher, schema, default_args, title, body = ram_index
+        q_parser = tantivy.QueryParser.for_index(index, default_args)
         # look for an intersection of documents
         query = q_parser.parse_query("title:men AND body:summer")
         top_docs = tantivy.TopDocs(10)
 
-        result = self.searcher.search(query, top_docs)
+        result = searcher.search(query, top_docs)
         print(result)
 
         # summer isn't present
         assert len(result) == 0
 
         query = q_parser.parse_query("title:men AND body:winter")
-        result = self.searcher.search(query, top_docs)
+        result = searcher.search(query, top_docs)
 
         assert len(result) == 1
 
-    def test_query_errors(self):
-        q_parser = tantivy.QueryParser.for_index(self.index, self.default_args)
+    def test_query_errors(self, ram_index):
+        index, searcher, schema, default_args, title, body = ram_index
+        q_parser = tantivy.QueryParser.for_index(index, default_args)
         # no "bod" field
         with pytest.raises(ValueError):
             q_parser.parse_query("bod:title")
 
 
+@pytest.fixture(scope="class")
+def disk_index():
+    builder = tantivy.SchemaBuilder()
+    title = builder.add_text_field("title", stored=True)
+    body = builder.add_text_field("body")
+    default_args = [title, body]
+    schema = builder.build()
+    schema = schema
+    index = tantivy.Index(schema)
+    path_to_index = "tests/test_index/"
+    return index, path_to_index, schema, default_args, title, body
+
+
 class TestFromDiskClass(object):
 
-    @classmethod
-    def setup_class(cls):
-        builder = tantivy.SchemaBuilder()
-        title = builder.add_text_field("title", stored=True)
-        body = builder.add_text_field("body")
-        cls.default_args = [title, body]
-        schema = builder.build()
-        cls.schema = schema
-        cls.index = tantivy.Index(schema)
-        cls.path_to_index = "tests/test_index/"
-
-    def test_exists(self):
+    def test_exists(self, disk_index):
         # prefer to keep it separate in case anyone deletes this
         # runs from the root directory
-        assert self.index.exists(self.path_to_index)
+        index, path_to_index, _, _, _, _ = disk_index
+        assert index.exists(path_to_index)
 
-    def test_opens_from_dir(self):
-        tantivy.Index(self.schema, self.path_to_index)
+    def test_opens_from_dir(self, disk_index):
+        _, path_to_index, schema, _, _, _ = disk_index
+        tantivy.Index(schema, path_to_index)
 
-    def test_create_readers(self):
-        idx = tantivy.Index(self.schema, self.path_to_index)
+    def test_create_readers(self, disk_index):
+        _, path_to_index, schema, _, _, _ = disk_index
+        idx = tantivy.Index(schema, path_to_index)
         reload_policy = "OnCommit"  # or "Manual"
         assert idx.reader(reload_policy, 4)
         assert idx.reader("Manual", 4)
 
-    def test_create_writer_and_reader(self):
-        idx = tantivy.Index(self.schema, self.path_to_index)
+    def test_create_writer_and_reader(self, disk_index):
+        _, path_to_index, schema, default_args, title, body = disk_index
+        idx = tantivy.Index(schema, path_to_index)
         writer = idx.writer()
         reload_policy = "OnCommit"  # or "Manual"
         reader = idx.reader(reload_policy, 4)
 
         # check against the opstamp in the meta file
         meta_fname = "meta.json"
-        with open("{}{}".format(self.path_to_index, meta_fname)) as f:
+        with open("{}{}".format(path_to_index, meta_fname)) as f:
             json_file = json.load(f)
             expected_last_opstamp = json_file["opstamp"]
             # ASSUMPTION
@@ -171,7 +181,7 @@ class TestFromDiskClass(object):
                                      for segment in json_file["segments"]])
         assert writer.commit_opstamp == expected_last_opstamp
 
-        q_parser = tantivy.QueryParser.for_index(idx, self.default_args)
+        q_parser = tantivy.QueryParser.for_index(idx, default_args)
         # get all documents
         query = q_parser.parse_query("*")
         top_docs = tantivy.TopDocs(10)
