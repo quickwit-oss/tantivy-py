@@ -1,0 +1,44 @@
+{
+  "segments": [
+    {
+      "segment_id": "1fc74026-b395-4090-b698-17d58bcce59a",
+      "max_doc": 1,
+      "deletes": null
+    },
+    {
+      "segment_id": "8949f794-50d3-49e2-bd51-d885f44c354f",
+      "max_doc": 1,
+      "deletes": null
+    },
+    {
+      "segment_id": "f79c6d0a-68e0-4210-a4d0-26ecf151a1e7",
+      "max_doc": 1,
+      "deletes": null
+    }
+  ],
+  "schema": [
+    {
+      "name": "title",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": true
+      }
+    },
+    {
+      "name": "body",
+      "type": "text",
+      "options": {
+        "indexing": {
+          "record": "position",
+          "tokenizer": "default"
+        },
+        "stored": false
+      }
+    }
+  ],
+  "opstamp": 6
+}
