@@ -8,7 +8,7 @@ except ImportError:
 
 setup(
     name="tantivy",
-    version="0.9.1",
+    version="0.10.1",
     rust_extensions=[RustExtension("tantivy.tantivy", binding=Binding.PyO3)],
     packages=["tantivy"],
     zip_safe=False,
