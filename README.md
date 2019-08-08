@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/tantivy-search/tantivy-py.svg?branch=master)](https://travis-ci.org/tantivy-search/tantivy-py)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 tantivy-py
 ==========
