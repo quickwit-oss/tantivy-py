@@ -8,6 +8,9 @@ stages:
   - lint
   - wheels
 
+env:
+  - PATH=$HOME/.cargo/bin:$PATH
+
 matrix:
   include:
     - python: '3.7'
