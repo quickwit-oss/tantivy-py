@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/tantivy-search/tantivy-py.svg?branch=master)](https://travis-ci.org/tantivy-search/tantivy-py)
+
 tantivy-py
 ==========
 
