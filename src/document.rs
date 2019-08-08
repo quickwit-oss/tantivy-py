@@ -70,7 +70,7 @@ impl Document {
     fn add_date(&mut self, field: &Field, value: &PyDateTime) {
         let datetime = Utc
             .ymd(
-                value.get_year().into(),
+                value.get_year(),
                 value.get_month().into(),
                 value.get_day().into(),
             )
@@ -78,7 +78,7 @@ impl Document {
                 value.get_hour().into(),
                 value.get_minute().into(),
                 value.get_second().into(),
-                value.get_microsecond().into(),
+                value.get_microsecond(),
             );
 
         self.inner.add_date(field.inner, &datetime);

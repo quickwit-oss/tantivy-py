@@ -36,10 +36,8 @@ impl Searcher {
         let ret = self.inner.search(&query.inner, &collector.inner);
         match ret {
             Ok(r) => {
-                let result: Vec<(f32, DocAddress)> = r
-                    .iter()
-                    .map(|(f, d)| (f.clone(), DocAddress::from(d)))
-                    .collect();
+                let result: Vec<(f32, DocAddress)> =
+                    r.iter().map(|(f, d)| (*f, DocAddress::from(d))).collect();
                 Ok(result)
             }
             Err(e) => Err(exceptions::ValueError::py_err(e.to_string())),

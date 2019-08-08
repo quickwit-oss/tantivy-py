@@ -36,7 +36,7 @@ impl QueryParser {
         default_fields: Vec<&Field>,
     ) -> PyResult<QueryParser> {
         let default_fields: Vec<tv::schema::Field> =
-            default_fields.iter().map(|&f| f.inner.clone()).collect();
+            default_fields.iter().map(|&f| f.inner).collect();
 
         let parser =
             tv::query::QueryParser::for_index(&index.inner, default_fields);
