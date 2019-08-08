@@ -1,0 +1,31 @@
+language: python
+dist: xenial
+python:
+  - '3.6'
+  - '3.7'
+stages:
+  - test
+  - lint
+  - wheels
+
+matrix:
+  include:
+    - python: '3.7'
+      name: 'rust linters'
+      install: rustup component add clippy rustfmt
+      script:
+        - cargo clippy
+        - cargo fmt -- --check
+      stage: lint
+
+cache:
+  pip: true
+  directories:
+    - $HOME/.cargo
+    - $TRAVIS_BUILD_DIR/target
+
+before_install:
+  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+
+install: pip install -U tox pyo3-pack tox-pyo3 tox-travis
+script: tox
