@@ -14,7 +14,7 @@ pub(crate) struct Field {
 
 #[pymethods]
 impl Field {
-    /// Builds a term given a field, and a i64-value
+    /// Builds a field given a field name and a schema
     #[classmethod]
     fn from_schema(_cls: &PyType, schema: &Schema, field_name: &str) -> Field {
         Field {
