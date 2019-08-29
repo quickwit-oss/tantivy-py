@@ -144,7 +144,6 @@ impl Index {
         };
 
         let reader = index.reader().map_err(to_pyerr)?;
-        println!("reader {}", reader.searcher().segment_readers().len());
         obj.init(Index { index, reader });
         Ok(())
     }
@@ -215,6 +214,16 @@ impl Index {
         Ok(())
     }
 
+    /// Acquires a Searcher from the searcher pool.
+    ///
+    /// If no searcher is available during the call, note that
+    /// this call will block until one is made available.
+    ///
+    /// Searcher are automatically released back into the pool when
+    /// they are dropped. If you observe this function to block forever
+    /// you probably should configure the Index to have a larger
+    /// searcher pool, or you are holding references to previous searcher
+    /// for ever.
     fn searcher(&self) -> Searcher {
         Searcher {
             inner: self.reader.searcher(),
