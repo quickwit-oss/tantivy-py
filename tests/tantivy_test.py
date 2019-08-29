@@ -113,7 +113,7 @@ class TestUpdateClass(object):
 
         schema = ram_index.schema
         field = Field.from_schema(schema, 'title')
-        term = Term.from_field_text(field, "Frankenstein")
+        term = Term.from_field_text(field, "frankenstein")
         writer = ram_index.writer()
         writer.delete_term(term)
         writer.commit();
