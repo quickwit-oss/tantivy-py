@@ -220,7 +220,7 @@ impl Document {
     /// Add a text value to the document.
     ///
     /// Args:
-    ///     field (Field): The field for which we are adding the text.
+    ///     field_name (str): The field name for which we are adding the text.
     ///     text (str): The text that will be added to the document.
     fn add_text(&mut self, field_name: String, text: &str) {
         add_value(self, field_name, text);
@@ -229,7 +229,7 @@ impl Document {
     /// Add an unsigned integer value to the document.
     ///
     /// Args:
-    ///     field (Field): The field for which we are adding the integer.
+    ///     field_name (str): The field name for which we are adding the unsigned integer.
     ///     value (int): The integer that will be added to the document.
     fn add_unsigned(&mut self, field_name: String, value: u64) {
         add_value(self, field_name, value);
@@ -238,7 +238,7 @@ impl Document {
     /// Add a signed integer value to the document.
     ///
     /// Args:
-    ///     field (Field): The field for which we are adding the integer.
+    ///     field_name (str): The field name for which we are adding the integer.
     ///     value (int): The integer that will be added to the document.
     fn add_integer(&mut self, field_name: String, value: i64) {
         add_value(self, field_name, value);
@@ -247,7 +247,7 @@ impl Document {
     /// Add a date value to the document.
     ///
     /// Args:
-    ///     field (Field): The field for which we are adding the integer.
+    ///     field_name (str): The field name for which we are adding the date.
     ///     value (datetime): The date that will be added to the document.
     fn add_date(&mut self, field_name: String, value: &PyDateTime) {
         let datetime = Utc
@@ -267,7 +267,7 @@ impl Document {
 
     /// Add a facet value to the document.
     /// Args:
-    ///     field (Field): The field for which we are adding the facet.
+    ///     field_name (str): The field name for which we are adding the facet.
     ///     value (Facet): The Facet that will be added to the document.
     fn add_facet(&mut self, field_name: String, facet: &Facet) {
         add_value(self, field_name, facet.inner.clone());
@@ -276,7 +276,7 @@ impl Document {
     /// Add a bytes value to the document.
     ///
     /// Args:
-    ///     field (Field): The field for which we are adding the bytes.
+    ///     field_name (str): The field for which we are adding the bytes.
     ///     value (bytes): The bytes that will be added to the document.
     fn add_bytes(&mut self, field_name: String, bytes: Vec<u8>) {
         add_value(self, field_name, bytes);
