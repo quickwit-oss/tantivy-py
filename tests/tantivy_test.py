@@ -1,7 +1,7 @@
 import tantivy
 import pytest
 
-from tantivy import Document, Index, SchemaBuilder, Schema
+from tantivy import Document, Index, SchemaBuilder, Schema, Field, Term
 
 
 def schema():
@@ -101,6 +101,29 @@ class TestClass(object):
         # no "bod" field
         with pytest.raises(ValueError):
             index.parse_query("bod:men", ["title", "body"])
+
+
+class TestUpdateClass(object):
+
+    def test_delete_update(self, ram_index):
+        query = ram_index.parse_query("Frankenstein", ["title"])
+        top_docs = tantivy.TopDocs(10)
+        result = ram_index.searcher().search(query, top_docs)
+        assert len(result) == 1
+
+        schema = ram_index.schema
+        field = Field.from_schema(schema, 'title')
+        term = Term.from_field_text(field, "Frankenstein")
+        writer = ram_index.writer()
+        writer.delete_term(term)
+        writer.commit();
+        ram_index.reload()
+
+        query = ram_index.parse_query("Frankenstein", ["title"])
+        top_docs = tantivy.TopDocs(10)
+        result = ram_index.searcher().search(query, top_docs)
+        assert len(result) == 0
+
 
 
 PATH_TO_INDEX = "tests/test_index/"

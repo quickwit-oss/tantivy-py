@@ -7,6 +7,7 @@ use crate::document::Document;
 use crate::query::Query;
 use crate::schema::Schema;
 use crate::searcher::Searcher;
+use crate::term::Term;
 use crate::to_pyerr;
 use tantivy as tv;
 use tantivy::directory::MmapDirectory;
@@ -93,6 +94,11 @@ impl IndexWriter {
     #[getter]
     fn commit_opstamp(&self) -> u64 {
         self.inner_index_writer.commit_opstamp()
+    }
+
+    /// Delete all documents containing a given term.
+    fn delete_term(&mut self, term: &Term) -> u64 {
+        self.inner_index_writer.delete_term(term.inner.clone())
     }
 }
 
