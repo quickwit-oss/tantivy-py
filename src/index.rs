@@ -4,7 +4,7 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
-use crate::document::{Document, extract_value};
+use crate::document::{extract_value, Document};
 use crate::query::Query;
 use crate::schema::Schema;
 use crate::searcher::Searcher;
@@ -97,7 +97,11 @@ impl IndexWriter {
     }
 
     /// Delete all documents containing a given term.
-    fn delete_term(&mut self, field_name: &str, field_value: &PyAny) -> PyResult<u64> {
+    fn delete_term(
+        &mut self,
+        field_name: &str,
+        field_value: &PyAny,
+    ) -> PyResult<u64> {
         if let Some(field) = self.schema.get_field(field_name) {
             let value = extract_value(field_value).unwrap();
             let term = match value {
@@ -112,7 +116,7 @@ impl IndexWriter {
                         "Field `{}` is bytes type not deletable.",
                         field_name
                     )))
-                },
+                }
             };
             Ok(self.inner_index_writer.delete_term(term.clone()))
         } else {
