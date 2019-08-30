@@ -1,7 +1,7 @@
 import tantivy
 import pytest
 
-from tantivy import Document, Index, SchemaBuilder, Schema, Field, Term
+from tantivy import Document, Index, SchemaBuilder, Schema
 
 
 def schema():
@@ -111,11 +111,8 @@ class TestUpdateClass(object):
         result = ram_index.searcher().search(query, top_docs)
         assert len(result) == 1
 
-        schema = ram_index.schema
-        field = Field.from_schema(schema, 'title')
-        term = Term.from_field_text(field, "frankenstein")
         writer = ram_index.writer()
-        writer.delete_term(term)
+        writer.delete_term('title', "frankenstein")
         writer.commit();
         ram_index.reload()
 
