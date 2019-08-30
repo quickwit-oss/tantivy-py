@@ -2,16 +2,16 @@
 
 use pyo3::exceptions;
 use pyo3::prelude::*;
+use pyo3::types::PyAny;
 
-use crate::document::Document;
+use crate::document::{Document, extract_value};
 use crate::query::Query;
 use crate::schema::Schema;
 use crate::searcher::Searcher;
-use crate::term::Term;
 use crate::to_pyerr;
 use tantivy as tv;
 use tantivy::directory::MmapDirectory;
-use tantivy::schema::{Field, NamedFieldDocument};
+use tantivy::schema::{Field, NamedFieldDocument, Term, Value};
 
 const RELOAD_POLICY: &str = "commit";
 
@@ -97,8 +97,30 @@ impl IndexWriter {
     }
 
     /// Delete all documents containing a given term.
-    fn delete_term(&mut self, term: &Term) -> u64 {
-        self.inner_index_writer.delete_term(term.inner.clone())
+    fn delete_term(&mut self, field_name: &str, field_value: &PyAny) -> PyResult<u64> {
+        if let Some(field) = self.schema.get_field(field_name) {
+            let value = extract_value(field_value).unwrap();
+            let term = match value {
+                Value::Str(text) => Term::from_field_text(field, &text),
+                Value::U64(num) => Term::from_field_u64(field, num),
+                Value::I64(num) => Term::from_field_i64(field, num),
+                Value::F64(num) => Term::from_field_f64(field, num),
+                Value::Date(d) => Term::from_field_date(field, &d),
+                Value::Facet(facet) => Term::from_facet(field, &facet),
+                Value::Bytes(_) => {
+                    return Err(exceptions::ValueError::py_err(format!(
+                        "Field `{}` is bytes type not deletable.",
+                        field_name
+                    )))
+                },
+            };
+            Ok(self.inner_index_writer.delete_term(term.clone()))
+        } else {
+            return Err(exceptions::ValueError::py_err(format!(
+                "Field `{}` is not defined in the schema.",
+                field_name
+            )));
+        }
     }
 }
 
