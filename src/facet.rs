@@ -1,6 +1,6 @@
+use pyo3::basic::PyObjectProtocol;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
-
 use tantivy::schema;
 
 /// A Facet represent a point in a given hierarchy.
@@ -51,5 +51,24 @@ impl Facet {
         Facet {
             inner: schema::Facet::from_text(facet_string),
         }
+    }
+
+    /// Returns the list of `segments` that forms a facet path.
+    ///
+    /// For instance `//europe/france` becomes `["europe", "france"]`.
+    fn to_path(&self) -> Vec<&str> {
+        self.inner.to_path()
+    }
+
+    /// Returns the facet string representation.
+    fn to_path_str(&self) -> String {
+        self.inner.to_string()
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for Facet {
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("Facet({})", self.to_path_str()))
     }
 }

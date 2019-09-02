@@ -11,7 +11,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 chrono = "0.4"
-tantivy = { git = "https://github.com/tantivy-search/tantivy" }
+tantivy = { git = "https://github.com/tantivy-search/tantivy", branch = "master" }
+itertools = "0.8"
 
 [dependencies.pyo3]
 version = "0.7.0"

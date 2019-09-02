@@ -5,8 +5,8 @@ use pyo3::prelude::*;
 
 use tantivy::schema;
 
-use crate::field::Field;
 use crate::schema::Schema;
+use std::sync::{Arc, RwLock};
 
 /// Tantivy has a very strict schema.
 /// You need to specify in advance whether a field is indexed or not,
@@ -24,8 +24,9 @@ use crate::schema::Schema;
 ///
 ///     >>> schema = builder.build()
 #[pyclass]
+#[derive(Clone)]
 pub(crate) struct SchemaBuilder {
-    pub(crate) builder: Option<schema::SchemaBuilder>,
+    pub(crate) builder: Arc<RwLock<Option<schema::SchemaBuilder>>>,
 }
 
 const TOKENIZER: &str = "default";
@@ -36,7 +37,7 @@ impl SchemaBuilder {
     #[new]
     fn new(obj: &PyRawObject) {
         obj.init(SchemaBuilder {
-            builder: Some(schema::Schema::builder()),
+            builder: Arc::new(From::from(Some(schema::Schema::builder()))),
         });
     }
 
@@ -70,9 +71,8 @@ impl SchemaBuilder {
         stored: bool,
         tokenizer_name: &str,
         index_option: &str,
-    ) -> PyResult<Field> {
+    ) -> PyResult<Self> {
         let builder = &mut self.builder;
-
         let index_option = match index_option {
             "position" => schema::IndexRecordOption::WithFreqsAndPositions,
             "freq" => schema::IndexRecordOption::WithFreqs,
@@ -94,14 +94,14 @@ impl SchemaBuilder {
             options
         };
 
-        if let Some(builder) = builder {
-            let field = builder.add_text_field(name, options);
-            Ok(Field { inner: field })
+        if let Some(builder) = builder.write().unwrap().as_mut() {
+            builder.add_text_field(name, options);
         } else {
-            Err(exceptions::ValueError::py_err(
+            return Err(exceptions::ValueError::py_err(
                 "Schema builder object isn't valid anymore.",
-            ))
+            ));
         }
+        Ok(self.clone())
     }
 
     /// Add a new signed integer field to the schema.
@@ -131,19 +131,19 @@ impl SchemaBuilder {
         stored: bool,
         indexed: bool,
         fast: Option<&str>,
-    ) -> PyResult<Field> {
+    ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
         let opts = SchemaBuilder::build_int_option(stored, indexed, fast)?;
 
-        if let Some(builder) = builder {
-            let field = builder.add_i64_field(name, opts);
-            Ok(Field { inner: field })
+        if let Some(builder) = builder.write().unwrap().as_mut() {
+            builder.add_i64_field(name, opts);
         } else {
-            Err(exceptions::ValueError::py_err(
+            return Err(exceptions::ValueError::py_err(
                 "Schema builder object isn't valid anymore.",
-            ))
+            ));
         }
+        Ok(self.clone())
     }
 
     /// Add a new unsigned integer field to the schema.
@@ -173,19 +173,19 @@ impl SchemaBuilder {
         stored: bool,
         indexed: bool,
         fast: Option<&str>,
-    ) -> PyResult<Field> {
+    ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
         let opts = SchemaBuilder::build_int_option(stored, indexed, fast)?;
 
-        if let Some(builder) = builder {
-            let field = builder.add_u64_field(name, opts);
-            Ok(Field { inner: field })
+        if let Some(builder) = builder.write().unwrap().as_mut() {
+            builder.add_u64_field(name, opts);
         } else {
-            Err(exceptions::ValueError::py_err(
+            return Err(exceptions::ValueError::py_err(
                 "Schema builder object isn't valid anymore.",
-            ))
+            ));
         }
+        Ok(self.clone())
     }
 
     /// Add a new date field to the schema.
@@ -215,35 +215,35 @@ impl SchemaBuilder {
         stored: bool,
         indexed: bool,
         fast: Option<&str>,
-    ) -> PyResult<Field> {
+    ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
         let opts = SchemaBuilder::build_int_option(stored, indexed, fast)?;
 
-        if let Some(builder) = builder {
-            let field = builder.add_date_field(name, opts);
-            Ok(Field { inner: field })
+        if let Some(builder) = builder.write().unwrap().as_mut() {
+            builder.add_date_field(name, opts);
         } else {
-            Err(exceptions::ValueError::py_err(
+            return Err(exceptions::ValueError::py_err(
                 "Schema builder object isn't valid anymore.",
-            ))
+            ));
         }
+        Ok(self.clone())
     }
 
     /// Add a Facet field to the schema.
     /// Args:
     ///     name (str): The name of the field.
-    fn add_facet_field(&mut self, name: &str) -> PyResult<Field> {
+    fn add_facet_field(&mut self, name: &str) -> PyResult<Self> {
         let builder = &mut self.builder;
 
-        if let Some(builder) = builder {
-            let field = builder.add_facet_field(name);
-            Ok(Field { inner: field })
+        if let Some(builder) = builder.write().unwrap().as_mut() {
+            builder.add_facet_field(name);
         } else {
-            Err(exceptions::ValueError::py_err(
+            return Err(exceptions::ValueError::py_err(
                 "Schema builder object isn't valid anymore.",
-            ))
+            ));
         }
+        Ok(self.clone())
     }
 
     /// Add a fast bytes field to the schema.
@@ -254,17 +254,17 @@ impl SchemaBuilder {
     ///
     /// Args:
     ///     name (str): The name of the field.
-    fn add_bytes_field(&mut self, name: &str) -> PyResult<Field> {
+    fn add_bytes_field(&mut self, name: &str) -> PyResult<Self> {
         let builder = &mut self.builder;
 
-        if let Some(builder) = builder {
-            let field = builder.add_bytes_field(name);
-            Ok(Field { inner: field })
+        if let Some(builder) = builder.write().unwrap().as_mut() {
+            builder.add_bytes_field(name);
         } else {
-            Err(exceptions::ValueError::py_err(
+            return Err(exceptions::ValueError::py_err(
                 "Schema builder object isn't valid anymore.",
-            ))
+            ));
         }
+        Ok(self.clone())
     }
 
     /// Finalize the creation of a Schema.
@@ -272,7 +272,7 @@ impl SchemaBuilder {
     /// Returns a Schema object. After this is called the SchemaBuilder cannot
     /// be used anymore.
     fn build(&mut self) -> PyResult<Schema> {
-        let builder = self.builder.take();
+        let builder = self.builder.write().unwrap().take();
         if let Some(builder) = builder {
             let schema = builder.build();
             Ok(Schema { inner: schema })

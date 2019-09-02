@@ -1,12 +1,11 @@
 #![allow(clippy::new_ret_no_self)]
 
-use pyo3::exceptions;
-use pyo3::prelude::*;
-
-use tantivy as tv;
-
 use crate::document::Document;
 use crate::query::Query;
+use crate::to_pyerr;
+use pyo3::prelude::*;
+use pyo3::{exceptions, PyObjectProtocol};
+use tantivy as tv;
 
 /// Tantivy's Searcher class
 ///
@@ -60,11 +59,11 @@ impl Searcher {
     ///
     /// Returns the Document, raises ValueError if the document can't be found.
     fn doc(&self, doc_address: &DocAddress) -> PyResult<Document> {
-        let ret = self.inner.doc(doc_address.into());
-        match ret {
-            Ok(doc) => Ok(Document { inner: doc }),
-            Err(e) => Err(exceptions::ValueError::py_err(e.to_string())),
-        }
+        let doc = self.inner.doc(doc_address.into()).map_err(to_pyerr)?;
+        let named_doc = self.inner.schema().to_named_doc(&doc);
+        Ok(Document {
+            field_values: named_doc.0,
+        })
     }
 }
 
@@ -130,5 +129,16 @@ impl TopDocs {
         let top = tv::collector::TopDocs::with_limit(limit);
         obj.init(TopDocs { inner: top });
         Ok(())
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for Searcher {
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!(
+            "Searcher(num_docs={}, num_segments={})",
+            self.inner.num_docs(),
+            self.inner.segment_readers().len()
+        ))
     }
 }
