@@ -97,13 +97,20 @@ impl IndexWriter {
     }
 
     /// Delete all documents containing a given term.
-    fn delete_term(
+    ///
+    /// Args:
+    ///     field_name (str): The field name for which we want to filter deleted docs.
+    ///     field_value (PyAny): Python object with the value we want to filter.
+    ///
+    /// If the field_name is not on the schema raises ValueError exception.
+    /// If the field_value is not supported raises Exception.
+    fn delete_documents(
         &mut self,
         field_name: &str,
         field_value: &PyAny,
     ) -> PyResult<u64> {
         if let Some(field) = self.schema.get_field(field_name) {
-            let value = extract_value(field_value).unwrap();
+            let value = extract_value(field_value)?;
             let term = match value {
                 Value::Str(text) => Term::from_field_text(field, &text),
                 Value::U64(num) => Term::from_field_u64(field, num),

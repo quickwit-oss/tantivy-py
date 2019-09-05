@@ -112,7 +112,7 @@ class TestUpdateClass(object):
         assert len(result) == 1
 
         writer = ram_index.writer()
-        writer.delete_term('title', "frankenstein")
+        writer.delete_documents('title', "frankenstein")
         writer.commit();
         ram_index.reload()
 
