@@ -120,6 +120,7 @@ class TestFromDiskClass(object):
     def test_create_readers(self):
         # not sure what is the point of this test.
         idx = Index(schema())
+        idx.config_reader("Manual", 4)
         assert idx.searcher().num_docs == 0
         # by default this is manual mode
         writer = idx.writer(30000000, 1)
