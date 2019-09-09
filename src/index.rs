@@ -123,7 +123,7 @@ impl IndexWriter {
             Value::Date(d) => Term::from_field_date(field, &d),
             Value::Facet(facet) => Term::from_facet(field, &facet),
             Value::Bytes(_) => {
-                Err(exceptions::ValueError::py_err(format!(
+                return Err(exceptions::ValueError::py_err(format!(
                     "Field `{}` is bytes type not deletable.",
                     field_name
                 )))
