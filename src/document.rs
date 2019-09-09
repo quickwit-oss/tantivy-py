@@ -109,7 +109,7 @@ where
         .push(Value::from(value));
 }
 
-fn extract_value(any: &PyAny) -> PyResult<Value> {
+pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     if let Ok(s) = any.extract::<String>() {
         return Ok(Value::Str(s));
     }
