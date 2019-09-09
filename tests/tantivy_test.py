@@ -5,10 +5,7 @@ from tantivy import Document, Index, SchemaBuilder, Schema
 
 
 def schema():
-    return SchemaBuilder() \
-        .add_text_field("title", stored=True) \
-        .add_text_field("body") \
-        .build()
+    return SchemaBuilder().add_text_field("title", stored=True).add_text_field("body").build()
 
 
 @pytest.fixture(scope="class")
@@ -24,39 +21,49 @@ def ram_index():
     # create a document instance
     # add field-value pairs
     doc.add_text("title", "The Old Man and the Sea")
-    doc.add_text("body", ("He was an old man who fished alone in a skiff in"
-                          "the Gulf Stream and he had gone eighty-four days "
-                          "now without taking a fish."))
+    doc.add_text(
+        "body",
+        (
+            "He was an old man who fished alone in a skiff in"
+            "the Gulf Stream and he had gone eighty-four days "
+            "now without taking a fish."
+        ),
+    )
     writer.add_document(doc)
     # 2 use the built-in json support
     # keys need to coincide with field names
-    doc = Document.from_dict({
-        "title": "Of Mice and Men",
-        "body": ("A few miles south of Soledad, the Salinas River drops "
-                 "in close to the hillside bank and runs deep and "
-                 "green. The water is warm too, for it has slipped "
-                 "twinkling over the yellow sands in the sunlight "
-                 "before reaching the narrow pool. On one side of the "
-                 "river the golden foothill slopes curve up to the "
-                 "strong and rocky Gabilan Mountains, but on the valley "
-                 "side the water is lined with trees—willows fresh and "
-                 "green with every spring, carrying in their lower leaf "
-                 "junctures the debris of the winter’s flooding; and "
-                 "sycamores with mottled, white, recumbent limbs and "
-                 "branches that arch over the pool")
-    })
+    doc = Document.from_dict(
+        {
+            "title": "Of Mice and Men",
+            "body": (
+                "A few miles south of Soledad, the Salinas River drops "
+                "in close to the hillside bank and runs deep and "
+                "green. The water is warm too, for it has slipped "
+                "twinkling over the yellow sands in the sunlight "
+                "before reaching the narrow pool. On one side of the "
+                "river the golden foothill slopes curve up to the "
+                "strong and rocky Gabilan Mountains, but on the valley "
+                "side the water is lined with trees—willows fresh and "
+                "green with every spring, carrying in their lower leaf "
+                "junctures the debris of the winter’s flooding; and "
+                "sycamores with mottled, white, recumbent limbs and "
+                "branches that arch over the pool"
+            ),
+        }
+    )
     writer.add_document(doc)
-    writer.add_json("""{
+    writer.add_json(
+        """{
             "title": ["Frankenstein", "The Modern Prometheus"],
             "body": "You will rejoice to hear that no disaster has accompanied the commencement of an enterprise which you have regarded with such evil forebodings.  I arrived here yesterday, and my first task is to assure my dear sister of my welfare and increasing confidence in the success of my undertaking."
-        }""")
+        }"""
+    )
     writer.commit()
     index.reload()
     return index
 
 
 class TestClass(object):
-
     def test_simple_search(self, ram_index):
         index = ram_index
         query = index.parse_query("sea whale", ["title", "body"])
@@ -91,10 +98,12 @@ class TestClass(object):
 
     def test_and_query_parser_default_fields_undefined(self, ram_index):
         query = ram_index.parse_query("winter")
-        assert repr(query) == "Query(BooleanQuery { subqueries: [" \
-                              "(Should, TermQuery(Term(field=0,bytes=[119, 105, 110, 116, 101, 114]))), " \
-                              "(Should, TermQuery(Term(field=1,bytes=[119, 105, 110, 116, 101, 114])))] " \
-                              "})"
+        assert (
+            repr(query) == "Query(BooleanQuery { subqueries: ["
+            "(Should, TermQuery(Term(field=0,bytes=[119, 105, 110, 116, 101, 114]))), "
+            "(Should, TermQuery(Term(field=1,bytes=[119, 105, 110, 116, 101, 114])))] "
+            "})"
+        )
 
     def test_query_errors(self, ram_index):
         index = ram_index
@@ -104,7 +113,6 @@ class TestClass(object):
 
 
 class TestUpdateClass(object):
-
     def test_delete_update(self, ram_index):
         query = ram_index.parse_query("Frankenstein", ["title"])
         top_docs = tantivy.TopDocs(10)
@@ -112,22 +120,25 @@ class TestUpdateClass(object):
         assert len(result) == 1
 
         writer = ram_index.writer()
-        writer.delete_documents('title', "frankenstein")
-        writer.commit();
+
+        with pytest.raises(ValueError):
+            writer.delete_documents("fake_field", "frankenstein")
+
+        with pytest.raises(ValueError):
+            writer.delete_documents("title", b"frankenstein")
+
+        writer.delete_documents("title", "frankenstein")
+        writer.commit()
         ram_index.reload()
 
-        query = ram_index.parse_query("Frankenstein", ["title"])
-        top_docs = tantivy.TopDocs(10)
         result = ram_index.searcher().search(query, top_docs)
         assert len(result) == 0
-
 
 
 PATH_TO_INDEX = "tests/test_index/"
 
 
 class TestFromDiskClass(object):
-
     def test_exists(self):
         # prefer to keep it separate in case anyone deletes this
         # runs from the root directory
@@ -156,6 +167,7 @@ class TestFromDiskClass(object):
         writer.add_document(Document(title="mytitle2", body="mybody2"))
         writer.commit()
         import time
+
         for i in range(50):
             # The index should be automatically reloaded.
             # Wait for at most 5s for it to happen.
@@ -171,7 +183,6 @@ class TestSearcher(object):
 
 
 class TestDocument(object):
-
     def test_document(self):
         doc = tantivy.Document(name="Bill", reference=[1, 2])
         assert doc["reference"] == [1, 2]
@@ -182,7 +193,8 @@ class TestDocument(object):
 
     def test_document_with_date(self):
         import datetime
-        date = datetime.datetime(2019, 8, 12, 13, 0, 0, )
+
+        date = datetime.datetime(2019, 8, 12, 13, 0, 0)
         doc = tantivy.Document(name="Bill", date=date)
         assert doc["date"][0] == date
 
@@ -194,15 +206,15 @@ class TestDocument(object):
         doc = tantivy.Document()
         facet = tantivy.Facet.from_string("/europe/france")
         doc.add_facet("facet", facet)
-        assert doc["facet"][0].to_path() == ['europe', 'france']
+        assert doc["facet"][0].to_path() == ["europe", "france"]
         doc = tantivy.Document()
         facet = tantivy.Facet.from_string("/asia\\/oceania/fiji")
         doc.add_facet("facet", facet)
-        assert doc["facet"][0].to_path() == ['asia/oceania', 'fiji']
+        assert doc["facet"][0].to_path() == ["asia/oceania", "fiji"]
         assert doc["facet"][0].to_path_str() == "/asia\\/oceania/fiji"
         assert repr(doc["facet"][0]) == "Facet(/asia\\/oceania/fiji)"
         doc = tantivy.Document(facet=facet)
-        assert doc["facet"][0].to_path() == ['asia/oceania', 'fiji']
+        assert doc["facet"][0].to_path() == ["asia/oceania", "fiji"]
 
     def test_document_error(self):
         with pytest.raises(ValueError):

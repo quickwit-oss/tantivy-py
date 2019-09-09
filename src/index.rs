@@ -109,29 +109,27 @@ impl IndexWriter {
         field_name: &str,
         field_value: &PyAny,
     ) -> PyResult<u64> {
-        if let Some(field) = self.schema.get_field(field_name) {
-            let value = extract_value(field_value)?;
-            let term = match value {
-                Value::Str(text) => Term::from_field_text(field, &text),
-                Value::U64(num) => Term::from_field_u64(field, num),
-                Value::I64(num) => Term::from_field_i64(field, num),
-                Value::F64(num) => Term::from_field_f64(field, num),
-                Value::Date(d) => Term::from_field_date(field, &d),
-                Value::Facet(facet) => Term::from_facet(field, &facet),
-                Value::Bytes(_) => {
-                    return Err(exceptions::ValueError::py_err(format!(
-                        "Field `{}` is bytes type not deletable.",
-                        field_name
-                    )))
-                }
-            };
-            Ok(self.inner_index_writer.delete_term(term.clone()))
-        } else {
-            return Err(exceptions::ValueError::py_err(format!(
-                "Field `{}` is not defined in the schema.",
-                field_name
-            )));
-        }
+        let field = self.schema.get_field(field_name)
+               .ok_or_else(|| exceptions::ValueError::py_err(format!(
+                    "Field `{}` is not defined in the schema.",
+                    field_name)))?;
+
+        let value = extract_value(field_value)?;
+        let term = match value {
+            Value::Str(text) => Term::from_field_text(field, &text),
+            Value::U64(num) => Term::from_field_u64(field, num),
+            Value::I64(num) => Term::from_field_i64(field, num),
+            Value::F64(num) => Term::from_field_f64(field, num),
+            Value::Date(d) => Term::from_field_date(field, &d),
+            Value::Facet(facet) => Term::from_facet(field, &facet),
+            Value::Bytes(_) => {
+                Err(exceptions::ValueError::py_err(format!(
+                    "Field `{}` is bytes type not deletable.",
+                    field_name
+                )))
+            }
+        };
+        Ok(self.inner_index_writer.delete_term(term.clone()))
     }
 }
 
