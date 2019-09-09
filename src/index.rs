@@ -109,10 +109,12 @@ impl IndexWriter {
         field_name: &str,
         field_value: &PyAny,
     ) -> PyResult<u64> {
-        let field = self.schema.get_field(field_name)
-               .ok_or_else(|| exceptions::ValueError::py_err(format!(
-                    "Field `{}` is not defined in the schema.",
-                    field_name)))?;
+        let field = self.schema.get_field(field_name).ok_or_else(|| {
+            exceptions::ValueError::py_err(format!(
+                "Field `{}` is not defined in the schema.",
+                field_name
+            ))
+        })?;
 
         let value = extract_value(field_value)?;
         let term = match value {
