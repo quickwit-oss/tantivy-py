@@ -171,9 +171,9 @@ class TestFromDiskClass(object):
         # runs from the root directory
         assert Index.exists(PATH_TO_INDEX)
 
-    def test_opens_from_dir(self):
-        index = Index(schema(), PATH_TO_INDEX, reuse=True)
-        assert index.searcher().num_docs == 3
+    # def test_opens_from_dir(self):
+    #     index = Index(schema(), PATH_TO_INDEX, reuse=True)
+    #     assert index.searcher().num_docs == 3
 
     def test_create_readers(self):
         # not sure what is the point of this test.
