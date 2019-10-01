@@ -7,12 +7,10 @@ from tantivy import Document, Index, SchemaBuilder, Schema
 def schema():
     return SchemaBuilder().add_text_field("title", stored=True).add_text_field("body").build()
 
-
-@pytest.fixture(scope="class")
-def ram_index():
+def create_index(dir=None):
     # assume all tests will use the same documents for now
     # other methods may set up function-local indexes
-    index = Index(schema())
+    index = Index(schema(), dir)
     writer = index.writer()
 
     # 2 ways of adding documents
@@ -63,8 +61,37 @@ def ram_index():
     return index
 
 
+@pytest.fixture()
+def dir_index(tmpdir):
+    return (tmpdir, create_index(str(tmpdir)))
+
+
+@pytest.fixture(scope="class")
+def ram_index():
+    return create_index()
+
+
 class TestClass(object):
-    def test_simple_search(self, ram_index):
+    def test_simple_search_in_dir(self, dir_index):
+        _, index = dir_index
+        query = index.parse_query("sea whale", ["title", "body"])
+
+        top_docs = tantivy.TopDocs(10)
+
+        result = index.searcher().search(query, top_docs)
+        assert len(result) == 1
+
+    def test_simple_search_after_reuse(self, dir_index):
+        index_dir, _ = dir_index
+        index = Index(schema(), str(index_dir))
+        query = index.parse_query("sea whale", ["title", "body"])
+
+        top_docs = tantivy.TopDocs(10)
+
+        result = index.searcher().search(query, top_docs)
+        assert len(result) == 1
+
+    def test_simple_search_in_ram(self, ram_index):
         index = ram_index
         query = index.parse_query("sea whale", ["title", "body"])
 
