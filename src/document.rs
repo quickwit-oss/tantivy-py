@@ -20,10 +20,10 @@ use tantivy::schema::Value;
 
 fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
     Ok(match value {
-        Value::Str(text) => text.into_object(py),
-        Value::U64(num) => num.into_object(py),
-        Value::I64(num) => num.into_object(py),
-        Value::F64(num) => num.into_object(py),
+        Value::Str(text) => text.into_py(py),
+        Value::U64(num) => (*num).into_py(py),
+        Value::I64(num) => (*num).into_py(py),
+        Value::F64(num) => (*num).into_py(py),
         Value::Bytes(b) => b.to_object(py),
         Value::Date(d) => PyDateTime::new(
             py,
@@ -36,8 +36,8 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             d.timestamp_subsec_micros(),
             None,
         )?
-        .into_object(py),
-        Value::Facet(f) => Facet { inner: f.clone() }.into_object(py),
+        .into_py(py),
+        Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
     })
 }
 

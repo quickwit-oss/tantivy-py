@@ -15,5 +15,5 @@ tantivy = { git = "https://github.com/tantivy-search/tantivy", branch = "master"
 itertools = "0.8"
 
 [dependencies.pyo3]
-version = "0.7.0"
+version = "0.8"
 features = ["extension-module"]
