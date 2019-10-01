@@ -2,9 +2,9 @@
 
 use crate::document::Document;
 use crate::query::Query;
-use crate::to_pyerr;
+use crate::{to_pyerr, get_field};
 use pyo3::prelude::*;
-use pyo3::{exceptions, PyObjectProtocol};
+use pyo3::PyObjectProtocol;
 use tantivy as tv;
 
 /// Tantivy's Searcher class
@@ -13,7 +13,10 @@ use tantivy as tv;
 #[pyclass]
 pub(crate) struct Searcher {
     pub(crate) inner: tv::LeasedItem<tv::Searcher>,
+    pub(crate) schema: tv::schema::Schema,
 }
+
+const SORT_BY: &str = "";
 
 #[pymethods]
 impl Searcher {
@@ -29,25 +32,30 @@ impl Searcher {
     /// search results.
     ///
     /// Raises a ValueError if there was an error with the search.
-    #[args(limit = 10)]
+    #[args(limit = 10, sort_by = "SORT_BY")]
     fn search(
         &self,
         py: Python,
         query: &Query,
         limit: usize,
+        sort_by: &str,
     ) -> PyResult<Vec<(PyObject, DocAddress)>> {
-        let collector = tv::collector::TopDocs::with_limit(limit);
-        let ret = self.inner.search(&query.inner, &collector);
+        let field = match sort_by {
+            "" => None,
+            field_name => Some(get_field(&self.schema, field_name)?)
+        };
 
-        match ret {
-            Ok(r) => {
-                let result: Vec<(PyObject, DocAddress)> =
-                    r.iter().map(|(f, d)| ((*f).into_py(py), DocAddress::from(d))).collect();
-                Ok(result)
-            }
-            Err(e) => Err(exceptions::ValueError::py_err(e.to_string())),
-        }
+        let result = if let Some(f) = field {
+            let collector = tv::collector::TopDocs::with_limit(limit).order_by_u64_field(f);
+            let ret = self.inner.search(&query.inner, &collector).map_err(to_pyerr)?;
+            ret.iter().map(|(f, d)| ((*f).into_py(py), DocAddress::from(d))).collect()
+        } else {
+            let collector = tv::collector::TopDocs::with_limit(limit);
+            let ret = self.inner.search(&query.inner, &collector).map_err(to_pyerr)?;
+            ret.iter().map(|(f, d)| ((*f).into_py(py), DocAddress::from(d))).collect()
+        };
 
+        Ok(result)
     }
 
     /// Returns the overall number of documents in the index.

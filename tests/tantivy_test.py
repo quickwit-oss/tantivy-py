@@ -131,6 +131,34 @@ class TestClass(object):
         with pytest.raises(ValueError):
             index.parse_query("bod:men", ["title", "body"])
 
+    def test_sort_by_search(self):
+        schema = (
+            SchemaBuilder()
+            .add_text_field("message", stored=True)
+            .add_unsigned_field("timestamp", stored=True, fast="single")
+            .build()
+        )
+        index = Index(schema)
+        writer = index.writer()
+        doc = Document()
+        doc.add_text("message", "Test message")
+        doc.add_unsigned("timestamp", 1569954264)
+        writer.add_document(doc)
+
+        doc = Document()
+        doc.add_text("message", "Another test message")
+        doc.add_unsigned("timestamp", 1569954280)
+
+        writer.add_document(doc)
+
+        writer.commit()
+        index.reload()
+
+        query = index.parse_query("test")
+        result = index.searcher().search(query, 10, sort_by="timestamp")
+        assert result[0][0] == 1569954280
+        assert result[1][0] == 1569954264
+
 
 class TestUpdateClass(object):
     def test_delete_update(self, ram_index):
