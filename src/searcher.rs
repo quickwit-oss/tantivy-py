@@ -29,20 +29,25 @@ impl Searcher {
     /// search results.
     ///
     /// Raises a ValueError if there was an error with the search.
+    #[args(limit = 10)]
     fn search(
         &self,
+        py: Python,
         query: &Query,
-        collector: &mut TopDocs,
-    ) -> PyResult<Vec<(f32, DocAddress)>> {
-        let ret = self.inner.search(&query.inner, &collector.inner);
+        limit: usize,
+    ) -> PyResult<Vec<(PyObject, DocAddress)>> {
+        let collector = tv::collector::TopDocs::with_limit(limit);
+        let ret = self.inner.search(&query.inner, &collector);
+
         match ret {
             Ok(r) => {
-                let result: Vec<(f32, DocAddress)> =
-                    r.iter().map(|(f, d)| (*f, DocAddress::from(d))).collect();
+                let result: Vec<(PyObject, DocAddress)> =
+                    r.iter().map(|(f, d)| ((*f).into_py(py), DocAddress::from(d))).collect();
                 Ok(result)
             }
             Err(e) => Err(exceptions::ValueError::py_err(e.to_string())),
         }
+
     }
 
     /// Returns the overall number of documents in the index.
@@ -107,28 +112,6 @@ impl From<&tv::DocAddress> for DocAddress {
 impl Into<tv::DocAddress> for &DocAddress {
     fn into(self) -> tv::DocAddress {
         tv::DocAddress(self.segment_ord(), self.doc())
-    }
-}
-
-/// The Top Score Collector keeps track of the K documents sorted by their
-/// score.
-///
-/// Args:
-///     limit (int, optional): The number of documents that the top scorer will
-///         retrieve. Must be a positive integer larger than 0. Defaults to 10.
-#[pyclass]
-pub(crate) struct TopDocs {
-    inner: tv::collector::TopDocs,
-}
-
-#[pymethods]
-impl TopDocs {
-    #[new]
-    #[args(limit = 10)]
-    fn new(obj: &PyRawObject, limit: usize) -> PyResult<()> {
-        let top = tv::collector::TopDocs::with_limit(limit);
-        obj.init(TopDocs { inner: top });
-        Ok(())
     }
 }
 

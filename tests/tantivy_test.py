@@ -76,9 +76,7 @@ class TestClass(object):
         _, index = dir_index
         query = index.parse_query("sea whale", ["title", "body"])
 
-        top_docs = tantivy.TopDocs(10)
-
-        result = index.searcher().search(query, top_docs)
+        result = index.searcher().search(query, 10)
         assert len(result) == 1
 
     def test_simple_search_after_reuse(self, dir_index):
@@ -86,18 +84,14 @@ class TestClass(object):
         index = Index(schema(), str(index_dir))
         query = index.parse_query("sea whale", ["title", "body"])
 
-        top_docs = tantivy.TopDocs(10)
-
-        result = index.searcher().search(query, top_docs)
+        result = index.searcher().search(query, 10)
         assert len(result) == 1
 
     def test_simple_search_in_ram(self, ram_index):
         index = ram_index
         query = index.parse_query("sea whale", ["title", "body"])
 
-        top_docs = tantivy.TopDocs(10)
-
-        result = index.searcher().search(query, top_docs)
+        result = index.searcher().search(query, 10)
         assert len(result) == 1
         _, doc_address = result[0]
         searched_doc = index.searcher().doc(doc_address)
@@ -107,15 +101,14 @@ class TestClass(object):
         index = ram_index
         query = index.parse_query("title:men AND body:summer", default_field_names=["title", "body"])
         # look for an intersection of documents
-        top_docs = tantivy.TopDocs(10)
         searcher = index.searcher()
-        result = searcher.search(query, top_docs)
+        result = searcher.search(query, 10)
 
         # summer isn't present
         assert len(result) == 0
 
         query = index.parse_query("title:men AND body:winter", ["title", "body"])
-        result = searcher.search(query, top_docs)
+        result = searcher.search(query)
 
         assert len(result) == 1
 
@@ -142,8 +135,7 @@ class TestClass(object):
 class TestUpdateClass(object):
     def test_delete_update(self, ram_index):
         query = ram_index.parse_query("Frankenstein", ["title"])
-        top_docs = tantivy.TopDocs(10)
-        result = ram_index.searcher().search(query, top_docs)
+        result = ram_index.searcher().search(query, 10)
         assert len(result) == 1
 
         writer = ram_index.writer()
@@ -158,7 +150,7 @@ class TestUpdateClass(object):
         writer.commit()
         ram_index.reload()
 
-        result = ram_index.searcher().search(query, top_docs)
+        result = ram_index.searcher().search(query)
         assert len(result) == 0
 
 

@@ -14,7 +14,7 @@ use facet::Facet;
 use index::Index;
 use schema::Schema;
 use schemabuilder::SchemaBuilder;
-use searcher::{DocAddress, Searcher, TopDocs};
+use searcher::{DocAddress, Searcher};
 
 /// Python bindings for the search engine library Tantivy.
 ///
@@ -76,7 +76,6 @@ fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Document>()?;
     m.add_class::<Index>()?;
     m.add_class::<DocAddress>()?;
-    m.add_class::<TopDocs>()?;
     m.add_class::<Facet>()?;
     Ok(())
 }
