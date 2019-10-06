@@ -38,12 +38,10 @@ index = tantivy.Index(schema)
 
 # Adding one document.
 writer = index.writer()
-writer.add_document({
-    "title": "The Old Man and the Sea",
-    "body": """He was an old man who fished alone in a skiff in
-               the Gulf Stream and he had gone eighty-four days 
-               now without taking a fish."""
-})
+writer.add_document(tantivy.Document(
+    title=["The Old Man and the Sea"],
+    body=["""He was an old man who fished alone in a skiff in the Gulf Stream and he had gone eighty-four days now without taking a fish."""],
+))
 # ... and committing
 writer.commit()
 
@@ -51,10 +49,11 @@ writer.commit()
 # Reload the index to ensure it points to the last commit.
 index.reload();
 searcher = index.searcher()
-query = index.parse_query("sea whale", ["title", "body"])
+query = index.parse_query("fish days", ["title", "body"])
 top_docs = tantivy.TopDocs(3)
 
-(best_score, best_doc_address) = searcher.search(query, nhits=3)[0]
+(best_score, best_doc_address) = searcher.search(query, top_docs)[0]
 best_doc = searcher.doc(best_doc_address) 
 assert best_doc["title"] == ["The Old Man and the Sea"]
+print(best_doc)
 ```
