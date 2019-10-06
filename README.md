@@ -47,7 +47,7 @@ writer.commit()
 
 
 # Reload the index to ensure it points to the last commit.
-index.reload();
+index.reload()
 searcher = index.searcher()
 query = index.parse_query("fish days", ["title", "body"])
 top_docs = tantivy.TopDocs(3)
