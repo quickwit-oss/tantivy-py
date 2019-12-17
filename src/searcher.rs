@@ -6,6 +6,7 @@ use crate::{to_pyerr, get_field};
 use pyo3::prelude::*;
 use pyo3::PyObjectProtocol;
 use tantivy as tv;
+use tantivy::collector::{MultiCollector, Count, TopDocs};
 
 /// Tantivy's Searcher class
 ///
@@ -17,6 +18,12 @@ pub(crate) struct Searcher {
 }
 
 const SORT_BY: &str = "";
+
+#[pyclass]
+pub(crate) struct SearchResult {
+    pub(crate) hits: Vec<(PyObject, DocAddress)>,
+    pub(crate) count: Option<usize>
+}
 
 #[pymethods]
 impl Searcher {
@@ -32,30 +39,69 @@ impl Searcher {
     /// search results.
     ///
     /// Raises a ValueError if there was an error with the search.
-    #[args(limit = 10, sort_by = "SORT_BY")]
+    #[args(limit = 10, sort_by = "SORT_BY", count = true)]
     fn search(
         &self,
         py: Python,
         query: &Query,
         limit: usize,
+        count: bool,
         sort_by: &str,
-    ) -> PyResult<Vec<(PyObject, DocAddress)>> {
+    ) -> PyResult<SearchResult> {
         let field = match sort_by {
             "" => None,
             field_name => Some(get_field(&self.schema, field_name)?)
         };
 
-        let result = if let Some(f) = field {
-            let collector = tv::collector::TopDocs::with_limit(limit).order_by_u64_field(f);
-            let ret = self.inner.search(&query.inner, &collector).map_err(to_pyerr)?;
-            ret.iter().map(|(f, d)| ((*f).into_py(py), DocAddress::from(d))).collect()
+        let mut multicollector = tv::collector::MultiCollector::new();
+
+        let count_handle = if count {
+            Some(multicollector.add_collector(Count))
         } else {
-            let collector = tv::collector::TopDocs::with_limit(limit);
-            let ret = self.inner.search(&query.inner, &collector).map_err(to_pyerr)?;
-            ret.iter().map(|(f, d)| ((*f).into_py(py), DocAddress::from(d))).collect()
+            None
         };
 
-        Ok(result)
+
+        let (mut multifruit, hits) = match field {
+            Some(f) => {
+                let collector = tv::collector::TopDocs::with_limit(limit).order_by_u64_field(f);
+                let top_docs_handle = multicollector.add_collector(collector);
+                let ret = self.inner.search(&query.inner, &multicollector);
+
+                match ret {
+                    Ok(mut r) => {
+                        let top_docs = top_docs_handle.extract(&mut r);
+                        let result: Vec<(PyObject, DocAddress)> =
+                            top_docs.iter().map(|(f, d)| ((*f).into_py(py), DocAddress::from(d))).collect();
+                        (r, result)
+                    }
+                    Err(e) => return Err(exceptions::ValueError::py_err(e.to_string())),
+                }
+
+            },
+            None => {
+                let collector = tv::collector::TopDocs::with_limit(limit);
+                let top_docs_handle = multicollector.add_collector(collector);
+                let ret = self.inner.search(&query.inner, &multicollector);
+
+                match ret {
+                    Ok(mut r) => {
+                        let top_docs = top_docs_handle.extract(&mut r);
+                        let result: Vec<(PyObject, DocAddress)> =
+                            top_docs.iter().map(|(f, d)| ((*f).into_py(py), DocAddress::from(d))).collect();
+                        (r, result)
+                    }
+                    Err(e) => return Err(exceptions::ValueError::py_err(e.to_string())),
+                }
+            }
+        };
+
+        let count = match count_handle {
+            Some(h) => Some(h.extract(&mut multifruit)),
+            None => None
+        };
+
+        Ok(SearchResult { hits, count })
     }
 
     /// Returns the overall number of documents in the index.
