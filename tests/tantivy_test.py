@@ -77,7 +77,7 @@ class TestClass(object):
         query = index.parse_query("sea whale", ["title", "body"])
 
         result = index.searcher().search(query, 10)
-        assert len(result) == 1
+        assert len(result.hits) == 1
 
     def test_simple_search_after_reuse(self, dir_index):
         index_dir, _ = dir_index
@@ -85,15 +85,15 @@ class TestClass(object):
         query = index.parse_query("sea whale", ["title", "body"])
 
         result = index.searcher().search(query, 10)
-        assert len(result) == 1
+        assert len(result.hits) == 1
 
     def test_simple_search_in_ram(self, ram_index):
         index = ram_index
         query = index.parse_query("sea whale", ["title", "body"])
 
         result = index.searcher().search(query, 10)
-        assert len(result) == 1
-        _, doc_address = result[0]
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["The Old Man and the Sea"]
 
@@ -105,12 +105,12 @@ class TestClass(object):
         result = searcher.search(query, 10)
 
         # summer isn't present
-        assert len(result) == 0
+        assert len(result.hits) == 0
 
         query = index.parse_query("title:men AND body:winter", ["title", "body"])
         result = searcher.search(query)
 
-        assert len(result) == 1
+        assert len(result.hits) == 1
 
     def test_and_query_parser_default_fields(self, ram_index):
         query = ram_index.parse_query("winter", default_field_names=["title"])
@@ -131,40 +131,11 @@ class TestClass(object):
         with pytest.raises(ValueError):
             index.parse_query("bod:men", ["title", "body"])
 
-    def test_sort_by_search(self):
-        schema = (
-            SchemaBuilder()
-            .add_text_field("message", stored=True)
-            .add_unsigned_field("timestamp", fast="single", stored=True)
-            .build()
-        )
-        index = Index(schema)
-        writer = index.writer()
-        doc = Document()
-        doc.add_text("message", "Test message")
-        doc.add_unsigned("timestamp", 1569954264)
-        writer.add_document(doc)
-
-        doc = Document()
-        doc.add_text("message", "Another test message")
-        doc.add_unsigned("timestamp", 1569954280)
-
-        writer.add_document(doc)
-
-        writer.commit()
-        index.reload()
-
-        query = index.parse_query("test")
-        result = index.searcher().search(query, 10, sort_by="timestamp")
-        # assert result[0][0] == first_doc["timestamp"]
-        # assert result[1][0] == second_doc["timestamp"]
-
-
 class TestUpdateClass(object):
     def test_delete_update(self, ram_index):
         query = ram_index.parse_query("Frankenstein", ["title"])
         result = ram_index.searcher().search(query, 10)
-        assert len(result) == 1
+        assert len(result.hits) == 1
 
         writer = ram_index.writer()
 
@@ -179,7 +150,7 @@ class TestUpdateClass(object):
         ram_index.reload()
 
         result = ram_index.searcher().search(query)
-        assert len(result) == 0
+        assert len(result.hits) == 0
 
 
 PATH_TO_INDEX = "tests/test_index/"
