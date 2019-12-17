@@ -79,9 +79,11 @@ impl IndexWriter {
 
     /// Detect and removes the files that are not used by the index anymore.
     fn garbage_collect_files(&mut self) -> PyResult<()> {
-        self.inner_index_writer
-            .garbage_collect_files()
-            .map_err(to_pyerr)
+        use futures::executor::block_on;
+        block_on(self.inner_index_writer
+            .garbage_collect_files())
+            .map_err(to_pyerr)?;
+        Ok(())
     }
 
     /// The opstamp of the last successful commit.
@@ -127,6 +129,12 @@ impl IndexWriter {
             Value::Bytes(_) => {
                 return Err(exceptions::ValueError::py_err(format!(
                     "Field `{}` is bytes type not deletable.",
+                    field_name
+                )))
+            }
+            Value::PreTokStr(pretok) => {
+                return Err(exceptions::ValueError::py_err(format!(
+                    "Field `{}` is pretokenized. This is not authorized for delete.",
                     field_name
                 )))
             }
@@ -332,11 +340,10 @@ impl Index {
                 }
             }
         } else {
-            for (field_id, field_entry) in
-                self.index.schema().fields().iter().enumerate()
+            for (field, field_entry) in self.index.schema().fields()
             {
                 if field_entry.is_indexed() {
-                    default_fields.push(Field(field_id as u32));
+                    default_fields.push(field);
                 }
             }
         }
