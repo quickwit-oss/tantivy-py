@@ -61,11 +61,9 @@ use searcher::{DocAddress, Searcher};
 ///     >>> reader = index.reader()
 ///     >>> searcher = reader.searcher()
 ///
-///     >>> query_parser = tantivy.QueryParser.for_index(index, [title, body])
-///     >>> query = query_parser.parse_query("sea whale")
+///     >>> query = index.parse_query("sea whale", [title, body])
 ///
-///     >>> top_docs = tantivy.TopDocs.with_limit(10)
-///     >>> result = searcher.search(query, top_docs)
+///     >>> result = searcher.search(query, 10)
 ///
 ///     >>> assert len(result) == 1
 ///

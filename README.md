@@ -50,9 +50,8 @@ writer.commit()
 index.reload()
 searcher = index.searcher()
 query = index.parse_query("fish days", ["title", "body"])
-top_docs = tantivy.TopDocs(3)
 
-(best_score, best_doc_address) = searcher.search(query, top_docs)[0]
+(best_score, best_doc_address) = searcher.search(query, 3).hits[0]
 best_doc = searcher.doc(best_doc_address) 
 assert best_doc["title"] == ["The Old Man and the Sea"]
 print(best_doc)
