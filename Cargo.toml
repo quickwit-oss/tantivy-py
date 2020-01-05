@@ -21,4 +21,4 @@ features = ["extension-module"]
 
 [package.metadata.maturin]
 requires-python = ">=3.7"
-project-url = "https://github.com/tantivy-search/tantivy-py"
+project-url = ["https://github.com/tantivy-search/tantivy-py"]
