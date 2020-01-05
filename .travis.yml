@@ -1,19 +1,51 @@
+dist: bionic
+
 language: python
-dist: xenial
+
+services:
+  - docker
+
 python:
-  - '3.6'
-  - '3.7'
+  - 3.7
+  - 3.8
+
 stages:
   - test
   - lint
-  - wheels
+
+cache:
+  pip: true
+  cargo: true
+
+before_cache:
+  - rm -rfv target/debug/incremental/{tantivy,build_script_build,common}-*
+  - rm -rfv target/debug/.fingerprint/tantivy-*
+  - rm -rfv target/debug/build/tantivy-*
+  - rm -rfv target/debug/deps/libtantivy-*
+  - rm -rfv target/debug/deps/tantivy-*
+  - rm -rfv target/debug/{tantivy,libtantivy}.d
+  - cargo clean -p tantivy-py
 
 env:
-  - PATH=$HOME/.cargo/bin:$PATH
+  global:
+    - PIPENV_VERBOSITY=-1
+    - TRAVIS_RUST_VERSION=nightly
+    - RUST_BACKTRACE=1
+
+install:
+  - pip install --upgrade pip
+  - pip install -U pipenv
+  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+  - source "$HOME"/.cargo/env
+  - pipenv install --dev .
+
+before_script:
+  - rustc --version
+  - python --version
 
 matrix:
   include:
-    - python: '3.7'
+    - python: 3.7
       name: 'rust linters'
       install: rustup component add clippy rustfmt
       script:
@@ -21,14 +53,5 @@ matrix:
         - cargo fmt -- --check
       stage: lint
 
-cache:
-  pip: true
-  directories:
-    - $HOME/.cargo
-    - $TRAVIS_BUILD_DIR/target
-
-before_install:
-  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-
-install: pip install -U tox pyo3-pack tox-pyo3 tox-travis
-script: tox
+script:
+  - pipenv run py.test -rws -v tests/
