@@ -15,7 +15,6 @@ use tantivy::collector::{Count, MultiCollector, TopDocs};
 #[pyclass]
 pub(crate) struct Searcher {
     pub(crate) inner: tv::LeasedItem<tv::Searcher>,
-    pub(crate) schema: tv::schema::Schema,
 }
 
 #[pyclass]
