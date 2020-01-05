@@ -1,12 +1,10 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "1c94e878490fee6005d6f867575b7724b9129e90d5f766d8344985bb9b3a4e07"
+            "sha256": "41c202984a446d0a86a392ae69f2ffb01299874a6ef817a8353daddc8bb80175"
         },
         "pipfile-spec": 6,
-        "requires": {
-            "python_version": "3.8"
-        },
+        "requires": {},
         "sources": [
             {
                 "name": "pypi",
@@ -15,7 +13,11 @@
             }
         ]
     },
-    "default": {},
+    "default": {
+        "e1839a8": {
+            "path": "."
+        }
+    },
     "develop": {
         "attrs": {
             "hashes": [
@@ -48,10 +50,10 @@
         },
         "packaging": {
             "hashes": [
-                "sha256:28b924174df7a2fa32c1953825ff29c61e2f5e082343165438812f00d3a7fc47",
-                "sha256:d9551545c6d761f3def1677baf08ab2a3ca17c56879e70fecba2fc4dde4ed108"
+                "sha256:aec3fdbb8bc9e4bb65f0634b9f551ced63983a529d6a8931817d52fdd0816ddb",
+                "sha256:fe1d8331dfa7cc0a883b49d75fc76380b2ab2734b220fbb87d774e4fd4b851f8"
             ],
-            "version": "==19.2"
+            "version": "==20.0"
         },
         "pluggy": {
             "hashes": [

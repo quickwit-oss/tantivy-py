@@ -1,6 +1,5 @@
-dist: bionic
-
 language: python
+dist: bionic
 
 services:
   - docker
@@ -46,21 +45,44 @@ before_script:
 
 jobs:
   include:
+      - os: osx
+        osx_image: xcode11.3
+        language: rust
+        install:
+            - pip3 install -U maturin pytest
+            - maturin list-python
+            - cargo build
+            - cp target/debug/libtantivy.dylib tantivy/tantivy.so
+        script:
+            - python3 -m pytest -v
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
         script:
-          - cargo clippy
-          - cargo fmt -- --check
+            - cargo clippy
+            - cargo fmt -- --check
         stage: lint
 
 script:
   - pipenv run py.test -rws -v tests/
 
 deploy:
-  provider: script
-  script: "ci/deploy.sh"
-  on:
-    tags: true
-    repo: tantivy-search/tantivy-py
-    python: 3.8
+    # Deploy for linux using the manylinux docker image.
+    provider: script
+    script: "ci/deploy.sh"
+    on:
+        tags: true
+        condition: $TRAVIS_OS_NAME = linux
+        repo: tantivy-search/tantivy-py
+        provider: script
+    script: "ci/deploy.sh"
+
+    # Deploy for macos using maturin directly
+    provider: script
+    script:
+        - maturin list-python
+        - maturin publish --interpreter python3.7 --username __token__ --password $MATURIN_PASSWORD --no-sdist
+    on:
+        tags: true
+        condition: $TRAVIS_OS_NAME = osx
+        repo: tantivy-search/tantivy-py
