@@ -9,13 +9,38 @@ Python bindings for tantivy.
 
 # Installation
 
-The bindings can be installed using setuptools:
+The bindings can be installed using from pypi using pip:
 
-    python3 setup.py install --user
+    pip install tantivy-py
 
-Note that this requires setuptools-rust to be installed. Another thing to note
-is that the bindings are using [PyO3](https://github.com/PyO3/pyo3), which
+If no binary wheel is present for your operating system the bindings will be
+build from source, this means that Rust needs to be installed before building
+can succeed.
+
+Note that the bindings are using [PyO3](https://github.com/PyO3/pyo3), which
 requires rust nightly and only supports python3.
+
+# Development
+
+Developing tantivy-py can be done in a virtual environment using `pipenv` or
+using local packages using the provided `Makefile`.
+
+For the `pipenv` setup install the virtual environment and build the bindings using:
+
+    pipenv install --dev
+    pipenv run maturin develop
+
+After the bindings are build, the tests can be run using:
+
+    pipenv run python -m pytest
+
+For the `Makefile` based setup run:
+
+    make
+
+Running the tests is done using:
+
+    make test
 
 # Usage
 
@@ -52,7 +77,7 @@ searcher = index.searcher()
 query = index.parse_query("fish days", ["title", "body"])
 
 (best_score, best_doc_address) = searcher.search(query, 3).hits[0]
-best_doc = searcher.doc(best_doc_address) 
+best_doc = searcher.doc(best_doc_address)
 assert best_doc["title"] == ["The Old Man and the Sea"]
 print(best_doc)
 ```
