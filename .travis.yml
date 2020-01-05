@@ -47,7 +47,6 @@ jobs:
   include:
       - os: osx
         osx_image: xcode11.2
-        language: rust
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
