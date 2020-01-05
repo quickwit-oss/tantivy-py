@@ -11,7 +11,7 @@ use crate::searcher::Searcher;
 use crate::to_pyerr;
 use tantivy as tv;
 use tantivy::directory::MmapDirectory;
-use tantivy::schema::{Field, NamedFieldDocument, Term, Value};
+use tantivy::schema::{NamedFieldDocument, Term, Value};
 
 const RELOAD_POLICY: &str = "commit";
 
@@ -132,7 +132,7 @@ impl IndexWriter {
                     field_name
                 )))
             }
-            Value::PreTokStr(pretok) => {
+            Value::PreTokStr(_pretok) => {
                 return Err(exceptions::ValueError::py_err(format!(
                     "Field `{}` is pretokenized. This is not authorized for delete.",
                     field_name

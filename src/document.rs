@@ -25,7 +25,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
         Value::I64(num) => (*num).into_py(py),
         Value::F64(num) => (*num).into_py(py),
         Value::Bytes(b) => b.to_object(py),
-        Value::PreTokStr(pretoken) => {
+        Value::PreTokStr(_pretoken) => {
             // TODO implement me
             unimplemented!();
         }
@@ -54,7 +54,7 @@ fn value_to_string(value: &Value) -> String {
         Value::Bytes(bytes) => format!("{:?}", bytes),
         Value::Date(d) => format!("{:?}", d),
         Value::Facet(facet) => facet.to_string(),
-        Value::PreTokStr(pretok) => {
+        Value::PreTokStr(_pretok) => {
             // TODO implement me
             unimplemented!();
         }
