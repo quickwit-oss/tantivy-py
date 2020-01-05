@@ -7,4 +7,5 @@ Cargo.lock
 dist/
 __pycache__/
 tantivy.so
+tantivy/tantivy.cpython*.so
 tantivy.egg-info/
