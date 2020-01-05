@@ -56,3 +56,11 @@ jobs:
 
 script:
   - pipenv run py.test -rws -v tests/
+
+deploy:
+  provider: script
+  script: "ci/deploy.sh"
+  on:
+    tags: true
+    repo: tantivy-search/tantivy-py
+    python: 3.8
