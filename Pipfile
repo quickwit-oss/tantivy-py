@@ -1,0 +1,11 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+maturin = ">=0.7.7"
+pytest = ">=4.0"
+
+[requires]
+python_version = "3.8"
