@@ -43,15 +43,15 @@ before_script:
   - rustc --version
   - python --version
 
-matrix:
+jobs:
   include:
-    - python: 3.7
-      name: 'rust linters'
-      install: rustup component add clippy rustfmt
-      script:
-        - cargo clippy
-        - cargo fmt -- --check
-      stage: lint
+      - language: rust
+        name: 'rust linters'
+        install: rustup component add clippy rustfmt
+        script:
+          - cargo clippy
+          - cargo fmt -- --check
+        stage: lint
 
 script:
   - pipenv run py.test -rws -v tests/
