@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "7438584c31033535a2b8484203f99360422c2bb8fdb4ce021ff4fc1cadaf55a3"
+            "sha256": "1c94e878490fee6005d6f867575b7724b9129e90d5f766d8344985bb9b3a4e07"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -23,6 +23,9 @@
                 "sha256:f7b7ce16570fe9965acd6d30101a28f62fb4a7f9e926b3bbc9b61f8b04247e72"
             ],
             "version": "==19.3.0"
+        },
+        "e1839a8": {
+            "path": "."
         },
         "maturin": {
             "hashes": [
