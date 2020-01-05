@@ -4,10 +4,6 @@ dist: bionic
 services:
   - docker
 
-- os:
-  linux
-  osx
-
 python:
   - 3.7
   - 3.8
@@ -49,6 +45,7 @@ before_script:
 
 jobs:
   include:
+      - os: osx
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
