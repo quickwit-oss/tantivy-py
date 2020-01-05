@@ -171,8 +171,14 @@ class TestFromDiskClass(object):
         # runs from the root directory
         assert Index.exists(PATH_TO_INDEX)
 
-    def test_opens_from_dir(self):
-        index = Index(schema(), PATH_TO_INDEX, reuse=True)
+    def test_opens_from_dir_invalid_schema(self):
+        with pytest.raises(ValueError):
+            index = Index(schema(), PATH_TO_INDEX, reuse=True)
+
+    def test_opens_from_dir(self, dir_index):
+        index_dir, _ = dir_index
+
+        index = Index(schema(), str(index_dir), reuse=True)
         assert index.searcher().num_docs == 3
 
     def test_create_readers(self):
