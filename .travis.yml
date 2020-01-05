@@ -1,4 +1,5 @@
 language: python
+dist: bionic
 
 services:
   - docker
@@ -44,8 +45,6 @@ before_script:
 
 jobs:
   include:
-      - os: linux
-        dist: bionic
       - os: osx
       - language: rust
         name: 'rust linters'
