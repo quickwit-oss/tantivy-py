@@ -2,7 +2,7 @@
 
 use crate::document::Document;
 use crate::query::Query;
-use crate::{to_pyerr};
+use crate::to_pyerr;
 use pyo3::exceptions::ValueError;
 use pyo3::prelude::*;
 use pyo3::PyObjectProtocol;

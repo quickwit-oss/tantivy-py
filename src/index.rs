@@ -8,7 +8,7 @@ use crate::document::{extract_value, Document};
 use crate::query::Query;
 use crate::schema::Schema;
 use crate::searcher::Searcher;
-use crate::{to_pyerr, get_field};
+use crate::{get_field, to_pyerr};
 use tantivy as tv;
 use tantivy::directory::MmapDirectory;
 use tantivy::schema::{NamedFieldDocument, Term, Value};
@@ -80,8 +80,7 @@ impl IndexWriter {
     /// Detect and removes the files that are not used by the index anymore.
     fn garbage_collect_files(&mut self) -> PyResult<()> {
         use futures::executor::block_on;
-        block_on(self.inner_index_writer
-            .garbage_collect_files())
+        block_on(self.inner_index_writer.garbage_collect_files())
             .map_err(to_pyerr)?;
         Ok(())
     }
@@ -334,8 +333,7 @@ impl Index {
                 }
             }
         } else {
-            for (field, field_entry) in self.index.schema().fields()
-            {
+            for (field, field_entry) in self.index.schema().fields() {
                 if field_entry.is_indexed() {
                     default_fields.push(field);
                 }
