@@ -132,7 +132,7 @@ impl IndexWriter {
                 )))
             }
         };
-        Ok(self.inner_index_writer.delete_term(term.clone()))
+        Ok(self.inner_index_writer.delete_term(term))
     }
 }
 
