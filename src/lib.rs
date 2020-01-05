@@ -1,5 +1,6 @@
 use pyo3::exceptions;
 use pyo3::prelude::*;
+use tantivy as tv;
 
 mod document;
 mod facet;
@@ -14,7 +15,7 @@ use facet::Facet;
 use index::Index;
 use schema::Schema;
 use schemabuilder::SchemaBuilder;
-use searcher::{DocAddress, Searcher, TopDocs};
+use searcher::{DocAddress, Searcher};
 
 /// Python bindings for the search engine library Tantivy.
 ///
@@ -76,11 +77,21 @@ fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Document>()?;
     m.add_class::<Index>()?;
     m.add_class::<DocAddress>()?;
-    m.add_class::<TopDocs>()?;
     m.add_class::<Facet>()?;
     Ok(())
 }
 
 pub(crate) fn to_pyerr<E: ToString>(err: E) -> PyErr {
     exceptions::ValueError::py_err(err.to_string())
+}
+
+pub(crate) fn get_field(schema: &tv::schema::Schema, field_name: &str) -> PyResult<tv::schema::Field> {
+    let field = schema.get_field(field_name).ok_or_else(|| {
+        exceptions::ValueError::py_err(format!(
+            "Field `{}` is not defined in the schema.",
+                field_name
+        ))
+    })?;
+
+    Ok(field)
 }

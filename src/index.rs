@@ -8,7 +8,7 @@ use crate::document::{extract_value, Document};
 use crate::query::Query;
 use crate::schema::Schema;
 use crate::searcher::Searcher;
-use crate::to_pyerr;
+use crate::{to_pyerr, get_field};
 use tantivy as tv;
 use tantivy::directory::MmapDirectory;
 use tantivy::schema::{NamedFieldDocument, Term, Value};
@@ -111,13 +111,7 @@ impl IndexWriter {
         field_name: &str,
         field_value: &PyAny,
     ) -> PyResult<u64> {
-        let field = self.schema.get_field(field_name).ok_or_else(|| {
-            exceptions::ValueError::py_err(format!(
-                "Field `{}` is not defined in the schema.",
-                field_name
-            ))
-        })?;
-
+        let field = get_field(&self.schema, field_name)?;
         let value = extract_value(field_value)?;
         let term = match value {
             Value::Str(text) => Term::from_field_text(field, &text),
@@ -274,6 +268,7 @@ impl Index {
     fn searcher(&self) -> Searcher {
         Searcher {
             inner: self.reader.searcher(),
+            schema: self.index.schema(),
         }
     }
 
