@@ -1,5 +1,3 @@
-dist: bionic
-
 language: python
 
 services:
@@ -46,6 +44,9 @@ before_script:
 
 jobs:
   include:
+      - os: linux
+        dist: bionic
+      - os: osx
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
@@ -62,5 +63,6 @@ deploy:
   script: "ci/deploy.sh"
   on:
     tags: true
+    condition: $TRAVIS_OS_NAME" == "linux"
     repo: tantivy-search/tantivy-py
     python: 3.8
