@@ -74,8 +74,6 @@ deploy:
         tags: true
         condition: $TRAVIS_OS_NAME = linux
         repo: tantivy-search/tantivy-py
-        provider: script
-    script: "ci/deploy.sh"
 
     # Deploy for macos using maturin directly
     provider: script
