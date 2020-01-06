@@ -68,18 +68,18 @@ script:
 
 deploy:
     # Deploy for linux using the manylinux docker image.
-    provider: script
-    script: "ci/deploy.sh"
-    on:
+    - provider: script
+      script: "ci/deploy.sh"
+      on:
         tags: true
         condition: $TRAVIS_OS_NAME = linux
         repo: tantivy-search/tantivy-py
         python: 3.8
 
     # Deploy for macos using maturin directly
-    provider: script
-    script: "ci/deploy_mac.sh"
-    on:
+    - provider: script
+      script: "ci/deploy_mac.sh"
+      on:
         tags: true
         condition: $TRAVIS_OS_NAME = osx
         repo: tantivy-search/tantivy-py
