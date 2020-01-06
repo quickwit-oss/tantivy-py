@@ -53,6 +53,7 @@ jobs:
             - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
             - source "$HOME"/.cargo/env
             - pipenv install --dev .
+        language: rust
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
