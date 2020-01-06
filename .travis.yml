@@ -59,6 +59,18 @@ jobs:
             - cp target/debug/libtantivy.dylib tantivy/tantivy.so
         script:
             - python3 -m pytest -v
+      - os: windows
+        language: rust
+        install:
+            - choco install python --version 3.8.0
+            - choco install python --version 3.7.5 --side-by-side
+            - python -m pip install --upgrade pip
+            - pip3 install -U maturin pytest
+            - maturin list-python
+            - cargo build
+            - dir target/debug
+            - cp target/debug/tantivy.dll tantivy/tantivy.pyd
+        env: PATH=/c/Python38:/c/Python37:/c/Python38/Scripts:/c/Python37/Scripts:$PATH
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
@@ -86,4 +98,12 @@ deploy:
       on:
         tags: true
         condition: $TRAVIS_OS_NAME = osx
+        repo: tantivy-search/tantivy-py
+
+    # Deploy for windows using maturin directly
+    - provider: script
+      script: maturin publish --username __token__ --password $MATURIN_PASSWORD --no-sdist
+      on:
+        tags: true
+        condition: $TRAVIS_OS_NAME = windows
         repo: tantivy-search/tantivy-py
