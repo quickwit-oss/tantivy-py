@@ -67,10 +67,22 @@ script:
   - pipenv run py.test -rws -v tests/
 
 deploy:
-  provider: script
-  script: "ci/deploy.sh"
-  on:
-    tags: true
-    condition: $TRAVIS_OS_NAME = linux
-    repo: tantivy-search/tantivy-py
-    python: 3.8
+    # Deploy for linux using the manylinux docker image.
+    provider: script
+    script: "ci/deploy.sh"
+    on:
+        tags: true
+        condition: $TRAVIS_OS_NAME = linux
+        repo: tantivy-search/tantivy-py
+        provider: script
+    script: "ci/deploy.sh"
+
+    # Deploy for macos using maturin directly
+    provider: script
+    script:
+        - maturin list-python
+        - maturin publish --interpreter python3.7 --username __token__ --password $MATURIN_PASSWORD --no-sdist
+    on:
+        tags: true
+        condition: $TRAVIS_OS_NAME = osx
+        repo: tantivy-search/tantivy-py
