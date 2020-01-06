@@ -47,16 +47,13 @@ jobs:
   include:
       - os: osx
         osx_image: xcode11.2
+        language: rust
         install:
             - pip3 install -U maturin pytest
-            - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-            - source "$HOME"/.cargo/env
-            - xcode-select --install
             - cargo build
             - cp target/debug/libtantivy.so tantivy/tantivy.so
         script:
             - python3 -m pytest
-        language: rust
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
