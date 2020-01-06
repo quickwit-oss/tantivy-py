@@ -48,10 +48,13 @@ jobs:
       - os: osx
         osx_image: xcode11.2
         install:
-            - pip3 install -U pipenv
+            - pip3 install -U maturin pytest
             - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
             - source "$HOME"/.cargo/env
-            - pipenv --python /usr/local/bin/python3.7 install --dev .
+            - cargo build
+            - cp target/debug/libtantivy.so tantivy/tantivy.so
+        script:
+            - python3 -m pytest
         language: rust
       - language: rust
         name: 'rust linters'

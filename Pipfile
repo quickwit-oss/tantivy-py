@@ -8,5 +8,5 @@ maturin = ">=0.7.7"
 pytest = ">=4.0"
 e1839a8 = {path = "."}
 
-[requires]
-python_version = "3.8"
+[packages]
+e1839a8 = {path = "."}
