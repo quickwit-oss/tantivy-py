@@ -51,7 +51,7 @@ jobs:
             - pip3 install -U pipenv
             - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
             - source "$HOME"/.cargo/env
-            - pipenv install --dev .
+            - pipenv --python /usr/local/bin/python3.7 install --dev .
         language: rust
       - language: rust
         name: 'rust linters'
