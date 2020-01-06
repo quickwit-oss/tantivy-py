@@ -50,7 +50,6 @@ jobs:
         language: rust
         install:
             - pip3 install -U maturin pytest
-            - sudo xcode-select --reset
             - cargo build
             - cp target/debug/libtantivy.so tantivy/tantivy.so
         script:
