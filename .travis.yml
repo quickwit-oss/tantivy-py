@@ -51,7 +51,8 @@ jobs:
         install:
             - pyenv install --list
             - pyenv install 3.8.0
-            - ls /Users/travis/.pyenv/versions/3.8.0
+            - ls /Users/travis/.pyenv/versions/3.8.0/bin
+            - export PATH=/Users/travis/.pyenv/versions/3.8.0/bin:$PATH
             - pip3 install -U maturin pytest
             - maturin list-python
             - cargo build
