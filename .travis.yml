@@ -47,12 +47,18 @@ jobs:
   include:
       - os: osx
         osx_image: xcode11.2
+        install:
+            - pip3 install --ugprade pip
+            - pip3 install -U pipenv
+            - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+            - source "$HOME"/.cargo/env
+            - pipenv install --dev .
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
         script:
-          - cargo clippy
-          - cargo fmt -- --check
+            - cargo clippy
+            - cargo fmt -- --check
         stage: lint
 
 script:
