@@ -46,10 +46,11 @@ before_script:
 jobs:
   include:
       - os: osx
-        osx_image: xcode11.2
+        osx_image: xcode11.3
         language: rust
         install:
             - pip3 install -U maturin pytest
+            - xcode-select --reset
             - cargo build
             - cp target/debug/libtantivy.so tantivy/tantivy.so
         script:
