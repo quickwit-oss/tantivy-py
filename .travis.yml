@@ -69,6 +69,6 @@ deploy:
   script: "ci/deploy.sh"
   on:
     tags: true
-    condition: $TRAVIS_OS_NAME" == "linux"
+    condition: $TRAVIS_OS_NAME = linux
     repo: tantivy-search/tantivy-py
     python: 3.8
