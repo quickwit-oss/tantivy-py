@@ -49,6 +49,7 @@ jobs:
         osx_image: xcode11.3
         language: rust
         install:
+            - pyenv install --list
             - pyenv install 3.8.1
             - pip3 install -U maturin pytest
             - maturin list-python
