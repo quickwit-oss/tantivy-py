@@ -51,7 +51,7 @@ jobs:
         install:
             - pip3 install -U maturin pytest
             - cargo build
-            - cp target/debug/libtantivy.so tantivy/tantivy.so
+            - cp target/debug/libtantivy.dylib tantivy/tantivy.so
         script:
             - python3 -m pytest
       - language: rust
