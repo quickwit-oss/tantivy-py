@@ -74,12 +74,11 @@ deploy:
         tags: true
         condition: $TRAVIS_OS_NAME = linux
         repo: tantivy-search/tantivy-py
+        python: 3.8
 
     # Deploy for macos using maturin directly
     provider: script
-    script:
-        - maturin list-python
-        - maturin publish --interpreter python3.7 --username __token__ --password $MATURIN_PASSWORD --no-sdist
+    script: "ci/deploy_mac.sh"
     on:
         tags: true
         condition: $TRAVIS_OS_NAME = osx
