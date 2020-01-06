@@ -50,10 +50,11 @@ jobs:
         language: rust
         install:
             - pip3 install -U maturin pytest
+            - maturin list-python
             - cargo build
             - cp target/debug/libtantivy.dylib tantivy/tantivy.so
         script:
-            - python3 -m pytest
+            - python3 -m pytest -v
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
