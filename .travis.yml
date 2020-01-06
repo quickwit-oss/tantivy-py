@@ -70,7 +70,7 @@ jobs:
             - cargo build
             - dir target/debug
             - cp target/debug/tantivy.dll tantivy/tantivy.pyd
-        env: PATH=/c/Python37:/c/Python38:/c/Python38/Scripts:$PATH
+        env: PATH=/c/Python38:/c/Python37:/c/Python38/Scripts:/c/Python37/Scripts:$PATH
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
@@ -98,4 +98,12 @@ deploy:
       on:
         tags: true
         condition: $TRAVIS_OS_NAME = osx
+        repo: tantivy-search/tantivy-py
+
+    # Deploy for windows using maturin directly
+    - provider: script
+      script: maturin publish --username __token__ --password $MATURIN_PASSWORD --no-sdist
+      on:
+        tags: true
+        condition: $TRAVIS_OS_NAME = windows
         repo: tantivy-search/tantivy-py
