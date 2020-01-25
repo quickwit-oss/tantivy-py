@@ -1,12 +1,4 @@
-language: python
-dist: bionic
-
-services:
-  - docker
-
-python:
-  - 3.7
-  - 3.8
+language: rust
 
 stages:
   - test
@@ -31,45 +23,56 @@ env:
     - secure: ZR/4EeOZBCa63aYIuSo36c2DsJoRpOUTQo3zcPzOJoxFxvCTYUJnyX8P38hktdcTcpgEm1ALDbsQDZNboJIP80OkLtWbaQNHgP6jFLqbENryyXYmPunbU9QQWOZaFhEJ+kgUun3kBLYoTW0iZFcJ0AHzjogOEenxKan4lFsZG9Wgku8Q0HX0zK8PPk6ZpMASUrmDAUbW/K6fVuxpix+VF6iPeK1IOxnDSn9CMBI6F1Tq46J/kWzMOWthVthjA0G0OiXi4eQN3ysP/o4bYpr1mifiHCssVKpfwmpqoDR3Nka9H39RN8xcn4X+0h5XA+jAVsD4qUfOcg2otkuZST/h0r1Q30/NrxWmxS6PtIImVlOAxotEkrRwt/DT0sXSRbApmyLApPDPKJ16mjm1miAZvXeJOwB1pT9SKqyxlh4+pPOnXUMYVH44XVCTF7C3zsgxMmv3frRbKfcedJAon4UIIZdE3guA83aadTk6HEXXefmAsxEyJDsA3NJJ8Wm5GkGvrFJZnI9X88eYLX0+H+NW/RHi0CCi6JfnsFjmDpXLRkdAxN8fRIaaDBmleir2AFFXYHAPdcM7z/B1HnTTJBbjeezFwb8JvFPZzxIOijxVfIVeoGcOwgpFzm2wHEi0AH4z2KtAzDQnhdhmle3Q4TrCt78e0iFJb1dANbdmhYpe/xI=
 
 install:
-  - pip install --upgrade pip
-  - pip install -U pytest
-  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-  - source "$HOME"/.cargo/env
   - cargo build
-  - cp target/debug/libtantivy.so tantivy/tantivy.so
 
-before_script:
-  - rustc --version
-  - python --version
+script:
+  - python -m pytest -v
 
 jobs:
   include:
+      - os: linux
+        dist: bionic
+        language: python
+        python:
+            - '3.8'
+        services:
+            - docker
+        before_install:
+          - pip install --upgrade pip
+          - pip install -U pytest
+          - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+          - source "$HOME"/.cargo/env
+        before_script:
+          - cp target/debug/libtantivy.so tantivy/tantivy.so
+
       - os: osx
         osx_image: xcode11.3
         language: rust
-        install:
+        before_install:
             - pyenv install --list
             - pyenv install 3.8.0
             - ls /Users/travis/.pyenv/versions/3.8.0/bin
-            - export PATH=/Users/travis/.pyenv/versions/3.8.0/bin:$PATH
             - pip3 install -U maturin pytest
             - maturin list-python
-            - cargo build
+        before_script:
             - cp target/debug/libtantivy.dylib tantivy/tantivy.so
         script:
             - python3 -m pytest -v
+        env: PATH=/Users/travis/.pyenv/versions/3.8.0/bin:$PATH
+
       - os: windows
         language: rust
-        install:
+        before_install:
             - choco install python --version 3.8.0
             - choco install python --version 3.7.5 --side-by-side
             - python -m pip install --upgrade pip
             - pip3 install -U maturin pytest
             - maturin list-python
-            - cargo build
+        before_script:
             - dir target/debug
             - cp target/debug/tantivy.dll tantivy/tantivy.pyd
         env: PATH=/c/Python38:/c/Python37:/c/Python38/Scripts:/c/Python37/Scripts:$PATH
+
       - language: rust
         name: 'rust linters'
         install: rustup component add clippy rustfmt
@@ -77,9 +80,6 @@ jobs:
             - cargo clippy
             - cargo fmt -- --check
         stage: lint
-
-script:
-  - python -m pytest -v
 
 deploy:
     # Deploy for linux using the manylinux docker image.
