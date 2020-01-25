@@ -1,6 +1,6 @@
 [package]
 name = "tantivy"
-version = "0.11.0-rc.7"
+version = "0.11.0-rc.8"
 authors = ["Damir Jelić <poljar@termina.org.uk>"]
 edition = "2018"
 license = "MIT"
