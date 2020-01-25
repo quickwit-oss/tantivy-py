@@ -4,14 +4,14 @@
 tantivy-py
 ==========
 
-Python bindings for tantivy.
+Python bindings for Tantivy.
 
 
 # Installation
 
 The bindings can be installed using from pypi using pip:
 
-    pip install tantivy-py
+    pip install tantivy
 
 If no binary wheel is present for your operating system the bindings will be
 build from source, this means that Rust needs to be installed before building
@@ -22,8 +22,8 @@ requires rust nightly and only supports python3.
 
 # Development
 
-Developing tantivy-py can be done in a virtual environment using `pipenv` or
-using local packages using the provided `Makefile`.
+Setting up a development enviroment can be done in a virtual environment using
+`pipenv` or using local packages using the provided `Makefile`.
 
 For the `pipenv` setup install the virtual environment and build the bindings using:
 
@@ -44,7 +44,7 @@ Running the tests is done using:
 
 # Usage
 
-tantivy-py has a similar API to tantivy. To create a index first a schema
+The Python bindings have a similar API to Tantivy. To create a index first a schema
 needs to be built. After that documents can be added to the index and a reader
 can be created to search the index.
 
