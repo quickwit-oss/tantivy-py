@@ -1,6 +1,6 @@
 [package]
 name = "tantivy"
-version = "0.11.0-rc.8"
+version = "0.12.0-rc.1"
 authors = ["Damir Jelić <poljar@termina.org.uk>"]
 edition = "2018"
 license = "MIT"
@@ -11,9 +11,9 @@ crate-type = ["cdylib"]
 
 [dependencies]
 chrono = "0.4.10"
-tantivy = "0.11.3"
+tantivy = "0.12.0"
 itertools = "0.8.2"
-futures = "0.3.1"
+futures = "0.3.4"
 
 [dependencies.pyo3]
 version = "0.8.5"
