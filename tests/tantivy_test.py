@@ -131,6 +131,75 @@ class TestClass(object):
         with pytest.raises(ValueError):
             index.parse_query("bod:men", ["title", "body"])
 
+    def test_order_by_search(self):
+        schema = (SchemaBuilder()
+            .add_unsigned_field("order", fast="single")
+            .add_text_field("title", stored=True).build()
+        )
+
+        index = Index(schema)
+        writer = index.writer()
+
+        doc = Document()
+        doc.add_unsigned("order", 0)
+        doc.add_text("title", "Test title")
+
+        writer.add_document(doc)
+
+        doc = Document()
+        doc.add_unsigned("order", 2)
+        doc.add_text("title", "Final test title")
+        writer.add_document(doc)
+
+        doc = Document()
+        doc.add_unsigned("order", 1)
+        doc.add_text("title", "Another test title")
+
+
+        writer.add_document(doc)
+
+        writer.commit()
+        index.reload()
+
+        query = index.parse_query("test")
+
+        searcher = index.searcher()
+        result = searcher.search(query, 10, order_by_field="order")
+
+        assert len(result.hits) == 3
+
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Final test title"]
+
+        _, doc_address = result.hits[1]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Another test title"]
+
+        _, doc_address = result.hits[2]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Test title"]
+
+    def test_order_by_search_without_fast_field(self):
+        schema = (SchemaBuilder()
+            .add_unsigned_field("order")
+            .add_text_field("title", stored=True).build()
+        )
+
+        index = Index(schema)
+        writer = index.writer()
+
+        doc = Document()
+        doc.add_unsigned("order", 0)
+        doc.add_text("title", "Test title")
+
+        query = index.parse_query("test")
+
+        searcher = index.searcher()
+        result = searcher.search(query, 10, order_by_field="order")
+        assert len(result.hits) == 0
+
+
 class TestUpdateClass(object):
     def test_delete_update(self, ram_index):
         query = ram_index.parse_query("Frankenstein", ["title"])
