@@ -164,11 +164,7 @@ impl Index {
 
     #[new]
     #[args(reuse = true)]
-    fn new(
-        schema: &Schema,
-        path: Option<&str>,
-        reuse: bool,
-    ) -> PyResult<Self> {
+    fn new(schema: &Schema, path: Option<&str>, reuse: bool) -> PyResult<Self> {
         let index = match path {
             Some(p) => {
                 let directory = MmapDirectory::open(p).map_err(to_pyerr)?;
