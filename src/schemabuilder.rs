@@ -35,10 +35,10 @@ const RECORD: &str = "position";
 #[pymethods]
 impl SchemaBuilder {
     #[new]
-    fn new(obj: &PyRawObject) {
-        obj.init(SchemaBuilder {
+    fn new() -> Self {
+        SchemaBuilder {
             builder: Arc::new(From::from(Some(schema::Schema::builder()))),
-        });
+        }
     }
 
     /// Add a new text field to the schema.

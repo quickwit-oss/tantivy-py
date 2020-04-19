@@ -127,7 +127,7 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     if let Ok(num) = any.extract::<f64>() {
         return Ok(Value::F64(num));
     }
-    if let Ok(py_datetime) = any.downcast_ref::<PyDateTime>() {
+    if let Ok(py_datetime) = any.downcast::<PyDateTime>() {
         let datetime = Utc
             .ymd(
                 py_datetime.get_year(),
@@ -142,14 +142,14 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
             );
         return Ok(Value::Date(datetime));
     }
-    if let Ok(facet) = any.downcast_ref::<Facet>() {
+    if let Ok(facet) = any.extract::<Facet>() {
         return Ok(Value::Facet(facet.inner.clone()));
     }
     Err(to_pyerr(format!("Value unsupported {:?}", any)))
 }
 
 fn extract_value_single_or_list(any: &PyAny) -> PyResult<Vec<Value>> {
-    if let Ok(values) = any.downcast_ref::<PyList>() {
+    if let Ok(values) = any.downcast::<PyList>() {
         values.iter().map(extract_value).collect()
     } else {
         Ok(vec![extract_value(any)?])
@@ -160,20 +160,19 @@ fn extract_value_single_or_list(any: &PyAny) -> PyResult<Vec<Value>> {
 impl Document {
     #[new]
     #[args(kwargs = "**")]
-    fn new(obj: &PyRawObject, kwargs: Option<&PyDict>) -> PyResult<()> {
+    fn new(kwargs: Option<&PyDict>) -> PyResult<Self> {
         let mut document = Document::default();
         if let Some(field_dict) = kwargs {
             document.extend(field_dict)?;
         }
-        obj.init(document);
-        Ok(())
+        Ok(document)
     }
 
     fn extend(&mut self, py_dict: &PyDict) -> PyResult<()> {
         let mut field_values: BTreeMap<String, Vec<tv::schema::Value>> =
             BTreeMap::new();
         for key_value_any in py_dict.items() {
-            if let Ok(key_value) = key_value_any.downcast_ref::<PyTuple>() {
+            if let Ok(key_value) = key_value_any.downcast::<PyTuple>() {
                 if key_value.len() != 2 {
                     continue;
                 }
@@ -192,7 +191,7 @@ impl Document {
         let mut field_values: BTreeMap<String, Vec<tv::schema::Value>> =
             BTreeMap::new();
         for key_value_any in py_dict.items() {
-            if let Ok(key_value) = key_value_any.downcast_ref::<PyTuple>() {
+            if let Ok(key_value) = key_value_any.downcast::<PyTuple>() {
                 if key_value.len() != 2 {
                     continue;
                 }

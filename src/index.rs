@@ -165,11 +165,10 @@ impl Index {
     #[new]
     #[args(reuse = true)]
     fn new(
-        obj: &PyRawObject,
         schema: &Schema,
         path: Option<&str>,
         reuse: bool,
-    ) -> PyResult<()> {
+    ) -> PyResult<Self> {
         let index = match path {
             Some(p) => {
                 let directory = MmapDirectory::open(p).map_err(to_pyerr)?;
@@ -184,8 +183,7 @@ impl Index {
         };
 
         let reader = index.reader().map_err(to_pyerr)?;
-        obj.init(Index { index, reader });
-        Ok(())
+        Ok(Index { index, reader })
     }
 
     /// Create a `IndexWriter` for the index.

@@ -13,6 +13,7 @@ use tantivy::schema;
 /// ancestor of its facet. In the example above, /electronics/tv_and_video/
 /// and /electronics.
 #[pyclass]
+#[derive(Clone)]
 pub(crate) struct Facet {
     pub(crate) inner: schema::Facet,
 }
