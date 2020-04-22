@@ -1,8 +1,10 @@
 [package]
 name = "tantivy"
 version = "0.12.0-rc.1"
+readme = "README.md"
 authors = ["Damir Jelić <poljar@termina.org.uk>"]
 edition = "2018"
+license-file = "LICENSE"
 license = "MIT"
 
 [lib]
