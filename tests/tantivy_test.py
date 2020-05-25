@@ -5,7 +5,7 @@ from tantivy import Document, Index, SchemaBuilder, Schema
 
 
 def schema():
-    return SchemaBuilder().add_text_field("title", stored=True).add_text_field("body").build()
+    return SchemaBuilder().add_text_field("title", stored=True).add_text_field("body").add_facet_field("facet").build()
 
 def create_index(dir=None):
     # assume all tests will use the same documents for now
@@ -27,6 +27,7 @@ def create_index(dir=None):
             "now without taking a fish."
         ),
     )
+    doc.add_facet('facet', tantivy.Facet.from_string("/mytag"))
     writer.add_document(doc)
     # 2 use the built-in json support
     # keys need to coincide with field names
@@ -117,13 +118,39 @@ class TestClass(object):
         assert repr(query) == """Query(TermQuery(Term(field=0,bytes=[119, 105, 110, 116, 101, 114])))"""
 
     def test_and_query_parser_default_fields_undefined(self, ram_index):
-        query = ram_index.parse_query("winter")
+        query = ram_index.parse_query("/winter")
         assert (
             repr(query) == "Query(BooleanQuery { subqueries: ["
             "(Should, TermQuery(Term(field=0,bytes=[119, 105, 110, 116, 101, 114]))), "
-            "(Should, TermQuery(Term(field=1,bytes=[119, 105, 110, 116, 101, 114])))] "
+            "(Should, TermQuery(Term(field=1,bytes=[119, 105, 110, 116, 101, 114]))), "
+            "(Should, TermQuery(Term(field=2,bytes=[119, 105, 110, 116, 101, 114])))] "
             "})"
         )
+
+    def test_and_query_parser_default_fields_facets(self, ram_index):
+        index = ram_index
+        query = index.parse_query("old", default_field_names=["title", "body"], filters={"facet": ["/mytag"]})
+        # look for an intersection of documents
+        searcher = index.searcher()
+        result = searcher.search(query, 10)
+        assert result.count == 1
+
+        query = index.parse_query("old", default_field_names=["title", "body"], filters={"facet": ["/wrongtag"]})
+        # look for an intersection of documents
+        searcher = index.searcher()
+        result = searcher.search(query, 10)
+        assert result.count == 0
+
+    def test_search_facets(self, ram_index):
+        index = ram_index
+        query = index.parse_query("old", default_field_names=["title", "body"])
+        # look for an intersection of documents
+        searcher = index.searcher()
+        result = searcher.search(query, 10, facets={"facet": ["/"]})
+        assert result.count == 1
+        assert ('/mytag', 1) in result.facets['facet'] 
+
+
 
     def test_query_errors(self, ram_index):
         index = ram_index
