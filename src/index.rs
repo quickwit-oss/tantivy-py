@@ -2,7 +2,7 @@
 
 use pyo3::exceptions;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict, PyTuple, PyList};
+use pyo3::types::{PyAny, PyDict, PyList, PyTuple};
 
 use crate::{
     document::{extract_value, Document},
@@ -310,7 +310,7 @@ impl Index {
         &self,
         query: &str,
         default_field_names: Option<Vec<String>>,
-        filters: Option<&PyDict>
+        filters: Option<&PyDict>,
     ) -> PyResult<Query> {
         let mut default_fields = vec![];
         let schema = self.index.schema();
@@ -361,13 +361,20 @@ impl Index {
                         ))
                     })?;
 
-                    if let Ok(value_list) = key_value.get_item(1).downcast::<PyList>() {
+                    if let Ok(value_list) =
+                        key_value.get_item(1).downcast::<PyList>()
+                    {
                         for value_element in value_list {
                             if let Ok(s) = value_element.extract::<String>() {
                                 let facet = tv::schema::Facet::from_text(&s);
-                                let term = tv::schema::Term::from_facet(field, &facet);
-                                let term_query = tv::query::TermQuery::new(term, tv::schema::IndexRecordOption::Basic);
-                                let query: Box<dyn tv::query::Query> = Box::new(term_query);
+                                let term =
+                                    tv::schema::Term::from_facet(field, &facet);
+                                let term_query = tv::query::TermQuery::new(
+                                    term,
+                                    tv::schema::IndexRecordOption::Basic,
+                                );
+                                let query: Box<dyn tv::query::Query> =
+                                    Box::new(term_query);
                                 query_vec.push((tv::query::Occur::Must, query));
                             }
                         }
@@ -375,7 +382,9 @@ impl Index {
                 }
             }
             let boolean_query = tv::query::BooleanQuery::from(query_vec);
-            return Ok(Query { inner: Box::new(boolean_query) })
+            return Ok(Query {
+                inner: Box::new(boolean_query),
+            });
         }
 
         Ok(Query { inner: query })
