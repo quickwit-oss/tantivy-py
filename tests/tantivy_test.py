@@ -129,13 +129,13 @@ class TestClass(object):
 
     def test_and_query_parser_default_fields_facets(self, ram_index):
         index = ram_index
-        query = index.parse_query("old", default_field_names=["title", "body"], filters={"facet": ["/mytag"]})
+        query = index.parse_query("old +facet:/mytag", default_field_names=["title", "body"])
         # look for an intersection of documents
         searcher = index.searcher()
         result = searcher.search(query, 10)
         assert result.count == 1
 
-        query = index.parse_query("old", default_field_names=["title", "body"], filters={"facet": ["/wrongtag"]})
+        query = index.parse_query("old +facet:/wrong", default_field_names=["title", "body"])
         # look for an intersection of documents
         searcher = index.searcher()
         result = searcher.search(query, 10)
