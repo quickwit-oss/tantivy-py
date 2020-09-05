@@ -98,12 +98,13 @@ impl Searcher {
     /// Returns `SearchResult` object.
     ///
     /// Raises a ValueError if there was an error with the search.
-    #[args(limit = 10, count = true)]
+    #[args(limit = 10, offset = 0, count = true)]
     fn search(
         &self,
         _py: Python,
         query: &Query,
         limit: usize,
+        offset: usize, 
         count: bool,
         order_by_field: Option<&str>,
     ) -> PyResult<SearchResult> {
@@ -119,7 +120,7 @@ impl Searcher {
             if let Some(order_by) = order_by_field {
                 let field = get_field(&self.inner.index().schema(), order_by)?;
                 let collector =
-                    TopDocs::with_limit(limit).order_by_u64_field(field);
+                    TopDocs::with_limit(limit).and_offset(offset).order_by_u64_field(field);
                 let top_docs_handle = multicollector.add_collector(collector);
                 let ret = self.inner.search(&query.inner, &multicollector);
 
@@ -137,7 +138,7 @@ impl Searcher {
                     Err(e) => return Err(ValueError::py_err(e.to_string())),
                 }
             } else {
-                let collector = TopDocs::with_limit(limit);
+                let collector = TopDocs::with_limit(limit).and_offset(offset);
                 let top_docs_handle = multicollector.add_collector(collector);
                 let ret = self.inner.search(&query.inner, &multicollector);
 
