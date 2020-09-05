@@ -13,7 +13,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 chrono = "0.4.11"
-tantivy = "0.13.0"
+tantivy = "0.12.0"
 itertools = "0.9.0"
 futures = "0.3.4"
 
