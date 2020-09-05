@@ -104,7 +104,7 @@ impl Searcher {
         _py: Python,
         query: &Query,
         limit: usize,
-        offset: usize, 
+        offset: usize,
         count: bool,
         order_by_field: Option<&str>,
     ) -> PyResult<SearchResult> {
@@ -119,8 +119,9 @@ impl Searcher {
         let (mut multifruit, hits) = {
             if let Some(order_by) = order_by_field {
                 let field = get_field(&self.inner.index().schema(), order_by)?;
-                let collector =
-                    TopDocs::with_limit(limit).and_offset(offset).order_by_u64_field(field);
+                let collector = TopDocs::with_limit(limit)
+                    .and_offset(offset)
+                    .order_by_u64_field(field);
                 let top_docs_handle = multicollector.add_collector(collector);
                 let ret = self.inner.search(&query.inner, &multicollector);
 
