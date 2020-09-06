@@ -94,7 +94,7 @@ impl Searcher {
     ///         should be ordered by. The field must be declared as a fast field
     ///         when building the schema. Note, this only works for unsigned
     ///         fields.
-    ///     offset (Field, optional): The offset from which the results have 
+    ///     offset (Field, optional): The offset from which the results have
     ///         to be returned.
     ///
     /// Returns `SearchResult` object.
@@ -108,7 +108,7 @@ impl Searcher {
         limit: usize,
         count: bool,
         order_by_field: Option<&str>,
-        offset: usize
+        offset: usize,
     ) -> PyResult<SearchResult> {
         let mut multicollector = MultiCollector::new();
 
