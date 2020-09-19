@@ -3,7 +3,7 @@
 use crate::document::Document;
 use crate::query::Query;
 use crate::{get_field, to_pyerr};
-use pyo3::exceptions::ValueError;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::PyObjectProtocol;
 use tantivy as tv;
@@ -125,7 +125,7 @@ impl Searcher {
                     .and_offset(offset)
                     .order_by_u64_field(field);
                 let top_docs_handle = multicollector.add_collector(collector);
-                let ret = self.inner.search(&query.inner, &multicollector);
+                let ret = self.inner.search(&query.get(), &multicollector);
 
                 match ret {
                     Ok(mut r) => {
@@ -138,12 +138,12 @@ impl Searcher {
                             .collect();
                         (r, result)
                     }
-                    Err(e) => return Err(ValueError::py_err(e.to_string())),
+                    Err(e) => return Err(PyValueError::new_err(e.to_string())),
                 }
             } else {
                 let collector = TopDocs::with_limit(limit).and_offset(offset);
                 let top_docs_handle = multicollector.add_collector(collector);
-                let ret = self.inner.search(&query.inner, &multicollector);
+                let ret = self.inner.search(&query.get(), &multicollector);
 
                 match ret {
                     Ok(mut r) => {
@@ -156,7 +156,7 @@ impl Searcher {
                             .collect();
                         (r, result)
                     }
-                    Err(e) => return Err(ValueError::py_err(e.to_string())),
+                    Err(e) => return Err(PyValueError::new_err(e.to_string())),
                 }
             }
         };

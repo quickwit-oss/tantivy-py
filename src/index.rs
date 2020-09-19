@@ -1,5 +1,7 @@
 #![allow(clippy::new_ret_no_self)]
 
+use std::sync::Arc;
+
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
@@ -120,13 +122,13 @@ impl IndexWriter {
             Value::Date(d) => Term::from_field_date(field, &d),
             Value::Facet(facet) => Term::from_facet(field, &facet),
             Value::Bytes(_) => {
-                return Err(exceptions::ValueError::py_err(format!(
+                return Err(exceptions::PyValueError::new_err(format!(
                     "Field `{}` is bytes type not deletable.",
                     field_name
                 )))
             }
             Value::PreTokStr(_pretok) => {
-                return Err(exceptions::ValueError::py_err(format!(
+                return Err(exceptions::PyValueError::new_err(format!(
                     "Field `{}` is pretokenized. This is not authorized for delete.",
                     field_name
                 )))
@@ -232,7 +234,7 @@ impl Index {
             "on-commit" => tv::ReloadPolicy::OnCommit,
             "oncommit" => tv::ReloadPolicy::OnCommit,
             "manual" => tv::ReloadPolicy::Manual,
-            _ => return Err(exceptions::ValueError::py_err(
+            _ => return Err(exceptions::PyValueError::new_err(
                 "Invalid reload policy, valid choices are: 'manual' and 'OnCommit'"
             ))
         };
@@ -313,14 +315,16 @@ impl Index {
                 if let Some(field) = schema.get_field(default_field_name) {
                     let field_entry = schema.get_field_entry(field);
                     if !field_entry.is_indexed() {
-                        return Err(exceptions::ValueError::py_err(format!(
+                        return Err(exceptions::PyValueError::new_err(
+                            format!(
                             "Field `{}` is not set as indexed in the schema.",
                             default_field_name
-                        )));
+                        ),
+                        ));
                     }
                     default_fields.push(field);
                 } else {
-                    return Err(exceptions::ValueError::py_err(format!(
+                    return Err(exceptions::PyValueError::new_err(format!(
                         "Field `{}` is not defined in the schema.",
                         default_field_name
                     )));
@@ -335,7 +339,11 @@ impl Index {
         }
         let parser =
             tv::query::QueryParser::for_index(&self.index, default_fields);
-        let query = parser.parse_query(query).map_err(to_pyerr)?;
-        Ok(Query { inner: query })
+        parser.parse_query(query).map_err(to_pyerr)?;
+
+        Ok(Query {
+            query: Arc::new(query.to_owned()),
+            parser,
+        })
     }
 }
