@@ -339,8 +339,6 @@ impl Index {
             tv::query::QueryParser::for_index(&self.index, default_fields);
         let query = parser.parse_query(query).map_err(to_pyerr)?;
 
-        Ok(Query {
-            inner: query,
-        })
+        Ok(Query { inner: query })
     }
 }
