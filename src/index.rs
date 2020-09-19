@@ -1,7 +1,5 @@
 #![allow(clippy::new_ret_no_self)]
 
-use std::sync::Arc;
-
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
@@ -339,11 +337,10 @@ impl Index {
         }
         let parser =
             tv::query::QueryParser::for_index(&self.index, default_fields);
-        parser.parse_query(query).map_err(to_pyerr)?;
+        let query = parser.parse_query(query).map_err(to_pyerr)?;
 
         Ok(Query {
-            query: Arc::new(query.to_owned()),
-            parser,
+            inner: query,
         })
     }
 }

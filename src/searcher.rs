@@ -125,7 +125,7 @@ impl Searcher {
                     .and_offset(offset)
                     .order_by_u64_field(field);
                 let top_docs_handle = multicollector.add_collector(collector);
-                let ret = self.inner.search(&query.get(), &multicollector);
+                let ret = self.inner.search(query.get(), &multicollector);
 
                 match ret {
                     Ok(mut r) => {
@@ -143,7 +143,7 @@ impl Searcher {
             } else {
                 let collector = TopDocs::with_limit(limit).and_offset(offset);
                 let top_docs_handle = multicollector.add_collector(collector);
-                let ret = self.inner.search(&query.get(), &multicollector);
+                let ret = self.inner.search(query.get(), &multicollector);
 
                 match ret {
                     Ok(mut r) => {
