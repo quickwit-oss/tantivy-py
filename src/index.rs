@@ -1,17 +1,20 @@
 #![allow(clippy::new_ret_no_self)]
 
-use pyo3::exceptions;
-use pyo3::prelude::*;
-use pyo3::types::PyAny;
+use pyo3::{exceptions, prelude::*, types::PyAny};
 
-use crate::document::{extract_value, Document};
-use crate::query::Query;
-use crate::schema::Schema;
-use crate::searcher::Searcher;
-use crate::{get_field, to_pyerr};
+use crate::{
+    document::{extract_value, Document},
+    get_field,
+    query::Query,
+    schema::Schema,
+    searcher::Searcher,
+    to_pyerr,
+};
 use tantivy as tv;
-use tantivy::directory::MmapDirectory;
-use tantivy::schema::{NamedFieldDocument, Term, Value};
+use tantivy::{
+    directory::MmapDirectory,
+    schema::{NamedFieldDocument, Term, Value},
+};
 
 const RELOAD_POLICY: &str = "commit";
 

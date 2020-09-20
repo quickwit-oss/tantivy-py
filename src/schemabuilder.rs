@@ -1,7 +1,6 @@
 #![allow(clippy::new_ret_no_self)]
 
-use pyo3::exceptions;
-use pyo3::prelude::*;
+use pyo3::{exceptions, prelude::*};
 
 use tantivy::schema;
 

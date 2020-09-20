@@ -1,5 +1,4 @@
-use pyo3::exceptions;
-use pyo3::prelude::*;
+use pyo3::{exceptions, prelude::*};
 use tantivy as tv;
 
 mod document;

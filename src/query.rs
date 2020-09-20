@@ -1,5 +1,4 @@
-use pyo3::prelude::*;
-use pyo3::PyObjectProtocol;
+use pyo3::{prelude::*, PyObjectProtocol};
 use tantivy as tv;
 
 /// Tantivy's Query

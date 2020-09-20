@@ -1,11 +1,7 @@
 #![allow(clippy::new_ret_no_self)]
 
-use crate::document::Document;
-use crate::query::Query;
-use crate::{get_field, to_pyerr};
-use pyo3::exceptions::PyValueError;
-use pyo3::prelude::*;
-use pyo3::PyObjectProtocol;
+use crate::{document::Document, get_field, query::Query, to_pyerr};
+use pyo3::{exceptions::PyValueError, prelude::*, PyObjectProtocol};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
 
