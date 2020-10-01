@@ -97,9 +97,13 @@ impl fmt::Debug for Document {
             .field_values
             .iter()
             .map(|(field_name, field_values)| {
-                let mut values_str =
-                    field_values.iter().map(value_to_string).join(",");
-                values_str.truncate(10);
+                let values_str: String = field_values
+                    .iter()
+                    .map(value_to_string)
+                    .join(",")
+                    .chars()
+                    .take(10)
+                    .collect();
                 format!("{}=[{}]", field_name, values_str)
             })
             .join(",");

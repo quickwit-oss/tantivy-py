@@ -301,6 +301,10 @@ class TestDocument(object):
         doc = tantivy.Document(name="Bill", reference=[1, 2])
         assert repr(doc) == "Document(name=[Bill],reference=[1,2])"
 
+    def test_document_repr_utf8(self):
+        doc = tantivy.Document(name="野菜食べないとやばい", reference=[1, 2])
+        assert repr(doc) == "Document(name=[野菜食べないとやばい],reference=[1,2])"
+
     def test_document_with_facet(self):
         doc = tantivy.Document()
         facet = tantivy.Facet.from_string("/europe/france")
