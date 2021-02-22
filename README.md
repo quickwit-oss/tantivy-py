@@ -18,7 +18,7 @@ build from source, this means that Rust needs to be installed before building
 can succeed.
 
 Note that the bindings are using [PyO3](https://github.com/PyO3/pyo3), which
-requires rust nightly and only supports python3.
+only supports python3.
 
 # Development
 
