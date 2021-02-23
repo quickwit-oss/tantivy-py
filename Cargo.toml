@@ -17,9 +17,9 @@ itertools = "0.9.0"
 futures = "0.3.5"
 
 [dependencies.pyo3]
-version = "0.12.1"
+version = "0.13.2"
 features = ["extension-module"]
 
 [package.metadata.maturin]
 requires-python = ">=3.7"
-project-url = ["https://github.com/tantivy-search/tantivy-py"]
+project-url =  { Source = "https://github.com/tantivy-search/tantivy-py" }
