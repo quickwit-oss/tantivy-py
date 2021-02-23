@@ -71,9 +71,13 @@ jobs:
             - cp target/debug/tantivy.dll tantivy/tantivy.pyd
         env: PATH=/c/Python38:/c/Python37:/c/Python38/Scripts:/c/Python37/Scripts:$PATH
 
-      - name: 'rust linters'
+      - os: linux
+        dist: bionic
+        python: 3.8
+        name: 'rust linters'
         install: rustup component add clippy rustfmt
         script:
+            - python3 --version
             - cargo clippy
             - cargo fmt -- --check
         stage: lint
