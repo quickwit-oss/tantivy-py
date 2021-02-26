@@ -190,7 +190,13 @@ class TestClass(object):
 
         query = index.parse_query("test")
 
+
         searcher = index.searcher()
+
+        result = searcher.search(query, 10, offset=2, order_by_field="order")
+
+        assert len(result.hits) == 1
+
         result = searcher.search(query, 10, order_by_field="order")
 
         assert len(result.hits) == 3
@@ -321,6 +327,10 @@ class TestDocument(object):
     def test_document_repr(self):
         doc = tantivy.Document(name="Bill", reference=[1, 2])
         assert repr(doc) == "Document(name=[Bill],reference=[1,2])"
+
+    def test_document_repr_utf8(self):
+        doc = tantivy.Document(name="野菜食べないとやばい", reference=[1, 2])
+        assert repr(doc) == "Document(name=[野菜食べないとやばい],reference=[1,2])"
 
     def test_document_with_facet(self):
         doc = tantivy.Document()

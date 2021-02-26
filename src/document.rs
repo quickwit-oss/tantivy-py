@@ -2,20 +2,20 @@
 #![allow(clippy::wrong_self_convention)]
 
 use itertools::Itertools;
-use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDateTime, PyDict, PyList, PyTuple};
-use pyo3::types::{PyDateAccess, PyTimeAccess};
+use pyo3::{
+    prelude::*,
+    types::{
+        PyAny, PyDateAccess, PyDateTime, PyDict, PyList, PyTimeAccess, PyTuple,
+    },
+};
 
-use chrono::offset::TimeZone;
-use chrono::{Datelike, Timelike, Utc};
+use chrono::{offset::TimeZone, Datelike, Timelike, Utc};
 
 use tantivy as tv;
 
-use crate::facet::Facet;
-use crate::to_pyerr;
+use crate::{facet::Facet, to_pyerr};
 use pyo3::{PyMappingProtocol, PyObjectProtocol};
-use std::collections::BTreeMap;
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 use tantivy::schema::Value;
 
 fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
@@ -97,9 +97,13 @@ impl fmt::Debug for Document {
             .field_values
             .iter()
             .map(|(field_name, field_values)| {
-                let mut values_str =
-                    field_values.iter().map(value_to_string).join(",");
-                values_str.truncate(10);
+                let values_str: String = field_values
+                    .iter()
+                    .map(value_to_string)
+                    .join(",")
+                    .chars()
+                    .take(10)
+                    .collect();
                 format!("{}=[{}]", field_name, values_str)
             })
             .join(",");

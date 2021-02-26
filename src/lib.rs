@@ -1,5 +1,4 @@
-use pyo3::exceptions;
-use pyo3::prelude::*;
+use pyo3::{exceptions, prelude::*};
 use tantivy as tv;
 
 mod document;
@@ -80,7 +79,7 @@ fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 pub(crate) fn to_pyerr<E: ToString>(err: E) -> PyErr {
-    exceptions::ValueError::py_err(err.to_string())
+    exceptions::PyValueError::new_err(err.to_string())
 }
 
 pub(crate) fn get_field(
@@ -88,7 +87,7 @@ pub(crate) fn get_field(
     field_name: &str,
 ) -> PyResult<tv::schema::Field> {
     let field = schema.get_field(field_name).ok_or_else(|| {
-        exceptions::ValueError::py_err(format!(
+        exceptions::PyValueError::new_err(format!(
             "Field `{}` is not defined in the schema.",
             field_name
         ))

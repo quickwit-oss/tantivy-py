@@ -1,7 +1,6 @@
 #![allow(clippy::new_ret_no_self)]
 
-use pyo3::exceptions;
-use pyo3::prelude::*;
+use pyo3::{exceptions, prelude::*};
 
 use tantivy::schema;
 
@@ -77,7 +76,7 @@ impl SchemaBuilder {
             "position" => schema::IndexRecordOption::WithFreqsAndPositions,
             "freq" => schema::IndexRecordOption::WithFreqs,
             "basic" => schema::IndexRecordOption::Basic,
-            _ => return Err(exceptions::ValueError::py_err(
+            _ => return Err(exceptions::PyValueError::new_err(
                 "Invalid index option, valid choices are: 'basic', 'freq' and 'position'"
             ))
         };
@@ -97,7 +96,7 @@ impl SchemaBuilder {
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_text_field(name, options);
         } else {
-            return Err(exceptions::ValueError::py_err(
+            return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
             ));
         }
@@ -139,7 +138,7 @@ impl SchemaBuilder {
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_i64_field(name, opts);
         } else {
-            return Err(exceptions::ValueError::py_err(
+            return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
             ));
         }
@@ -181,7 +180,7 @@ impl SchemaBuilder {
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_u64_field(name, opts);
         } else {
-            return Err(exceptions::ValueError::py_err(
+            return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
             ));
         }
@@ -223,7 +222,7 @@ impl SchemaBuilder {
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_date_field(name, opts);
         } else {
-            return Err(exceptions::ValueError::py_err(
+            return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
             ));
         }
@@ -239,7 +238,7 @@ impl SchemaBuilder {
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_facet_field(name);
         } else {
-            return Err(exceptions::ValueError::py_err(
+            return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
             ));
         }
@@ -260,7 +259,7 @@ impl SchemaBuilder {
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_bytes_field(name);
         } else {
-            return Err(exceptions::ValueError::py_err(
+            return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
             ));
         }
@@ -277,7 +276,7 @@ impl SchemaBuilder {
             let schema = builder.build();
             Ok(Schema { inner: schema })
         } else {
-            Err(exceptions::ValueError::py_err(
+            Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
             ))
         }
@@ -301,7 +300,7 @@ impl SchemaBuilder {
                 match f.as_ref() {
                     "single" => Some(schema::Cardinality::SingleValue),
                     "multi" => Some(schema::Cardinality::MultiValues),
-                    _ => return Err(exceptions::ValueError::py_err(
+                    _ => return Err(exceptions::PyValueError::new_err(
                         "Invalid index option, valid choices are: 'multivalue' and 'singlevalue'"
                     )),
                 }

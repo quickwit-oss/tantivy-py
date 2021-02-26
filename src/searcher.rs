@@ -1,13 +1,10 @@
 #![allow(clippy::new_ret_no_self)]
 
-use crate::document::Document;
-use crate::query::Query;
-use crate::{get_field, to_pyerr};
 use pyo3::exceptions::ValueError;
-use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
-use pyo3::PyObjectProtocol;
 use std::collections::BTreeMap;
+use crate::{document::Document, get_field, query::Query, to_pyerr};
+use pyo3::{exceptions::PyValueError, prelude::*, PyObjectProtocol};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
 
@@ -113,11 +110,13 @@ impl Searcher {
     ///         fields.
     ///     facets (PyDict, optional): A dictionary of facet fields and keys to
     ///         filter.
+    ///     offset (Field, optional): The offset from which the results have
+    ///         to be returned.
     ///
     /// Returns `SearchResult` object.
     ///
     /// Raises a ValueError if there was an error with the search.
-    #[args(limit = 10, count = true)]
+    #[args(limit = 10, offset = 0, count = true)]
     fn search(
         &self,
         _py: Python,
@@ -126,6 +125,7 @@ impl Searcher {
         count: bool,
         order_by_field: Option<&str>,
         facets: Option<&PyDict>,
+        offset: usize,
     ) -> PyResult<SearchResult> {
         let mut multicollector = MultiCollector::new();
 
@@ -169,10 +169,11 @@ impl Searcher {
         let (mut multifruit, hits) = {
             if let Some(order_by) = order_by_field {
                 let field = get_field(&self.inner.index().schema(), order_by)?;
-                let collector =
-                    TopDocs::with_limit(limit).order_by_u64_field(field);
+                let collector = TopDocs::with_limit(limit)
+                    .and_offset(offset)
+                    .order_by_u64_field(field);
                 let top_docs_handle = multicollector.add_collector(collector);
-                let ret = self.inner.search(&query.inner, &multicollector);
+                let ret = self.inner.search(query.get(), &multicollector);
 
                 match ret {
                     Ok(mut r) => {
@@ -185,12 +186,12 @@ impl Searcher {
                             .collect();
                         (r, result)
                     }
-                    Err(e) => return Err(ValueError::py_err(e.to_string())),
+                    Err(e) => return Err(PyValueError::new_err(e.to_string())),
                 }
             } else {
-                let collector = TopDocs::with_limit(limit);
+                let collector = TopDocs::with_limit(limit).and_offset(offset);
                 let top_docs_handle = multicollector.add_collector(collector);
-                let ret = self.inner.search(&query.inner, &multicollector);
+                let ret = self.inner.search(query.get(), &multicollector);
 
                 match ret {
                     Ok(mut r) => {
@@ -203,7 +204,7 @@ impl Searcher {
                             .collect();
                         (r, result)
                     }
-                    Err(e) => return Err(ValueError::py_err(e.to_string())),
+                    Err(e) => return Err(PyValueError::new_err(e.to_string())),
                 }
             }
         };
