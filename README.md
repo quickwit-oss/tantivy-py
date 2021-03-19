@@ -22,7 +22,7 @@ only supports python3.
 
 # Development
 
-Setting up a development enviroment can be done in a virtual environment using
+Setting up a development environment can be done in a virtual environment using
 `pipenv` or using local packages using the provided `Makefile`.
 
 For the `pipenv` setup install the virtual environment and build the bindings using:
