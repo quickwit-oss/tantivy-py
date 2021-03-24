@@ -258,7 +258,7 @@ impl SchemaBuilder {
         name: &str,
         stored: bool,
         indexed: bool,
-        fast: bool
+        fast: bool,
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
         let opts = SchemaBuilder::build_bytes_option(stored, indexed, fast)?;
