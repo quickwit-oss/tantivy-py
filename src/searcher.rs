@@ -1,13 +1,9 @@
 #![allow(clippy::new_ret_no_self)]
 
-use crate::document::Document;
-use crate::query::Query;
-use crate::{get_field, to_pyerr};
-use pyo3::exceptions::PyValueError;
-use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
-use pyo3::PyObjectProtocol;
 use std::collections::BTreeMap;
+use crate::{document::Document, get_field, query::Query, to_pyerr};
+use pyo3::{exceptions::PyValueError, prelude::*, PyObjectProtocol};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
 
@@ -51,7 +47,7 @@ pub(crate) struct SearchResult {
     #[pyo3(get)]
     /// How many documents matched the query. Only available if `count` was set
     /// to true during the search.
-    count: Option<usize>
+    count: Option<usize>,
 }
 
 #[pyproto]
@@ -129,8 +125,8 @@ impl Searcher {
         limit: usize,
         count: bool,
         order_by_field: Option<&str>,
-        offset: usize,
         facets: Option<&PyDict>,
+        offset: usize,
     ) -> PyResult<SearchResult> {
         let mut multicollector = MultiCollector::new();
 
@@ -162,7 +158,6 @@ impl Searcher {
                             if let Ok(s) = value_element.extract::<String>() {
                                 facet_collector.add_facet(&s);
                             }
-
                         }
                         let facet_handler =
                             multicollector.add_collector(facet_collector);
@@ -255,7 +250,7 @@ impl Searcher {
                             }
                         }
                     }
-                    None => println!("Not found.")
+                    None => println!("Not found."),
                 }
             }
             facets_result.insert(key.clone(), facet_vec);
