@@ -89,6 +89,8 @@ impl SearchResult {
     }
 
     #[getter]
+    /// The list of facets that are requested on the search based on the
+    /// search results.
     fn facets(
         &self,
         _py: Python,
@@ -270,17 +272,6 @@ impl Searcher {
     #[getter]
     fn num_docs(&self) -> u64 {
         self.inner.num_docs()
-    }
-
-    fn docn(&self, seg_doc: &PyTuple) -> PyResult<Document> {
-        let seg: u32 = seg_doc.get_item(0).extract()?;
-        let doc: u32 = seg_doc.get_item(1).extract()?;
-        let address = tv::DocAddress(seg, doc);
-        let doc = self.inner.doc(address).map_err(to_pyerr)?;
-        let named_doc = self.inner.schema().to_named_doc(&doc);
-        Ok(Document {
-            field_values: named_doc.0,
-        })
     }
 
     /// Fetches a document from Tantivy's store given a DocAddress.
