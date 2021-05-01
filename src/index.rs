@@ -261,9 +261,9 @@ impl Index {
     /// you probably should configure the Index to have a larger
     /// searcher pool, or you are holding references to previous searcher
     /// for ever.
-    fn searcher(&self) -> Searcher {
+    fn searcher(&self, py: Python) -> Searcher {
         Searcher {
-            inner: self.reader.searcher(),
+            inner: py.allow_threads(|| self.reader.searcher()),
         }
     }
 
