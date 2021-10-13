@@ -15,6 +15,7 @@ chrono = "0.4.19"
 tantivy = "0.14"
 itertools = "0.9.0"
 futures = "0.3.5"
+ahash = "0.7.4"
 
 [dependencies.pyo3]
 version = "0.13.2"
