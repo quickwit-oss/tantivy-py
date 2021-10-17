@@ -237,7 +237,7 @@ impl SchemaBuilder {
         let builder = &mut self.builder;
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
-            builder.add_facet_field(name);
+            builder.add_facet_field(name, INDEXED);
         } else {
             return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
