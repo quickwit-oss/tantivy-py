@@ -6,6 +6,7 @@ use tantivy::schema;
 
 use crate::schema::Schema;
 use std::sync::{Arc, RwLock};
+use tantivy::schema::INDEXED;
 
 /// Tantivy has a very strict schema.
 /// You need to specify in advance whether a field is indexed or not,
@@ -257,7 +258,7 @@ impl SchemaBuilder {
         let builder = &mut self.builder;
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
-            builder.add_bytes_field(name);
+            builder.add_bytes_field(name, INDEXED);
         } else {
             return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
