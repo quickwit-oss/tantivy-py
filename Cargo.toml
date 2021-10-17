@@ -1,6 +1,6 @@
 [package]
 name = "tantivy"
-version = "0.15.3"
+version = "0.16.0"
 readme = "README.md"
 authors = ["Damir Jelić <poljar@termina.org.uk>"]
 edition = "2018"
@@ -12,7 +12,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 chrono = "0.4.19"
-tantivy = "0.15.3"
+tantivy = "0.16.1"
 itertools = "0.10.0"
 futures = "0.3.5"
 
