@@ -90,7 +90,7 @@ deploy:
         tags: true
         python: 3.8
         condition: $TRAVIS_OS_NAME = linux
-        repo: tantivy-search/tantivy-py
+        repo: quickwit-inc/tantivy-py
 
     # Deploy for macos using maturin directly
     - provider: script
@@ -98,7 +98,7 @@ deploy:
       on:
         tags: true
         condition: $TRAVIS_OS_NAME = osx
-        repo: tantivy-search/tantivy-py
+        repo: quickwit-inc/tantivy-py
 
     # Deploy for windows using maturin directly
     - provider: script
@@ -106,4 +106,4 @@ deploy:
       on:
         tags: true
         condition: $TRAVIS_OS_NAME = windows
-        repo: tantivy-search/tantivy-py
+        repo: quickwit-inc/tantivy-py
