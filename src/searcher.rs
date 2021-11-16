@@ -196,8 +196,8 @@ impl Searcher {
 #[pyclass]
 #[derive(Clone, Debug)]
 pub(crate) struct DocAddress {
-    pub(crate) segment_ord: tv::SegmentLocalId,
-    pub(crate) doc: tv::DocId,
+    pub(crate) segment_ord: tv::SegmentOrdinal,
+    pub(crate) doc_id: tv::DocId,
 }
 
 #[pymethods]
@@ -212,22 +212,22 @@ impl DocAddress {
     /// The segment local DocId
     #[getter]
     fn doc(&self) -> u32 {
-        self.doc
+        self.doc_id
     }
 }
 
 impl From<&tv::DocAddress> for DocAddress {
     fn from(doc_address: &tv::DocAddress) -> Self {
         DocAddress {
-            segment_ord: doc_address.segment_ord(),
-            doc: doc_address.doc(),
+            segment_ord: doc_address.segment_ord,
+            doc_id: doc_address.doc_id,
         }
     }
 }
 
 impl Into<tv::DocAddress> for &DocAddress {
     fn into(self) -> tv::DocAddress {
-        tv::DocAddress(self.segment_ord(), self.doc())
+        tv::DocAddress { segment_ord: self.segment_ord, doc_id: self.doc_id }
     }
 }
 

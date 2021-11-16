@@ -340,7 +340,7 @@ impl Document {
 }
 
 impl Document {
-    fn iter_values_for_field<'a>(
+    pub(crate) fn iter_values_for_field<'a>(
         &'a self,
         field: &str,
     ) -> impl Iterator<Item = &'a Value> + 'a {
