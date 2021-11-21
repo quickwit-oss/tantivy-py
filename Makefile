@@ -1,17 +1,23 @@
+ifeq ($(shell UNAME),Darwin)
+  EXT := dylib
+else
+  EXT := so
+endif
+
 source_files := $(wildcard src/*.rs)
 
-all: tantivy/tantivy.so
+all: tantivy/tantivy.$(EXT)
 
 PHONY: test format
 
-test: tantivy/tantivy.so
+test: tantivy/tantivy.$(EXT)
 	python3 -m pytest
 
 format:
 	rustfmt src/*.rs
 
-tantivy/tantivy.so: target/debug/libtantivy.so
-	cp target/debug/libtantivy.so tantivy/tantivy.so
+tantivy/tantivy.$(EXT): target/debug/libtantivy.$(EXT)
+	cp target/debug/libtantivy.$(EXT) tantivy/tantivy.so
 
-target/debug/libtantivy.so: $(source_files)
+target/debug/libtantivy.$(EXT): $(source_files)
 	cargo build
