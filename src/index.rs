@@ -174,7 +174,11 @@ impl Index {
                 if reuse {
                     tv::Index::open_or_create(directory, schema.inner.clone())
                 } else {
-                    tv::Index::create(directory, schema.inner.clone())
+                    tv::Index::create(
+                        directory,
+                        schema.inner.clone(),
+                        tv::IndexSettings::default(),
+                    )
                 }
                 .map_err(to_pyerr)?
             }
@@ -277,7 +281,7 @@ impl Index {
     #[staticmethod]
     fn exists(path: &str) -> PyResult<bool> {
         let directory = MmapDirectory::open(path).map_err(to_pyerr)?;
-        Ok(tv::Index::exists(&directory))
+        Ok(tv::Index::exists(&directory).unwrap())
     }
 
     /// The schema of the current index.
