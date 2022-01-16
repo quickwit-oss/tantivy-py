@@ -180,9 +180,9 @@ impl Document {
                 if key_value.len() != 2 {
                     continue;
                 }
-                let key: String = key_value.get_item(0).extract()?;
+                let key: String = key_value.get_item(0)?.extract()?;
                 let value_list =
-                    extract_value_single_or_list(key_value.get_item(1))?;
+                    extract_value_single_or_list(key_value.get_item(1)?)?;
                 field_values.insert(key, value_list);
             }
         }
@@ -199,9 +199,9 @@ impl Document {
                 if key_value.len() != 2 {
                     continue;
                 }
-                let key: String = key_value.get_item(0).extract()?;
+                let key: String = key_value.get_item(0)?.extract()?;
                 let value_list =
-                    extract_value_single_or_list(key_value.get_item(1))?;
+                    extract_value_single_or_list(key_value.get_item(1)?)?;
                 field_values.insert(key, value_list);
             }
         }
