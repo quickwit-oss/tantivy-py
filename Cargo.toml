@@ -20,7 +20,7 @@ itertools = "0.10.0"
 futures = "0.3.5"
 
 [dependencies.pyo3]
-version = "0.14.5"
+version = "0.15.1"
 features = ["extension-module"]
 
 [package.metadata.maturin]
