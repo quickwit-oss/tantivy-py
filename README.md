@@ -23,16 +23,12 @@ only supports python3.
 # Development
 
 Setting up a development environment can be done in a virtual environment using
-`pipenv` or using local packages using the provided `Makefile`.
+[`nox`](https://nox.thea.codes) or using local packages using the provided `Makefile`.
 
-For the `pipenv` setup install the virtual environment and build the bindings using:
+For the `nox` setup install the virtual environment and build the bindings using:
 
-    pipenv install --dev
-    pipenv run maturin develop
-
-After the bindings are build, the tests can be run using:
-
-    pipenv run python -m pytest
+    python3 -m pip install nox
+    nox
 
 For the `Makefile` based setup run:
 
