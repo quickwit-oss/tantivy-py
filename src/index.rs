@@ -41,7 +41,7 @@ impl IndexWriter {
     pub fn add_document(&mut self, doc: &Document) -> PyResult<u64> {
         let named_doc = NamedFieldDocument(doc.field_values.clone());
         let doc = self.schema.convert_named_doc(named_doc).map_err(to_pyerr)?;
-        Ok(self.inner_index_writer.add_document(doc))
+        self.inner_index_writer.add_document(doc).map_err(to_pyerr)
     }
 
     /// Helper for the `add_document` method, but passing a json string.
@@ -55,7 +55,7 @@ impl IndexWriter {
     pub fn add_json(&mut self, json: &str) -> PyResult<u64> {
         let doc = self.schema.parse_document(json).map_err(to_pyerr)?;
         let opstamp = self.inner_index_writer.add_document(doc);
-        Ok(opstamp)
+        opstamp.map_err(to_pyerr)
     }
 
     /// Commits all of the pending changes
@@ -131,6 +131,12 @@ impl IndexWriter {
             Value::PreTokStr(_pretok) => {
                 return Err(exceptions::PyValueError::new_err(format!(
                     "Field `{}` is pretokenized. This is not authorized for delete.",
+                    field_name
+                )))
+            }
+            Value::JsonObject(_) => {
+                return Err(exceptions::PyValueError::new_err(format!(
+                    "Field `{}` is json object type not deletable.",
                     field_name
                 )))
             }
@@ -281,7 +287,7 @@ impl Index {
     #[staticmethod]
     fn exists(path: &str) -> PyResult<bool> {
         let directory = MmapDirectory::open(path).map_err(to_pyerr)?;
-        Ok(tv::Index::exists(&directory).unwrap())
+        tv::Index::exists(&directory).map_err(to_pyerr)
     }
 
     /// The schema of the current index.
@@ -304,7 +310,7 @@ impl Index {
     ///
     /// Args:
     ///     query: the query, following the tantivy query language.
-    ///     default_fields (List[Field]): A list of fields used to search if no
+    ///     default_fields_names (List[Field]): A list of fields used to search if no
     ///         field is specified in the query.
     ///
     #[args(reload_policy = "RELOAD_POLICY")]

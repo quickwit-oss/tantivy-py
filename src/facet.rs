@@ -1,4 +1,4 @@
-use pyo3::{basic::PyObjectProtocol, prelude::*, types::PyType};
+use pyo3::{prelude::*, types::PyType};
 use tantivy::schema;
 
 /// A Facet represent a point in a given hierarchy.
@@ -63,10 +63,7 @@ impl Facet {
     fn to_path_str(&self) -> String {
         self.inner.to_string()
     }
-}
 
-#[pyproto]
-impl PyObjectProtocol for Facet {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("Facet({})", self.to_path_str()))
     }

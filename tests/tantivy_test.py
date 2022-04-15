@@ -5,7 +5,13 @@ from tantivy import Document, Index, SchemaBuilder
 
 
 def schema():
-    return SchemaBuilder().add_text_field("title", stored=True).add_text_field("body").build()
+    return (
+        SchemaBuilder()
+        .add_text_field("title", stored=True)
+        .add_text_field("body")
+        .build()
+    )
+
 
 def create_index(dir=None):
     # assume all tests will use the same documents for now
@@ -99,7 +105,9 @@ class TestClass(object):
 
     def test_and_query(self, ram_index):
         index = ram_index
-        query = index.parse_query("title:men AND body:summer", default_field_names=["title", "body"])
+        query = index.parse_query(
+            "title:men AND body:summer", default_field_names=["title", "body"]
+        )
         # look for an intersection of documents
         searcher = index.searcher()
         result = searcher.search(query, 10)
@@ -114,15 +122,13 @@ class TestClass(object):
 
     def test_and_query_parser_default_fields(self, ram_index):
         query = ram_index.parse_query("winter", default_field_names=["title"])
-        assert repr(query) == """Query(TermQuery(Term(field=0,bytes=[119, 105, 110, 116, 101, 114])))"""
+        assert repr(query) == """Query(TermQuery(Term(type=Str, field=0, "winter")))"""
 
     def test_and_query_parser_default_fields_undefined(self, ram_index):
         query = ram_index.parse_query("winter")
         assert (
-            repr(query) == "Query(BooleanQuery { subqueries: ["
-            "(Should, TermQuery(Term(field=0,bytes=[119, 105, 110, 116, 101, 114]))), "
-            "(Should, TermQuery(Term(field=1,bytes=[119, 105, 110, 116, 101, 114])))] "
-            "})"
+            repr(query)
+            == """Query(BooleanQuery { subqueries: [(Should, TermQuery(Term(type=Str, field=0, "winter"))), (Should, TermQuery(Term(type=Str, field=1, "winter")))] })"""
         )
 
     def test_query_errors(self, ram_index):
@@ -132,9 +138,11 @@ class TestClass(object):
             index.parse_query("bod:men", ["title", "body"])
 
     def test_order_by_search(self):
-        schema = (SchemaBuilder()
+        schema = (
+            SchemaBuilder()
             .add_unsigned_field("order", fast="single")
-            .add_text_field("title", stored=True).build()
+            .add_text_field("title", stored=True)
+            .build()
         )
 
         index = Index(schema)
@@ -155,14 +163,12 @@ class TestClass(object):
         doc.add_unsigned("order", 1)
         doc.add_text("title", "Another test title")
 
-
         writer.add_document(doc)
 
         writer.commit()
         index.reload()
 
         query = index.parse_query("test")
-
 
         searcher = index.searcher()
 
@@ -187,9 +193,11 @@ class TestClass(object):
         assert searched_doc["title"] == ["Test title"]
 
     def test_order_by_search_without_fast_field(self):
-        schema = (SchemaBuilder()
+        schema = (
+            SchemaBuilder()
             .add_unsigned_field("order")
-            .add_text_field("title", stored=True).build()
+            .add_text_field("title", stored=True)
+            .build()
         )
 
         index = Index(schema)
@@ -316,3 +324,72 @@ class TestDocument(object):
     def test_document_error(self):
         with pytest.raises(ValueError):
             tantivy.Document(name={})
+
+
+class TestJsonField:
+    def test_query_from_json_field(self):
+        schema = (
+            SchemaBuilder()
+            .add_json_field(
+                "attributes",
+                stored=True,
+                tokenizer_name="default",
+                index_option="position",
+            )
+            .build()
+        )
+
+        index = Index(schema)
+
+        writer = index.writer()
+
+        doc = Document()
+        doc.add_json(
+            "attributes",
+            """{
+                "order":1.1,
+                "target": "submit-button",
+                "cart": {"product_id": 103},
+                "description": "the best vacuum cleaner ever"
+            }""",
+        )
+
+        writer.add_document(doc)
+
+        doc = Document()
+        doc.add_json(
+            "attributes",
+            """{
+                "order":1.2,
+                "target": "submit-button",
+                "cart": {"product_id": 133},
+                "description": "das keyboard"
+            }""",
+        )
+
+        writer.add_document(doc)
+
+        writer.commit()
+        index.reload()
+
+        query = index.parse_query("target:submit-button", ["attributes"])
+        result = index.searcher().search(query, 2)
+        assert len(result.hits) == 2
+
+        query = index.parse_query("target:submit", ["attributes"])
+        result = index.searcher().search(query, 2)
+        assert len(result.hits) == 2
+
+        query = index.parse_query("order:1.1", ["attributes"])
+        result = index.searcher().search(query, 2)
+        assert len(result.hits) == 1
+
+        # query = index.parse_query_for_attributes("cart.product_id:103")
+        # result = index.searcher().search(query, 1)
+        # assert len(result.hits) == 1
+
+        # query = index.parse_query_for_attributes(
+        #     "target:submit-button AND cart.product_id:133"
+        # )
+        # result = index.searcher().search(query, 2)
+        # assert len(result.hits) == 1

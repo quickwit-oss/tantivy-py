@@ -1,4 +1,4 @@
-use pyo3::{prelude::*, PyObjectProtocol};
+use pyo3::prelude::*;
 use tantivy as tv;
 
 /// Tantivy's Query
@@ -13,8 +13,8 @@ impl Query {
     }
 }
 
-#[pyproto]
-impl PyObjectProtocol for Query {
+#[pymethods]
+impl Query {
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("Query({:?})", self.get()))
     }

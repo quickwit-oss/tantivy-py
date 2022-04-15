@@ -73,26 +73,11 @@ impl SchemaBuilder {
         index_option: &str,
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
-        let index_option = match index_option {
-            "position" => schema::IndexRecordOption::WithFreqsAndPositions,
-            "freq" => schema::IndexRecordOption::WithFreqs,
-            "basic" => schema::IndexRecordOption::Basic,
-            _ => return Err(exceptions::PyValueError::new_err(
-                "Invalid index option, valid choices are: 'basic', 'freq' and 'position'"
-            ))
-        };
-
-        let indexing = schema::TextFieldIndexing::default()
-            .set_tokenizer(tokenizer_name)
-            .set_index_option(index_option);
-
-        let options =
-            schema::TextOptions::default().set_indexing_options(indexing);
-        let options = if stored {
-            options.set_stored()
-        } else {
-            options
-        };
+        let options = SchemaBuilder::build_text_option(
+            stored,
+            tokenizer_name,
+            index_option,
+        )?;
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_text_field(name, options);
@@ -230,6 +215,55 @@ impl SchemaBuilder {
         Ok(self.clone())
     }
 
+    /// Add a new json field to the schema.
+    ///
+    /// Args:
+    ///     name (str): the name of the field.
+    ///     stored (bool, optional): If true sets the field as stored, the
+    ///         content of the field can be later restored from a Searcher.
+    ///         Defaults to False.
+    ///     tokenizer_name (str, optional): The name of the tokenizer that
+    ///         should be used to process the field. Defaults to 'default'
+    ///     index_option (str, optional): Sets which information should be
+    ///         indexed with the tokens. Can be one of 'position', 'freq' or
+    ///         'basic'. Defaults to 'position'. The 'basic' index_option
+    ///         records only the document ID, the 'freq' option records the
+    ///         document id and the term frequency, while the 'position' option
+    ///         records the document id, term frequency and the positions of
+    ///         the term occurrences in the document.
+    ///
+    /// Returns the associated field handle.
+    /// Raises a ValueError if there was an error with the field creation.
+    #[args(
+        stored = false,
+        tokenizer_name = "TOKENIZER",
+        index_option = "RECORD"
+    )]
+    fn add_json_field(
+        &mut self,
+        name: &str,
+        stored: bool,
+        tokenizer_name: &str,
+        index_option: &str,
+    ) -> PyResult<Self> {
+        let builder = &mut self.builder;
+        let options = SchemaBuilder::build_text_option(
+            stored,
+            tokenizer_name,
+            index_option,
+        )?;
+
+        if let Some(builder) = builder.write().unwrap().as_mut() {
+            builder.add_json_field(name, options);
+        } else {
+            return Err(exceptions::PyValueError::new_err(
+                "Schema builder object isn't valid anymore.",
+            ));
+        }
+
+        Ok(self.clone())
+    }
+
     /// Add a Facet field to the schema.
     /// Args:
     ///     name (str): The name of the field.
@@ -289,8 +323,8 @@ impl SchemaBuilder {
         stored: bool,
         indexed: bool,
         fast: Option<&str>,
-    ) -> PyResult<schema::IntOptions> {
-        let opts = schema::IntOptions::default();
+    ) -> PyResult<schema::NumericOptions> {
+        let opts = schema::NumericOptions::default();
 
         let opts = if stored { opts.set_stored() } else { opts };
         let opts = if indexed { opts.set_indexed() } else { opts };
@@ -316,5 +350,34 @@ impl SchemaBuilder {
         };
 
         Ok(opts)
+    }
+
+    fn build_text_option(
+        stored: bool,
+        tokenizer_name: &str,
+        index_option: &str,
+    ) -> PyResult<schema::TextOptions> {
+        let index_option = match index_option {
+            "position" => schema::IndexRecordOption::WithFreqsAndPositions,
+            "freq" => schema::IndexRecordOption::WithFreqs,
+            "basic" => schema::IndexRecordOption::Basic,
+            _ => return Err(exceptions::PyValueError::new_err(
+                "Invalid index option, valid choices are: 'basic', 'freq' and 'position'"
+            ))
+        };
+
+        let indexing = schema::TextFieldIndexing::default()
+            .set_tokenizer(tokenizer_name)
+            .set_index_option(index_option);
+
+        let options =
+            schema::TextOptions::default().set_indexing_options(indexing);
+        let options = if stored {
+            options.set_stored()
+        } else {
+            options
+        };
+
+        Ok(options)
     }
 }

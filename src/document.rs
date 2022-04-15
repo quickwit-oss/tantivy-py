@@ -14,9 +14,36 @@ use chrono::{offset::TimeZone, Datelike, Timelike, Utc};
 use tantivy as tv;
 
 use crate::{facet::Facet, to_pyerr};
-use pyo3::{PyMappingProtocol, PyObjectProtocol};
-use std::{collections::BTreeMap, fmt};
+use serde_json::Value as JsonValue;
+use std::{
+    collections::{BTreeMap, HashMap},
+    fmt,
+};
 use tantivy::schema::Value;
+
+fn value_to_object(val: &JsonValue, py: Python<'_>) -> PyObject {
+    match val {
+        JsonValue::Null => py.None(),
+        JsonValue::Bool(b) => b.to_object(py),
+        JsonValue::Number(n) => match n {
+            n if n.is_i64() => n.as_i64().to_object(py),
+            n if n.is_u64() => n.as_u64().to_object(py),
+            n if n.is_f64() => n.as_f64().to_object(py),
+            _ => panic!("number too large"),
+        },
+        JsonValue::String(s) => s.to_object(py),
+        JsonValue::Array(v) => {
+            let inner: Vec<_> =
+                v.iter().map(|x| value_to_object(x, py)).collect();
+            inner.to_object(py)
+        }
+        JsonValue::Object(m) => {
+            let inner: HashMap<_, _> =
+                m.iter().map(|(k, v)| (k, value_to_object(v, py))).collect();
+            inner.to_object(py)
+        }
+    }
+}
 
 fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
     Ok(match value {
@@ -42,6 +69,13 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
         )?
         .into_py(py),
         Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
+        Value::JsonObject(json_object) => {
+            let inner: HashMap<_, _> = json_object
+                .iter()
+                .map(|(k, v)| (k, value_to_object(&v, py)))
+                .collect();
+            inner.to_object(py)
+        }
     })
 }
 
@@ -57,6 +91,9 @@ fn value_to_string(value: &Value) -> String {
         Value::PreTokStr(_pretok) => {
             // TODO implement me
             unimplemented!();
+        }
+        Value::JsonObject(json_object) => {
+            serde_json::to_string(&json_object).unwrap()
         }
     }
 }
@@ -293,6 +330,17 @@ impl Document {
         add_value(self, field_name, bytes);
     }
 
+    /// Add a bytes value to the document.
+    ///
+    /// Args:
+    ///     field_name (str): The field for which we are adding the bytes.
+    ///     value (str): The json object that will be added to the document.
+    fn add_json(&mut self, field_name: String, json: &str) {
+        let json_object: serde_json::Value =
+            serde_json::from_str(json).unwrap();
+        add_value(self, field_name, json_object);
+    }
+
     /// Returns the number of added fields that have been added to the document
     #[getter]
     fn num_fields(&self) -> usize {
@@ -337,6 +385,16 @@ impl Document {
             .map(|value| value_to_py(py, value))
             .collect::<PyResult<Vec<_>>>()
     }
+
+    fn __getitem__(&self, field_name: &str) -> PyResult<Vec<PyObject>> {
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+        self.get_all(py, field_name)
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", self))
+    }
 }
 
 impl Document {
@@ -348,21 +406,5 @@ impl Document {
             .get(field)
             .into_iter()
             .flat_map(|values| values.iter())
-    }
-}
-
-#[pyproto]
-impl PyMappingProtocol for Document {
-    fn __getitem__(&self, field_name: &str) -> PyResult<Vec<PyObject>> {
-        let gil = Python::acquire_gil();
-        let py = gil.python();
-        self.get_all(py, field_name)
-    }
-}
-
-#[pyproto]
-impl PyObjectProtocol for Document {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("{:?}", self))
     }
 }
