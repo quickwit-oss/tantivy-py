@@ -1,7 +1,7 @@
 import tantivy
 import pytest
 
-from tantivy import Document, Index, SchemaBuilder, Schema
+from tantivy import Document, Index, SchemaBuilder
 
 
 def schema():
@@ -228,18 +228,12 @@ class TestUpdateClass(object):
         assert len(result.hits) == 0
 
 
-PATH_TO_INDEX = "tests/test_index/"
-
-
 class TestFromDiskClass(object):
-    def test_exists(self):
-        # prefer to keep it separate in case anyone deletes this
-        # runs from the root directory
-        assert Index.exists(PATH_TO_INDEX)
-
-    def test_opens_from_dir_invalid_schema(self):
+    def test_opens_from_dir_invalid_schema(self, dir_index):
+        invalid_schema = SchemaBuilder().add_text_field("🐱").build()
+        index_dir, _ = dir_index
         with pytest.raises(ValueError):
-            index = Index(schema(), PATH_TO_INDEX, reuse=True)
+            Index(invalid_schema, str(index_dir), reuse=True)
 
     def test_opens_from_dir(self, dir_index):
         index_dir, _ = dir_index
