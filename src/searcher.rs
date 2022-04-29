@@ -1,7 +1,7 @@
 #![allow(clippy::new_ret_no_self)]
 
 use crate::{document::Document, get_field, query::Query, to_pyerr};
-use pyo3::{exceptions::PyValueError, prelude::*, PyObjectProtocol};
+use pyo3::{exceptions::PyValueError, prelude::*};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
 
@@ -47,8 +47,8 @@ pub(crate) struct SearchResult {
     count: Option<usize>,
 }
 
-#[pyproto]
-impl PyObjectProtocol for SearchResult {
+#[pymethods]
+impl SearchResult {
     fn __repr__(&self) -> PyResult<String> {
         if let Some(count) = self.count {
             Ok(format!(
@@ -59,10 +59,7 @@ impl PyObjectProtocol for SearchResult {
             Ok(format!("SearchResult(hits: {:?})", self.hits))
         }
     }
-}
 
-#[pymethods]
-impl SearchResult {
     #[getter]
     /// The list of tuples that contains the scores and DocAddress of the
     /// search results.
@@ -185,6 +182,14 @@ impl Searcher {
             field_values: named_doc.0,
         })
     }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!(
+            "Searcher(num_docs={}, num_segments={})",
+            self.inner.num_docs(),
+            self.inner.segment_readers().len()
+        ))
+    }
 }
 
 /// DocAddress contains all the necessary information to identify a document
@@ -231,16 +236,5 @@ impl Into<tv::DocAddress> for &DocAddress {
             segment_ord: self.segment_ord(),
             doc_id: self.doc(),
         }
-    }
-}
-
-#[pyproto]
-impl PyObjectProtocol for Searcher {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!(
-            "Searcher(num_docs={}, num_segments={})",
-            self.inner.num_docs(),
-            self.inner.segment_readers().len()
-        ))
     }
 }
