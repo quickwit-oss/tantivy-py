@@ -3,3 +3,6 @@ rustflags = [
   "-C", "link-arg=-undefined",
   "-C", "link-arg=dynamic_lookup",
 ]
+
+[registries]
+github-quiq-sh = { index = "https://github.quiq.sh/rust-lang/crates.io-index" }

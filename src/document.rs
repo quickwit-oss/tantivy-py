@@ -9,7 +9,7 @@ use pyo3::{
     },
 };
 
-use chrono::{offset::TimeZone, Datelike, Timelike, Utc};
+use chrono::{offset::TimeZone, Utc};
 
 use tantivy as tv;
 
@@ -58,13 +58,13 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
         }
         Value::Date(d) => PyDateTime::new(
             py,
-            d.year(),
-            d.month() as u8,
-            d.day() as u8,
-            d.hour() as u8,
-            d.minute() as u8,
-            d.second() as u8,
-            d.timestamp_subsec_micros(),
+            d.into_utc().year(),
+            d.into_utc().month() as u8,
+            d.into_utc().day() as u8,
+            d.into_utc().hour() as u8,
+            d.into_utc().minute() as u8,
+            d.into_utc().second() as u8,
+            d.into_utc().microsecond() as u32,
             None,
         )?
         .into_py(py),
@@ -75,7 +75,9 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
                 .map(|(k, v)| (k, value_to_object(&v, py)))
                 .collect();
             inner.to_object(py)
-        }
+        },
+        Value::Bool(b) => b.into_py(py),
+        Value::IpAddr(i) => (*i).to_string().into_py(py)
     })
 }
 
@@ -94,7 +96,9 @@ fn value_to_string(value: &Value) -> String {
         }
         Value::JsonObject(json_object) => {
             serde_json::to_string(&json_object).unwrap()
-        }
+        },
+        Value::Bool(b) => format!("{}", b),
+        Value::IpAddr(i) => format!("{}", *i)
     }
 }
 
@@ -169,19 +173,15 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
         return Ok(Value::F64(num));
     }
     if let Ok(py_datetime) = any.downcast::<PyDateTime>() {
-        let datetime = Utc
-            .ymd(
-                py_datetime.get_year(),
-                py_datetime.get_month().into(),
-                py_datetime.get_day().into(),
-            )
-            .and_hms_micro(
-                py_datetime.get_hour().into(),
-                py_datetime.get_minute().into(),
-                py_datetime.get_second().into(),
-                py_datetime.get_microsecond(),
-            );
-        return Ok(Value::Date(datetime));
+        let datetime = Utc.with_ymd_and_hms(
+            py_datetime.get_year(),
+            py_datetime.get_month().into(),
+            py_datetime.get_day().into(),
+            py_datetime.get_hour().into(),
+            py_datetime.get_minute().into(),
+            py_datetime.get_second().into()
+        ).single().unwrap();
+        return Ok(Value::Date(tv::DateTime::from_timestamp_secs(datetime.timestamp())));
     }
     if let Ok(facet) = any.extract::<Facet>() {
         return Ok(Value::Facet(facet.inner.clone()));
@@ -200,7 +200,7 @@ fn extract_value_single_or_list(any: &PyAny) -> PyResult<Vec<Value>> {
 #[pymethods]
 impl Document {
     #[new]
-    #[args(kwargs = "**")]
+    #[pyo3(signature = (**kwargs))]
     fn new(kwargs: Option<&PyDict>) -> PyResult<Self> {
         let mut document = Document::default();
         if let Some(field_dict) = kwargs {
@@ -298,19 +298,15 @@ impl Document {
     ///     field_name (str): The field name for which we are adding the date.
     ///     value (datetime): The date that will be added to the document.
     fn add_date(&mut self, field_name: String, value: &PyDateTime) {
-        let datetime = Utc
-            .ymd(
-                value.get_year(),
-                value.get_month().into(),
-                value.get_day().into(),
-            )
-            .and_hms_micro(
-                value.get_hour().into(),
-                value.get_minute().into(),
-                value.get_second().into(),
-                value.get_microsecond(),
-            );
-        add_value(self, field_name, datetime);
+        let datetime = Utc.with_ymd_and_hms(
+            value.get_year(),
+            value.get_month().into(),
+            value.get_day().into(),
+            value.get_hour().into(),
+            value.get_minute().into(),
+            value.get_second().into()
+        ).single().unwrap();
+        add_value(self, field_name, tv::DateTime::from_timestamp_secs(datetime.timestamp()));
     }
 
     /// Add a facet value to the document.
@@ -387,9 +383,9 @@ impl Document {
     }
 
     fn __getitem__(&self, field_name: &str) -> PyResult<Vec<PyObject>> {
-        let gil = Python::acquire_gil();
-        let py = gil.python();
-        self.get_all(py, field_name)
+        return Python::with_gil(|py| -> PyResult<Vec<PyObject>> {
+            self.get_all(py, field_name)
+        });
     }
 
     fn __repr__(&self) -> PyResult<String> {

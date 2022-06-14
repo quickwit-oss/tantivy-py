@@ -1,5 +1,5 @@
 use pyo3::{exceptions, prelude::*};
-use tantivy as tv;
+use ::tantivy as tv;
 
 mod document;
 mod facet;

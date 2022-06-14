@@ -1,4 +1,4 @@
-ifeq ($(shell UNAME),Darwin)
+ifeq ($(shell uname),Darwin)
   EXT := dylib
 else
   EXT := so
