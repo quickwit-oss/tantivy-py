@@ -314,10 +314,12 @@ impl Index {
     ///         field is specified in the query.
     ///
     #[args(reload_policy = "RELOAD_POLICY")]
+    #[args(conjunction_by_default = false)]
     pub fn parse_query(
         &self,
         query: &str,
         default_field_names: Option<Vec<String>>,
+        conjunction_by_default: bool,
     ) -> PyResult<Query> {
         let mut default_fields = vec![];
         let schema = self.index.schema();
@@ -348,8 +350,13 @@ impl Index {
                 }
             }
         }
-        let parser =
+        let mut parser =
             tv::query::QueryParser::for_index(&self.index, default_fields);
+    
+        if conjunction_by_default {
+            parser.set_conjunction_by_default();
+        }
+
         let query = parser.parse_query(query).map_err(to_pyerr)?;
 
         Ok(Query { inner: query })
