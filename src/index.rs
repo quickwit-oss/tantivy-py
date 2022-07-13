@@ -346,7 +346,16 @@ impl Index {
         } else {
             for (field, field_entry) in self.index.schema().fields() {
                 if field_entry.is_indexed() {
-                    default_fields.push(field);
+
+                    match field_entry.field_type() {
+                        tv::schema::FieldType::Facet(_) => {
+                            // facets aren't suited for default fields
+                        },
+                        _ => {
+                            default_fields.push(field);
+                        },
+                    }
+
                 }
             }
         }
