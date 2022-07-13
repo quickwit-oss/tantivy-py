@@ -92,6 +92,8 @@ impl Searcher {
     ///         return. Defaults to 10.
     ///     count (bool, optional): Should the number of documents that match
     ///         the query be returned as well. Defaults to true.
+    ///     count_facets_by_field (Field, optional): Return grouped number of
+    ///         documents by the given facet field. Defaults to false
     ///     order_by_field (Field, optional): A schema field that the results
     ///         should be ordered by. The field must be declared as a fast field
     ///         when building the schema. Note, this only works for unsigned
