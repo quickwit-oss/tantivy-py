@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+use std::ops::Bound;
 use tantivy as tv;
 use tv::schema::{Field, Term};
 
@@ -89,6 +90,17 @@ impl Query {
                 q1.get().box_clone(),
                 q2.get().box_clone(),
             ])),
+        }
+    }
+
+    #[staticmethod]
+    fn range(field_id: u32, left: &str, right: &str) -> Query {
+        Query {
+            inner: Box::new(tv::query::RangeQuery::new_str_bounds(
+                Field::from_field_id(field_id),
+                Bound::Included(left),
+                Bound::Included(right),
+            )),
         }
     }
 
