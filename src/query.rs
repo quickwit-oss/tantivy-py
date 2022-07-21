@@ -1,3 +1,4 @@
+use crate::to_pyerr;
 use pyo3::prelude::*;
 use std::ops::Bound;
 use tantivy as tv;
@@ -45,13 +46,11 @@ impl Query {
         let rq = tv::query::RegexQuery::from_pattern(
             pattern,
             Field::from_field_id(field_id),
-        );
-        match rq {
-            Ok(r) => Ok(Query { inner: Box::new(r) }),
-            Err(_) => Err(pyo3::exceptions::PyValueError::new_err(
-                "RegEx syntax error",
-            )),
-        }
+        )
+        .map_err(to_pyerr)?;
+        Ok(Query {
+            inner: Box::new(rq),
+        })
     }
 
     #[staticmethod]
