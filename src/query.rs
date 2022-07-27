@@ -73,22 +73,20 @@ impl Query {
     }
 
     #[staticmethod]
-    fn and_q(q1: &Query, q2: &Query) -> Query {
+    fn and_q(qs : Vec<PyRef<Query>>) -> Query {
         Query {
-            inner: Box::new(tv::query::BooleanQuery::intersection(vec![
-                q1.get().box_clone(),
-                q2.get().box_clone(),
-            ])),
+            inner: Box::new(tv::query::BooleanQuery::intersection(
+                qs.iter().map(|q| q.get().box_clone()).collect::<Vec<_>>()
+            ))
         }
     }
 
     #[staticmethod]
-    fn or_q(q1: &Query, q2: &Query) -> Query {
+    fn or_q(qs : Vec<PyRef<Query>>) -> Query {
         Query {
-            inner: Box::new(tv::query::BooleanQuery::union(vec![
-                q1.get().box_clone(),
-                q2.get().box_clone(),
-            ])),
+            inner: Box::new(tv::query::BooleanQuery::union(
+                qs.iter().map(|q| q.get().box_clone()).collect::<Vec<_>>()
+            ))
         }
     }
 
