@@ -11,7 +11,7 @@ pub(crate) struct Query {
 }
 
 impl Query {
-    pub fn get(&self) -> &dyn tv::query::Query {
+    pub(crate) fn get(&self) -> &dyn tv::query::Query {
         &self.inner
     }
 }
@@ -73,7 +73,7 @@ impl Query {
     }
 
     #[staticmethod]
-    fn and(q1: &Query, q2: &Query) -> Query {
+    fn and_q(q1: &Query, q2: &Query) -> Query {
         Query {
             inner: Box::new(tv::query::BooleanQuery::intersection(vec![
                 q1.get().box_clone(),
@@ -83,7 +83,7 @@ impl Query {
     }
 
     #[staticmethod]
-    fn or(q1: &Query, q2: &Query) -> Query {
+    fn or_q(q1: &Query, q2: &Query) -> Query {
         Query {
             inner: Box::new(tv::query::BooleanQuery::union(vec![
                 q1.get().box_clone(),
@@ -93,7 +93,7 @@ impl Query {
     }
 
     #[staticmethod]
-    fn range(field_id: u32, left: &str, right: &str) -> Query {
+    fn range_q(field_id: u32, left: &str, right: &str) -> Query {
         Query {
             inner: Box::new(tv::query::RangeQuery::new_str_bounds(
                 Field::from_field_id(field_id),
@@ -104,6 +104,6 @@ impl Query {
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("{:?}", self.get()))
+        Ok(format!("{:#?}", self.get()))
     }
 }
