@@ -8,15 +8,24 @@ on:
     branches:
       - master
 
+permissions:  # added using https://github.com/step-security/secure-workflows
+  contents: read
+
 jobs:
   Lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Harden Runner
+        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/checkout@d171c3b028d844f2bf14e9fdec0c58114451e4bf
+      - uses: actions-rs/toolchain@63eb9591781c46a70274cb3ebdf190fce92702e8
         with:
           toolchain: stable
           components: rustfmt
+
       - name: Check Formatting
         run: cargo fmt --check
 
@@ -36,13 +45,20 @@ jobs:
             python-version: 3.7
     runs-on: "${{ matrix.os }}"
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - name: Harden Runner
+        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/checkout@d171c3b028d844f2bf14e9fdec0c58114451e4bf
+      - uses: actions/setup-python@7f80679172b057fc5e90d70d197929d454754a5a
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions-rs/toolchain@v1
+
+      - uses: actions-rs/toolchain@63eb9591781c46a70274cb3ebdf190fce92702e8
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@v1
+
+      - uses: Swatinem/rust-cache@81d053bdb0871dcd3f10763c8cc60d0adc41762b
       - run: python3 -m pip install nox
       - run: nox -s test-${{ matrix.python-version }}
