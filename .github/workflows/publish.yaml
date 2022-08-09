@@ -52,11 +52,13 @@ jobs:
           python-version: 3.9
 
       - uses: messense/maturin-action@20111a7c286a91434bdd7f612314a38ff6c091ad
+        env:
+          PYO3_PYTHON: python3.9
         with:
           manylinux: auto
           command: build
-          args: --release -o dist
-
+          args: --release --sdist -o dist
+  
       - name: Upload wheels
         uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8  # 3.1.0
         with:
@@ -85,9 +87,11 @@ jobs:
           python-version: 3.9
 
       - uses: messense/maturin-action@20111a7c286a91434bdd7f612314a38ff6c091ad
+        env:
+          PYO3_PYTHON: python3.9
         with:
           command: build
-          args: --release --no-sdist -o dist
+          args: --release -o dist
 
       - name: Upload wheels
         uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8  # 3.1.0
@@ -118,9 +122,11 @@ jobs:
           architecture: x64
 
       - uses: messense/maturin-action@20111a7c286a91434bdd7f612314a38ff6c091ad
+        env:
+          PYO3_PYTHON: python3.9
         with:
           command: build
-          args: --release --no-sdist -o dist --universal2
+          args: --release -o dist --universal2
 
       - name: Upload wheels
         uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8  # 3.1.0
