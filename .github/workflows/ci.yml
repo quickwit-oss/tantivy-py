@@ -49,7 +49,7 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@d171c3b028d844f2bf14e9fdec0c58114451e4bf
-      - uses: actions/setup-python@7f80679172b057fc5e90d70d197929d454754a5a
+      - uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5  # 4.2.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -57,6 +57,6 @@ jobs:
         with:
           toolchain: stable
 
-      - uses: Swatinem/rust-cache@81d053bdb0871dcd3f10763c8cc60d0adc41762b
+      - uses: Swatinem/rust-cache@6720f05bc48b77f96918929a9019fb2203ff71f8  # 2.0.0
       - run: python3 -m pip install nox
       - run: nox -s test-${{ matrix.python-version }}
