@@ -1,9 +1,13 @@
 name: Test & Release
 
+# on:
+#   push:
+#     tags:
+#       - '*'
 on:
-  push:
-    tags:
-      - '*'
+  pull_request:
+    branches:
+      - master
 
 jobs:
   create-release:
@@ -58,7 +62,7 @@ jobs:
           manylinux: auto
           command: build
           args: --release --sdist -o dist
-  
+
       - name: Upload wheels
         uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8  # 3.1.0
         with:
