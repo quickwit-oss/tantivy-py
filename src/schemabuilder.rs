@@ -318,7 +318,7 @@ impl SchemaBuilder {
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_facet_field(name, FacetOptions::default());
         } else {
-            return Err(exceptions::PyValueError::new_err( 
+            return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
             ));
         }
