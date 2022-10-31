@@ -90,7 +90,7 @@ jobs:
           path: dist
 
       - name: Upload release binaries
-        uses: alexellis/upload-assets@eaab1472d5c2f0df3115cac81136f03e7e61f771
+        uses: alexellis/upload-assets@259de5111cb56966d046ced998941e93f91d2c93
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -128,7 +128,7 @@ jobs:
           path: dist
 
       - name: Upload release binaries
-        uses: alexellis/upload-assets@eaab1472d5c2f0df3115cac81136f03e7e61f771
+        uses: alexellis/upload-assets@259de5111cb56966d046ced998941e93f91d2c93
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -175,7 +175,7 @@ jobs:
           path: dist
 
       - name: Upload release binaries
-        uses: alexellis/upload-assets@eaab1472d5c2f0df3115cac81136f03e7e61f771
+        uses: alexellis/upload-assets@259de5111cb56966d046ced998941e93f91d2c93
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
