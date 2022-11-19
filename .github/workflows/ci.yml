@@ -25,20 +25,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [3.9]
-        majorminor: ["3.9"]
         include:
           - os: ubuntu-latest
-            python-version: "3.11-dev"
-            majorminor: "3.11"
+            python-version: "3.11"
           - os: ubuntu-latest
             python-version: "3.10"
-            majorminor: "3.10"
           - os: ubuntu-latest
             python-version: 3.8
-            majorminor: "3.8"
           - os: ubuntu-latest
             python-version: 3.7
-            majorminor: "3.7"
     runs-on: "${{ matrix.os }}"
     steps:
       - uses: actions/checkout@v2
@@ -50,4 +45,4 @@ jobs:
           toolchain: stable
       - uses: Swatinem/rust-cache@v1
       - run: python3 -m pip install nox
-      - run: nox -s test-${{ matrix.majorminor }}
+      - run: nox -s test-${{ matrix.python-version }}
