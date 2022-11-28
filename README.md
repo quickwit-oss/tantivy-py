@@ -4,7 +4,7 @@
 tantivy-py
 ==========
 
-Python bindings for Tantivy.
+Python bindings for [Tantivy](https://github.com/quickwit-oss/tantivy) the full-text search engine library written in Rust.
 
 
 # Installation
