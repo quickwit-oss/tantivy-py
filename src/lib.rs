@@ -8,13 +8,16 @@ mod query;
 mod schema;
 mod schemabuilder;
 mod searcher;
+mod snippet;
 
 use document::Document;
 use facet::Facet;
 use index::Index;
+use query::Query;
 use schema::Schema;
 use schemabuilder::SchemaBuilder;
 use searcher::{DocAddress, Searcher};
+use snippet::{SnippetGenerator, Snippet};
 
 /// Python bindings for the search engine library Tantivy.
 ///
@@ -75,6 +78,9 @@ fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Index>()?;
     m.add_class::<DocAddress>()?;
     m.add_class::<Facet>()?;
+    m.add_class::<Query>()?;
+    m.add_class::<Snippet>()?;
+    m.add_class::<SnippetGenerator>()?;
     Ok(())
 }
 

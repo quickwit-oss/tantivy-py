@@ -1,7 +1,6 @@
-import tantivy
 import pytest
-
-from tantivy import Document, Index, SchemaBuilder
+import tantivy
+from tantivy import Document, Index, SchemaBuilder, SnippetGenerator
 
 
 def schema():
@@ -326,70 +325,25 @@ class TestDocument(object):
             tantivy.Document(name={})
 
 
-class TestJsonField:
-    def test_query_from_json_field(self):
-        schema = (
-            SchemaBuilder()
-            .add_json_field(
-                "attributes",
-                stored=True,
-                tokenizer_name="default",
-                index_option="position",
-            )
-            .build()
-        )
-
-        index = Index(schema)
-
-        writer = index.writer()
-
-        doc = Document()
-        doc.add_json(
-            "attributes",
-            """{
-                "order":1.1,
-                "target": "submit-button",
-                "cart": {"product_id": 103},
-                "description": "the best vacuum cleaner ever"
-            }""",
-        )
-
-        writer.add_document(doc)
-
-        doc = Document()
-        doc.add_json(
-            "attributes",
-            """{
-                "order":1.2,
-                "target": "submit-button",
-                "cart": {"product_id": 133},
-                "description": "das keyboard"
-            }""",
-        )
-
-        writer.add_document(doc)
-
-        writer.commit()
-        index.reload()
-
-        query = index.parse_query("target:submit-button", ["attributes"])
-        result = index.searcher().search(query, 2)
-        assert len(result.hits) == 2
-
-        query = index.parse_query("target:submit", ["attributes"])
-        result = index.searcher().search(query, 2)
-        assert len(result.hits) == 2
-
-        query = index.parse_query("order:1.1", ["attributes"])
-        result = index.searcher().search(query, 2)
+class TestSnippets(object):
+    def test_document_snippet(self, dir_index):
+        index_dir, _ = dir_index
+        doc_schema = schema()
+        index = Index(doc_schema, str(index_dir))
+        query = index.parse_query("sea whale", ["title", "body"])
+        searcher = index.searcher()
+        result = searcher.search(query)
         assert len(result.hits) == 1
 
-        # query = index.parse_query_for_attributes("cart.product_id:103")
-        # result = index.searcher().search(query, 1)
-        # assert len(result.hits) == 1
+        snippet_generator = SnippetGenerator.create(searcher, query, doc_schema, "title")
 
-        # query = index.parse_query_for_attributes(
-        #     "target:submit-button AND cart.product_id:133"
-        # )
-        # result = index.searcher().search(query, 2)
-        # assert len(result.hits) == 1
+        for (score, doc_address) in result.hits:
+            doc = searcher.doc(doc_address)
+            snippet = snippet_generator.snippet_from_doc(doc)
+            highlights = snippet.highlighted()
+            assert len(highlights) == 1
+            first = highlights[0]
+            assert first.start == 20
+            assert first.end == 23
+            html_snippet = snippet.to_html()
+            assert html_snippet == 'The Old Man and the <b>Sea</b>'
