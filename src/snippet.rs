@@ -1,8 +1,6 @@
+use crate::to_pyerr;
 use pyo3::prelude::*;
 use tantivy as tv;
-use crate::{
-    to_pyerr,
-};
 
 /// Tantivy schema.
 ///
@@ -18,7 +16,7 @@ pub(crate) struct Range {
     #[pyo3(get)]
     start: usize,
     #[pyo3(get)]
-    end: usize
+    end: usize,
 }
 
 #[pymethods]
@@ -28,12 +26,17 @@ impl Snippet {
     }
 
     pub fn highlighted(&self) -> Vec<Range> {
-        let highlighted =  self.inner.highlighted();
-        let results = highlighted.iter().map(|r| Range { start: r.start, end: r.end }).collect::<Vec<_>>();
+        let highlighted = self.inner.highlighted();
+        let results = highlighted
+            .iter()
+            .map(|r| Range {
+                start: r.start,
+                end: r.end,
+            })
+            .collect::<Vec<_>>();
         results
     }
 }
-
 
 #[pyclass]
 pub(crate) struct SnippetGenerator {
@@ -48,12 +51,21 @@ impl SnippetGenerator {
         searcher: &crate::Searcher,
         query: &crate::Query,
         schema: &crate::Schema,
-        field_name: &str
+        field_name: &str,
     ) -> PyResult<SnippetGenerator> {
-        let field = schema.inner.get_field(field_name).ok_or("field not found").map_err(to_pyerr)?;
-        let generator = tv::SnippetGenerator::create(&*searcher.inner, query.get(), field).map_err(to_pyerr)?;
+        let field = schema
+            .inner
+            .get_field(field_name)
+            .ok_or("field not found")
+            .map_err(to_pyerr)?;
+        let generator =
+            tv::SnippetGenerator::create(&*searcher.inner, query.get(), field)
+                .map_err(to_pyerr)?;
 
-        return Ok(SnippetGenerator { field_name: field_name.to_string(), inner: generator });
+        return Ok(SnippetGenerator {
+            field_name: field_name.to_string(),
+            inner: generator,
+        });
     }
 
     pub fn snippet_from_doc(&self, doc: &crate::Document) -> crate::Snippet {
