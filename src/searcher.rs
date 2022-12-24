@@ -217,7 +217,7 @@ impl DocAddress {
     /// The segment local DocId
     #[getter]
     fn doc(&self) -> u32 {
-        self.doc_id
+        self.doc
     }
 }
 

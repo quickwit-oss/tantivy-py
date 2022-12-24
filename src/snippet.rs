@@ -59,7 +59,7 @@ impl SnippetGenerator {
     pub fn snippet_from_doc(&self, doc: &crate::Document) -> crate::Snippet {
         let text: String = doc
             .iter_values_for_field(&self.field_name)
-            .flat_map(tv::schema::Value::text)
+            .flat_map(tv::schema::Value::as_text)
             .collect::<Vec<&str>>()
             .join(" ");
 
