@@ -21,7 +21,7 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
-      - uses: actions-rs/toolchain@63eb9591781c46a70274cb3ebdf190fce92702e8
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
         with:
           toolchain: stable
           components: rustfmt
@@ -53,7 +53,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions-rs/toolchain@63eb9591781c46a70274cb3ebdf190fce92702e8
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
         with:
           toolchain: stable
 
