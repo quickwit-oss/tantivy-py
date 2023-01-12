@@ -4,9 +4,9 @@ on:
   push:
     tags:
       - '*'
-  pull_request:
-   branches:
-     - master
+#  pull_request:
+#   branches:
+#     - master
 
 jobs:
   create-release:
