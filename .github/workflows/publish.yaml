@@ -56,13 +56,10 @@ jobs:
           architecture: x64
 
       - uses: messense/maturin-action@7208c29bdd6b6c292b3d4cd0dfa827cd314ffa3f
-        env:
-          PYO3_PYTHON: python3.8
         with:
-          target: x86_64
           manylinux: auto
           command: build
-          args: --release --sdist -o dist
+          args: --release --sdist -o dist --find-interpreter
 
       - name: Upload wheels
         uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8  # 3.1.0
