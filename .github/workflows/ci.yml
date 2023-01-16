@@ -49,7 +49,7 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
-      - uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5  # 4.2.0
+      - uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435  # 4.5.0
         with:
           python-version: ${{ matrix.python-version }}
 
