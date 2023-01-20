@@ -12,6 +12,14 @@ def schema():
         .build()
     )
 
+def schema_numeric_fields():
+    return (
+        SchemaBuilder()
+        .add_integer_field("id", stored=True, indexed=True)
+        .add_float_field("rating", stored=True, indexed=True)
+        .add_text_field("body", stored=True)
+        .build()
+    )
 
 def create_index(dir=None):
     # assume all tests will use the same documents for now
@@ -66,6 +74,46 @@ def create_index(dir=None):
     index.reload()
     return index
 
+def create_index_with_numeric_fields(dir=None):
+    index = Index(schema_numeric_fields(), dir)
+    writer = index.writer()
+
+    doc = Document()
+    doc.add_integer("id", 1)
+    doc.add_float("rating", 3.5)
+    doc.add_text(
+        "body",
+        (
+            "He was an old man who fished alone in a skiff in"
+            "the Gulf Stream and he had gone eighty-four days "
+            "now without taking a fish."
+        ),
+    )
+    writer.add_document(doc)
+    doc = Document.from_dict(
+        {
+            "id": 2,
+            "rating": 4.5,
+            "body": (
+                "A few miles south of Soledad, the Salinas River drops "
+                "in close to the hillside bank and runs deep and "
+                "green. The water is warm too, for it has slipped "
+                "twinkling over the yellow sands in the sunlight "
+                "before reaching the narrow pool. On one side of the "
+                "river the golden foothill slopes curve up to the "
+                "strong and rocky Gabilan Mountains, but on the valley "
+                "side the water is lined with trees—willows fresh and "
+                "green with every spring, carrying in their lower leaf "
+                "junctures the debris of the winter’s flooding; and "
+                "sycamores with mottled, white, recumbent limbs and "
+                "branches that arch over the pool"
+            ),
+        }
+    )
+    writer.add_document(doc)
+    writer.commit()
+    index.reload()
+    return index
 
 def spanish_schema():
     return (
@@ -132,6 +180,11 @@ def spanish_index():
     return create_spanish_index()
 
 
+@pytest.fixture(scope="class")
+def ram_index_numeric_fields():
+    return create_index_with_numeric_fields()
+
+
 class TestClass(object):
     def test_simple_search_in_dir(self, dir_index):
         _, index = dir_index
@@ -184,6 +237,25 @@ class TestClass(object):
         result = searcher.search(query)
 
         assert len(result.hits) == 1
+
+    def test_and_query_numeric_fields(self, ram_index_numeric_fields):
+        index = ram_index_numeric_fields
+        searcher = index.searcher()
+
+        # 1 result
+        float_query = index.parse_query("3.5", ["rating"])
+        result = searcher.search(float_query)
+        assert len(result.hits) == 1
+        assert searcher.doc(result.hits[0][1])['rating'][0] == 3.5
+
+        integer_query = index.parse_query("1", ["id"])
+        result = searcher.search(integer_query)
+        assert len(result.hits) == 1
+
+        # 0 result
+        integer_query = index.parse_query("10", ["id"])
+        result = searcher.search(integer_query)
+        assert len(result.hits) == 0
 
     def test_and_query_parser_default_fields(self, ram_index):
         query = ram_index.parse_query("winter", default_field_names=["title"])
@@ -344,8 +416,9 @@ class TestFromDiskClass(object):
 
 
 class TestSearcher(object):
-    def test_searcher_repr(self, ram_index):
+    def test_searcher_repr(self, ram_index, ram_index_numeric_fields):
         assert repr(ram_index.searcher()) == "Searcher(num_docs=3, num_segments=1)"
+        assert repr(ram_index_numeric_fields.searcher()) == "Searcher(num_docs=2, num_segments=1)"
 
 
 class TestDocument(object):

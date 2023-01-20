@@ -120,10 +120,32 @@ impl SchemaBuilder {
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
-        let opts = SchemaBuilder::build_int_option(stored, indexed, fast)?;
+        let opts = SchemaBuilder::build_numeric_option(stored, indexed, fast)?;
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_i64_field(name, opts);
+        } else {
+            return Err(exceptions::PyValueError::new_err(
+                "Schema builder object isn't valid anymore.",
+            ));
+        }
+        Ok(self.clone())
+    }
+
+    #[args(stored = false, indexed = false)]
+    fn add_float_field(
+        &mut self,
+        name: &str,
+        stored: bool,
+        indexed: bool,
+        fast: Option<&str>,
+    ) -> PyResult<Self> {
+        let builder = &mut self.builder;
+
+        let opts = SchemaBuilder::build_numeric_option(stored, indexed, fast)?;
+
+        if let Some(builder) = builder.write().unwrap().as_mut() {
+            builder.add_f64_field(name, opts);
         } else {
             return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
@@ -162,7 +184,7 @@ impl SchemaBuilder {
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
-        let opts = SchemaBuilder::build_int_option(stored, indexed, fast)?;
+        let opts = SchemaBuilder::build_numeric_option(stored, indexed, fast)?;
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_u64_field(name, opts);
@@ -343,7 +365,7 @@ impl SchemaBuilder {
 }
 
 impl SchemaBuilder {
-    fn build_int_option(
+    fn build_numeric_option(
         stored: bool,
         indexed: bool,
         fast: Option<&str>,
