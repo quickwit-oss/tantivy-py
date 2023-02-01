@@ -69,7 +69,7 @@ jobs:
           python-version: 3.8
           architecture: x64
 
-      - uses: messense/maturin-action@ac0a1ec1c77c445111d044401c7946a0e84eaa0e
+      - uses: messense/maturin-action@7559b9df219c5af54bdf32d57209c26cc1ca05bc
         with:
           manylinux: auto
           command: build
@@ -102,7 +102,7 @@ jobs:
         with:
           python-version: 3.8
 
-      - uses: messense/maturin-action@ac0a1ec1c77c445111d044401c7946a0e84eaa0e
+      - uses: messense/maturin-action@7559b9df219c5af54bdf32d57209c26cc1ca05bc
         env:
           PYO3_PYTHON: python3.8
         with:
@@ -137,7 +137,7 @@ jobs:
           python-version: 3.8
           architecture: x64
 
-      - uses: messense/maturin-action@ac0a1ec1c77c445111d044401c7946a0e84eaa0e
+      - uses: messense/maturin-action@7559b9df219c5af54bdf32d57209c26cc1ca05bc
         env:
           PYO3_PYTHON: python3.8
         with:
@@ -172,7 +172,7 @@ jobs:
   #         name: wheels
 
   #     - name: Publish to PyPI Tests
-  #       uses: messense/maturin-action@ac0a1ec1c77c445111d044401c7946a0e84eaa0e
+  #       uses: messense/maturin-action@7559b9df219c5af54bdf32d57209c26cc1ca05bc
   #       env:
   #         MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
   #       with:
@@ -180,7 +180,7 @@ jobs:
   #         args: --repository-url=https://test.pypi.org/legacy/ --skip-existing *
 
   #     - name: Publish to PyPI
-  #       uses: messense/maturin-action@ac0a1ec1c77c445111d044401c7946a0e84eaa0e
+  #       uses: messense/maturin-action@7559b9df219c5af54bdf32d57209c26cc1ca05bc
   #       env:
   #         MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
   #       with:
