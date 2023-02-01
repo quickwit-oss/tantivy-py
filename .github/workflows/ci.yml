@@ -18,7 +18,11 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            static.rust-lang.org:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
@@ -48,7 +52,16 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            crates.io:443
+            files.pythonhosted.org:443
+            github.com:443
+            pypi.org:443
+            static.crates.io:443
+            static.rust-lang.org:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435  # 4.5.0
