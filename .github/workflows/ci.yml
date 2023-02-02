@@ -31,7 +31,7 @@ jobs:
           components: rustfmt
 
       - name: Check Formatting
-        run: rustfmt --check src/*rs
+        run: rustfmt --check src/*.rs
 
   Test:
     strategy:
