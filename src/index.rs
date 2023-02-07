@@ -1,9 +1,13 @@
 #![allow(clippy::new_ret_no_self)]
 
 use pyo3::{exceptions, prelude::*, types::PyAny};
+use tv::tokenizer::{StopWordFilter, TextAnalyzer, WhitespaceTokenizer};
 
 use crate::{
     document::{extract_value, Document},
+    filters::get_stopwords_filter_en,
+    filters::outer_punctuation_filter::OuterPunctuationFilter,
+    filters::possessive_contraction_filter::PossessiveContractionFilter,
     get_field,
     query::Query,
     schema::Schema,
@@ -165,6 +169,17 @@ pub(crate) struct Index {
     reader: tv::IndexReader,
 }
 
+// Creates a custom Tokenizer in line with the requirements of Kapiche.
+// It combines a WhiteSpaceTokenizer with a StopWordFilter, OuterPunctuationFilter
+// and a PossessiveContractionFilter.
+fn get_kapiche_tokenizer() -> TextAnalyzer {
+    let stopwords_en = get_stopwords_filter_en();
+    TextAnalyzer::from(WhitespaceTokenizer)
+        .filter(OuterPunctuationFilter::new(vec!['#', '@']))
+        .filter(StopWordFilter::remove(stopwords_en))
+        .filter(PossessiveContractionFilter)
+}
+
 #[pymethods]
 impl Index {
     #[staticmethod]
@@ -172,6 +187,10 @@ impl Index {
         let index = tv::Index::open_in_dir(path).map_err(to_pyerr)?;
 
         Index::register_custom_text_analyzers(&index);
+        let kapiche_tokenizer = get_kapiche_tokenizer();
+        index
+            .tokenizers()
+            .register("kapiche_tokenizer", kapiche_tokenizer);
 
         let reader = index.reader().map_err(to_pyerr)?;
         Ok(Index { index, reader })
@@ -198,6 +217,10 @@ impl Index {
         };
 
         Index::register_custom_text_analyzers(&index);
+        let kapiche_tokenizer = get_kapiche_tokenizer();
+        index
+            .tokenizers()
+            .register("kapiche_tokenizer", kapiche_tokenizer);
 
         let reader = index.reader().map_err(to_pyerr)?;
         Ok(Index { index, reader })
