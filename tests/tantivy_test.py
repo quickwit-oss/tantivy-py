@@ -28,6 +28,13 @@ def schema_numeric_fields():
         .build()
     )
 
+def kapiche_schema():
+    return (
+        SchemaBuilder()
+        .add_text_field("title", stored=True)
+        .add_text_field("body", tokenizer_name='kapiche_tokenizer')
+        .build()
+    )
 
 def create_index(dir=None):
     # assume all tests will use the same documents for now
@@ -176,6 +183,59 @@ def create_spanish_index():
     index.reload()
     return index
 
+def create_kapiche_index(dir=None):
+    # assume all tests will use the same documents for now
+    # other methods may set up function-local indexes
+    index = Index(kapiche_schema(), dir)
+    writer = index.writer()
+
+    # 2 ways of adding documents
+    # 1
+    doc = Document()
+    # create a document instance
+    # add field-value pairs
+    doc.add_text("title", "The Old Man and the Sea")
+    doc.add_text(
+        "body",
+        (
+            "He was an old man who fished alone in a skiff in"
+            "the Gulf Stream and he had gone eighty-four days "
+            "now without taking a fish."
+        ),
+    )
+    writer.add_document(doc)
+    # 2 use the built-in json support
+    # keys need to coincide with field names
+    doc = Document.from_dict(
+        {
+            "title": "Of Mice and Men",
+            "body": (
+                "A few miles south of Soledad, the Salinas River drops "
+                "in close to the hillside bank and runs deep and "
+                "green. The water is warm too, for it has slipped "
+                "twinkling over the yellow sands in the sunlight "
+                "before reaching the narrow pool. On one side of the "
+                "river the golden foothill slopes curve up to the "
+                "strong and rocky Gabilan Mountains, but on the valley "
+                "side the water is lined with trees—willows fresh and "
+                "green with every spring, carrying in their lower leaf "
+                "junctures the debris of the winter’s flooding; and "
+                "sycamores with mottled, white, recumbent limbs and "
+                "branches that arch over the pool"
+            ),
+        }
+    )
+    writer.add_document(doc)
+    writer.add_json(
+        """{
+            "title": ["Frankenstein", "The Modern Prometheus"],
+            "body": "You will rejoice to hear that no disaster has accompanied the commencement of an enterprise which you have regarded with such evil forebodings.  I arrived here yesterday, and my first task is to assure my dear sister of my welfare and increasing confidence in the success of my undertaking."
+        }"""
+    )
+    writer.commit()
+    index.reload()
+    return index
+
 
 @pytest.fixture()
 def dir_index(tmpdir):
@@ -186,6 +246,9 @@ def dir_index(tmpdir):
 def ram_index():
     return create_index()
 
+@pytest.fixture(scope="class")
+def ram_kapiche_index():
+    return create_kapiche_index()
 
 @pytest.fixture(scope="class")
 def ram_index_numeric_fields():
@@ -215,6 +278,16 @@ class TestClass(object):
 
     def test_simple_search_in_ram(self, ram_index):
         index = ram_index
+        query = index.parse_query("sea whale", ["title", "body"])
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+    def test_simple_search_in_kapiche_ram(self, ram_kapiche_index):
+        index = ram_kapiche_index
         query = index.parse_query("sea whale", ["title", "body"])
 
         result = index.searcher().search(query, 10)
