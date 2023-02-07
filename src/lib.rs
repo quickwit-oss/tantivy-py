@@ -3,11 +3,14 @@ use tantivy as tv;
 
 mod document;
 mod facet;
+mod filters;
 mod index;
 mod query;
 mod schema;
 mod schemabuilder;
 mod searcher;
+//mod OuterPunctuationFilter;
+//mod PossessiveContractionFilter;
 
 use document::Document;
 use facet::Facet;
