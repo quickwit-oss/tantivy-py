@@ -164,7 +164,7 @@ impl SchemaBuilder {
         Ok(self.clone())
     }
 
-    #[args(stored = false, indexed = false)]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
     fn add_float_field(
         &mut self,
         name: &str,

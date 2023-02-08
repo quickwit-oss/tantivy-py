@@ -9,8 +9,6 @@ mod query;
 mod schema;
 mod schemabuilder;
 mod searcher;
-//mod OuterPunctuationFilter;
-//mod PossessiveContractionFilter;
 
 use document::Document;
 use facet::Facet;
