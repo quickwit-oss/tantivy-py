@@ -1,3 +1,4 @@
+#[rustfmt::skip]
 use ::tantivy as tv;
 use pyo3::{exceptions, prelude::*};
 
@@ -9,8 +10,6 @@ mod query;
 mod schema;
 mod schemabuilder;
 mod searcher;
-//mod OuterPunctuationFilter;
-//mod PossessiveContractionFilter;
 
 use document::Document;
 use facet::Facet;

@@ -1,7 +1,8 @@
 #![allow(clippy::new_ret_no_self)]
 
+use std::collections::HashMap;
+
 use pyo3::{exceptions, prelude::*, types::PyAny};
-use tv::tokenizer::{StopWordFilter, TextAnalyzer, WhitespaceTokenizer};
 
 use crate::{
     document::{extract_value, Document},
@@ -21,6 +22,7 @@ use tantivy::{
     tokenizer::{
         Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer,
         TextAnalyzer,
+        StopWordFilter, TextAnalyzer, WhitespaceTokenizer,
     },
 };
 
@@ -185,8 +187,9 @@ impl Index {
     #[staticmethod]
     fn open(path: &str) -> PyResult<Index> {
         let index = tv::Index::open_in_dir(path).map_err(to_pyerr)?;
-
         Index::register_custom_text_analyzers(&index);
+
+        // Register Kapiche Tokenizer
         let kapiche_tokenizer = get_kapiche_tokenizer();
         index
             .tokenizers()
@@ -215,8 +218,9 @@ impl Index {
             }
             None => tv::Index::create_in_ram(schema.inner.clone()),
         };
-
         Index::register_custom_text_analyzers(&index);
+
+        // Register Kapiche tokenizer
         let kapiche_tokenizer = get_kapiche_tokenizer();
         index
             .tokenizers()
