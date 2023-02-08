@@ -10,7 +10,7 @@ use tantivy::collector::{Count, MultiCollector, TopDocs};
 /// A Searcher is used to search the index given a prepared Query.
 #[pyclass]
 pub(crate) struct Searcher {
-    pub(crate) inner: tv::LeasedItem<tv::Searcher>,
+    pub(crate) inner: tv::Searcher,
 }
 
 #[derive(Clone)]
@@ -93,7 +93,7 @@ impl Searcher {
     /// Returns `SearchResult` object.
     ///
     /// Raises a ValueError if there was an error with the search.
-    #[args(limit = 10, offset = 0, count = true)]
+    #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0))]
     fn search(
         &self,
         _py: Python,

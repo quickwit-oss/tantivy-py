@@ -6,7 +6,7 @@ use tantivy::schema;
 
 use crate::schema::Schema;
 use std::sync::{Arc, RwLock};
-use tantivy::schema::INDEXED;
+use tantivy::schema::{DateOptions, INDEXED};
 
 /// Tantivy has a very strict schema.
 /// You need to specify in advance whether a field is indexed or not,
@@ -60,11 +60,12 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[args(
+    #[pyo3(signature = (
+        name,
         stored = false,
-        tokenizer_name = "TOKENIZER",
-        index_option = "RECORD"
-    )]
+        tokenizer_name = TOKENIZER,
+        index_option = RECORD
+    ))]
     fn add_text_field(
         &mut self,
         name: &str,
@@ -109,7 +110,7 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[args(stored = false, indexed = false)]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
     fn add_integer_field(
         &mut self,
         name: &str,
@@ -131,7 +132,7 @@ impl SchemaBuilder {
         Ok(self.clone())
     }
 
-    #[args(stored = false, indexed = false)]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
     fn add_float_field(
         &mut self,
         name: &str,
@@ -173,7 +174,7 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[args(stored = false, indexed = false)]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
     fn add_unsigned_field(
         &mut self,
         name: &str,
@@ -215,7 +216,7 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[args(stored = false, indexed = false)]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
     fn add_date_field(
         &mut self,
         name: &str,
@@ -225,7 +226,29 @@ impl SchemaBuilder {
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
-        let opts = SchemaBuilder::build_numeric_option(stored, indexed, fast)?;
+        let mut opts = DateOptions::default();
+        if stored {
+            opts = opts.set_stored();
+        }
+        if indexed {
+            opts = opts.set_indexed();
+        }
+        let cardinality = match fast {
+            Some(f) => {
+                let f = f.to_lowercase();
+                match f.as_ref() {
+                    "single" => Some(schema::Cardinality::SingleValue),
+                    "multi" => Some(schema::Cardinality::MultiValues),
+                    _ => return Err(exceptions::PyValueError::new_err(
+                        "Invalid index option, valid choices are: 'multivalue' and 'singlevalue'"
+                    )),
+                }
+            }
+            None => None,
+        };
+        if fast.is_some() {
+            opts = opts.set_fast(cardinality.unwrap());
+        };
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_date_field(name, opts);
@@ -256,11 +279,12 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[args(
+    #[pyo3(signature = (
+        name,
         stored = false,
-        tokenizer_name = "TOKENIZER",
-        index_option = "RECORD"
-    )]
+        tokenizer_name = TOKENIZER,
+        index_option = RECORD
+    ))]
     fn add_json_field(
         &mut self,
         name: &str,

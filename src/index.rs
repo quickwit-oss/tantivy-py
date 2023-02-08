@@ -1,7 +1,8 @@
 #![allow(clippy::new_ret_no_self)]
 
+use std::collections::HashMap;
+
 use pyo3::{exceptions, prelude::*, types::PyAny};
-use tv::tokenizer::{StopWordFilter, TextAnalyzer, WhitespaceTokenizer};
 
 use crate::{
     document::{extract_value, Document},
@@ -18,6 +19,10 @@ use tantivy as tv;
 use tantivy::{
     directory::MmapDirectory,
     schema::{NamedFieldDocument, Term, Value},
+    tokenizer::{
+        Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer,
+        StopWordFilter, TextAnalyzer, WhitespaceTokenizer,
+    },
 };
 
 const RELOAD_POLICY: &str = "commit";
@@ -124,7 +129,7 @@ impl IndexWriter {
             Value::U64(num) => Term::from_field_u64(field, num),
             Value::I64(num) => Term::from_field_i64(field, num),
             Value::F64(num) => Term::from_field_f64(field, num),
-            Value::Date(d) => Term::from_field_date(field, &d),
+            Value::Date(d) => Term::from_field_date(field, d),
             Value::Facet(facet) => Term::from_facet(field, &facet),
             Value::Bytes(_) => {
                 return Err(exceptions::PyValueError::new_err(format!(
@@ -143,7 +148,9 @@ impl IndexWriter {
                     "Field `{}` is json object type not deletable.",
                     field_name
                 )))
-            }
+            },
+            Value::Bool(b) => Term::from_field_bool(field, b),
+            Value::IpAddr(i) => Term::from_field_ip_addr(field, i)
         };
         Ok(self.inner_index_writer.delete_term(term))
     }
@@ -182,6 +189,9 @@ impl Index {
     #[staticmethod]
     fn open(path: &str) -> PyResult<Index> {
         let index = tv::Index::open_in_dir(path).map_err(to_pyerr)?;
+        Index::register_custom_text_analyzers(&index);
+
+        // Register Kapiche Tokenizer
         let kapiche_tokenizer = get_kapiche_tokenizer();
         index
             .tokenizers()
@@ -192,7 +202,7 @@ impl Index {
     }
 
     #[new]
-    #[args(reuse = true)]
+    #[pyo3(signature = (schema, path = None, reuse = true))]
     fn new(schema: &Schema, path: Option<&str>, reuse: bool) -> PyResult<Self> {
         let index = match path {
             Some(p) => {
@@ -210,7 +220,9 @@ impl Index {
             }
             None => tv::Index::create_in_ram(schema.inner.clone()),
         };
+        Index::register_custom_text_analyzers(&index);
 
+        // Register Kapiche tokenizer
         let kapiche_tokenizer = get_kapiche_tokenizer();
         index
             .tokenizers()
@@ -233,7 +245,7 @@ impl Index {
     ///         automatically the number of threads.
     ///
     /// Raises ValueError if there was an error while creating the writer.
-    #[args(heap_size = 3000000, num_threads = 0)]
+    #[pyo3(signature = (heap_size = 3000000, num_threads = 0))]
     fn writer(
         &self,
         heap_size: usize,
@@ -256,13 +268,13 @@ impl Index {
     /// Args:
     ///     reload_policy (str, optional): The reload policy that the
     ///         IndexReader should use. Can be `Manual` or `OnCommit`.
-    ///     num_searchers (int, optional): The number of searchers that the
+    ///     num_warmers (int, optional): The number of searchers that the
     ///         reader should create.
-    #[args(reload_policy = "RELOAD_POLICY", num_searchers = 0)]
+    #[pyo3(signature = (reload_policy = RELOAD_POLICY, num_warmers = 0))]
     fn config_reader(
         &mut self,
         reload_policy: &str,
-        num_searchers: usize,
+        num_warmers: usize,
     ) -> Result<(), PyErr> {
         let reload_policy = reload_policy.to_lowercase();
         let reload_policy = match reload_policy.as_ref() {
@@ -276,8 +288,8 @@ impl Index {
         };
         let builder = self.index.reader_builder();
         let builder = builder.reload_policy(reload_policy);
-        let builder = if num_searchers > 0 {
-            builder.num_searchers(num_searchers)
+        let builder = if num_warmers > 0 {
+            builder.num_warming_threads(num_warmers)
         } else {
             builder
         };
@@ -338,7 +350,7 @@ impl Index {
     ///     default_fields_names (List[Field]): A list of fields used to search if no
     ///         field is specified in the query.
     ///
-    #[args(reload_policy = "RELOAD_POLICY")]
+    #[pyo3(signature = (query, default_field_names = None))]
     pub fn parse_query(
         &self,
         query: &str,
@@ -378,5 +390,36 @@ impl Index {
         let query = parser.parse_query(query).map_err(to_pyerr)?;
 
         Ok(Query { inner: query })
+    }
+}
+
+impl Index {
+    fn register_custom_text_analyzers(index: &tv::Index) {
+        let mut analyzers = HashMap::new();
+        analyzers.insert("ar_stem", Language::Arabic);
+        analyzers.insert("da_stem", Language::Danish);
+        analyzers.insert("nl_stem", Language::Dutch);
+        analyzers.insert("fi_stem", Language::Finnish);
+        analyzers.insert("fr_stem", Language::French);
+        analyzers.insert("de_stem", Language::German);
+        analyzers.insert("el_stem", Language::Greek);
+        analyzers.insert("hu_stem", Language::Hungarian);
+        analyzers.insert("it_stem", Language::Italian);
+        analyzers.insert("no_stem", Language::Norwegian);
+        analyzers.insert("pt_stem", Language::Portuguese);
+        analyzers.insert("ro_stem", Language::Romanian);
+        analyzers.insert("ru_stem", Language::Russian);
+        analyzers.insert("es_stem", Language::Spanish);
+        analyzers.insert("sv_stem", Language::Swedish);
+        analyzers.insert("ta_stem", Language::Tamil);
+        analyzers.insert("tr_stem", Language::Turkish);
+
+        for (name, lang) in &analyzers {
+            let an = TextAnalyzer::from(SimpleTokenizer)
+                .filter(RemoveLongFilter::limit(40))
+                .filter(LowerCaser)
+                .filter(Stemmer::new(*lang));
+            index.tokenizers().register(name, an);
+        }
     }
 }
