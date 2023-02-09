@@ -6,7 +6,7 @@ use tantivy::schema;
 
 use crate::schema::Schema;
 use std::sync::{Arc, RwLock};
-use tantivy::schema::{INDEXED, DateOptions };
+use tantivy::schema::{DateOptions, INDEXED};
 
 /// Tantivy has a very strict schema.
 /// You need to specify in advance whether a field is indexed or not,
@@ -186,7 +186,7 @@ impl SchemaBuilder {
     ///         field. Fast fields are designed for random access. Access time
     ///         are similar to a random lookup in an array. If more than one
     ///         value is associated to a fast field, only the last one is kept.
-    ///         Can be one of 'single' or 'multi'. If this is set to 'single,
+    ///         Can be one of 'single' or 'multi'. If this is set to 'single',
     ///         the document must have exactly one value associated to the
     ///         document. If this is set to 'multi', the document can have any
     ///         number of values associated to the document. Defaults to None,
@@ -218,13 +218,15 @@ impl SchemaBuilder {
                     "single" => Some(schema::Cardinality::SingleValue),
                     "multi" => Some(schema::Cardinality::MultiValues),
                     _ => return Err(exceptions::PyValueError::new_err(
-                        "Invalid index option, valid choices are: 'multivalue' and 'singlevalue'"
+                        "Invalid index option, valid choices are: 'multi' and 'single'"
                     )),
                 }
             }
             None => None,
         };
-        opts = opts.set_fast(fast.unwrap());
+        if fast.is_some() {
+            opts = opts.set_fast(fast.unwrap());
+        }
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_date_field(name, opts);

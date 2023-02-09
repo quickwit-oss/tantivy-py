@@ -16,7 +16,10 @@ use tantivy as tv;
 use tantivy::{
     directory::MmapDirectory,
     schema::{NamedFieldDocument, Term, Value},
-    tokenizer::{Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer, TextAnalyzer},
+    tokenizer::{
+        Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer,
+        TextAnalyzer,
+    },
 };
 
 const RELOAD_POLICY: &str = "commit";

@@ -75,9 +75,9 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
                 .map(|(k, v)| (k, value_to_object(&v, py)))
                 .collect();
             inner.to_object(py)
-        },
+        }
         Value::Bool(b) => b.into_py(py),
-        Value::IpAddr(i) => (*i).to_string().into_py(py)
+        Value::IpAddr(i) => (*i).to_string().into_py(py),
     })
 }
 
@@ -96,9 +96,9 @@ fn value_to_string(value: &Value) -> String {
         }
         Value::JsonObject(json_object) => {
             serde_json::to_string(&json_object).unwrap()
-        },
+        }
         Value::Bool(b) => format!("{}", b),
-        Value::IpAddr(i) => format!("{}", *i)
+        Value::IpAddr(i) => format!("{}", *i),
     }
 }
 
@@ -173,15 +173,20 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
         return Ok(Value::F64(num));
     }
     if let Ok(py_datetime) = any.downcast::<PyDateTime>() {
-        let datetime = Utc.with_ymd_and_hms(
-            py_datetime.get_year(),
-            py_datetime.get_month().into(),
-            py_datetime.get_day().into(),
-            py_datetime.get_hour().into(),
-            py_datetime.get_minute().into(),
-            py_datetime.get_second().into()
-        ).single().unwrap();
-        return Ok(Value::Date(tv::DateTime::from_timestamp_secs(datetime.timestamp())));
+        let datetime = Utc
+            .with_ymd_and_hms(
+                py_datetime.get_year(),
+                py_datetime.get_month().into(),
+                py_datetime.get_day().into(),
+                py_datetime.get_hour().into(),
+                py_datetime.get_minute().into(),
+                py_datetime.get_second().into(),
+            )
+            .single()
+            .unwrap();
+        return Ok(Value::Date(tv::DateTime::from_timestamp_secs(
+            datetime.timestamp(),
+        )));
     }
     if let Ok(facet) = any.extract::<Facet>() {
         return Ok(Value::Facet(facet.inner.clone()));
@@ -298,15 +303,22 @@ impl Document {
     ///     field_name (str): The field name for which we are adding the date.
     ///     value (datetime): The date that will be added to the document.
     fn add_date(&mut self, field_name: String, value: &PyDateTime) {
-        let datetime = Utc.with_ymd_and_hms(
-            value.get_year(),
-            value.get_month().into(),
-            value.get_day().into(),
-            value.get_hour().into(),
-            value.get_minute().into(),
-            value.get_second().into()
-        ).single().unwrap();
-        add_value(self, field_name, tv::DateTime::from_timestamp_secs(datetime.timestamp()));
+        let datetime = Utc
+            .with_ymd_and_hms(
+                value.get_year(),
+                value.get_month().into(),
+                value.get_day().into(),
+                value.get_hour().into(),
+                value.get_minute().into(),
+                value.get_second().into(),
+            )
+            .single()
+            .unwrap();
+        add_value(
+            self,
+            field_name,
+            tv::DateTime::from_timestamp_secs(datetime.timestamp()),
+        );
     }
 
     /// Add a facet value to the document.
