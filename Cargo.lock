@@ -1058,14 +1058,14 @@ dependencies = [
  "pyo3",
  "pyo3-build-config",
  "serde_json",
- "tantivy 0.19.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tantivy 0.19.2",
 ]
 
 [[package]]
 name = "tantivy"
-version = "0.19.1"
+version = "0.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "513d4e19dc483209aa0ff9dc40d831f5bfa529917ae836b6fc1f01113ec84dc7"
+checksum = "5bb26a6b22c84d8be41d99a14016d6f04d30d8d31a2ea411a8ab553af5cc490d"
 dependencies = [
  "aho-corasick",
  "arc-swap",
