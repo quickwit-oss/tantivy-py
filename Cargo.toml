@@ -1,6 +1,6 @@
 [package]
 name = "tantivy"
-version = "0.19.1"
+version = "0.19.2"
 readme = "README.md"
 authors = ["Damir Jelić <poljar@termina.org.uk>"]
 edition = "2018"
@@ -15,7 +15,7 @@ pyo3-build-config = { version = "0.18.0" }
 
 [dependencies]
 chrono = { version = "0.4.23" }
-tantivy = { version = "0.19.1" }
+tantivy = { version = "0.19.2" }
 itertools = { version = "0.10.5" }
 futures = { version = "0.3.26" }
 serde_json = { version = "1.0.91" }
