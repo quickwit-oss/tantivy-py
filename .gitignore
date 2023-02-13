@@ -3,10 +3,10 @@
 build
 /target
 **/*.rs.bk
-Cargo.lock
 dist/
 __pycache__/
 tantivy.so
+tantivy.dylib
 tantivy/tantivy.cpython*.so
 tantivy.egg-info/
 
