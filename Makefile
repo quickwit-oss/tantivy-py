@@ -14,7 +14,7 @@ test: tantivy/tantivy.$(EXT)
 	python3 -m pytest
 
 format:
-	rustfmt src/*.rs
+	cargo fmt
 
 build:
 	maturin build --interpreter python3.7 python3.8 python3.9 python3.10 python3.11
