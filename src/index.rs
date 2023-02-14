@@ -1,7 +1,5 @@
 #![allow(clippy::new_ret_no_self)]
 
-use std::collections::HashMap;
-
 use pyo3::{exceptions, prelude::*, types::PyAny};
 
 use crate::{
@@ -366,24 +364,25 @@ impl Index {
 
 impl Index {
     fn register_custom_text_analyzers(index: &tv::Index) {
-        let mut analyzers = HashMap::new();
-        analyzers.insert("ar_stem", Language::Arabic);
-        analyzers.insert("da_stem", Language::Danish);
-        analyzers.insert("nl_stem", Language::Dutch);
-        analyzers.insert("fi_stem", Language::Finnish);
-        analyzers.insert("fr_stem", Language::French);
-        analyzers.insert("de_stem", Language::German);
-        analyzers.insert("el_stem", Language::Greek);
-        analyzers.insert("hu_stem", Language::Hungarian);
-        analyzers.insert("it_stem", Language::Italian);
-        analyzers.insert("no_stem", Language::Norwegian);
-        analyzers.insert("pt_stem", Language::Portuguese);
-        analyzers.insert("ro_stem", Language::Romanian);
-        analyzers.insert("ru_stem", Language::Russian);
-        analyzers.insert("es_stem", Language::Spanish);
-        analyzers.insert("sv_stem", Language::Swedish);
-        analyzers.insert("ta_stem", Language::Tamil);
-        analyzers.insert("tr_stem", Language::Turkish);
+        let analyzers = [
+            ("ar_stem", Language::Arabic),
+            ("da_stem", Language::Danish),
+            ("nl_stem", Language::Dutch),
+            ("fi_stem", Language::Finnish),
+            ("fr_stem", Language::French),
+            ("de_stem", Language::German),
+            ("el_stem", Language::Greek),
+            ("hu_stem", Language::Hungarian),
+            ("it_stem", Language::Italian),
+            ("no_stem", Language::Norwegian),
+            ("pt_stem", Language::Portuguese),
+            ("ro_stem", Language::Romanian),
+            ("ru_stem", Language::Russian),
+            ("es_stem", Language::Spanish),
+            ("sv_stem", Language::Swedish),
+            ("ta_stem", Language::Tamil),
+            ("tr_stem", Language::Turkish),
+        ];
 
         for (name, lang) in &analyzers {
             let an = TextAnalyzer::from(SimpleTokenizer)
