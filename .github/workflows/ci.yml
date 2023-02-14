@@ -18,7 +18,7 @@ jobs:
           toolchain: stable
           components: rustfmt
       - name: Check Formatting
-        run: rustfmt --check src/*rs
+        run: cargo fmt --check
 
   Test:
     strategy:
