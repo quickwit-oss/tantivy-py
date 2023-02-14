@@ -6,9 +6,12 @@ endif
 
 source_files := $(wildcard src/*.rs)
 
-all: build
+all: format lint build test
 
 PHONY: test format
+
+lint:
+	cargo clippy
 
 test: tantivy/tantivy.$(EXT)
 	python3 -m pytest

@@ -130,20 +130,17 @@ impl IndexWriter {
             Value::Facet(facet) => Term::from_facet(field, &facet),
             Value::Bytes(_) => {
                 return Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{}` is bytes type not deletable.",
-                    field_name
+                    "Field `{field_name}` is bytes type not deletable."
                 )))
             }
             Value::PreTokStr(_pretok) => {
                 return Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{}` is pretokenized. This is not authorized for delete.",
-                    field_name
+                    "Field `{field_name}` is pretokenized. This is not authorized for delete."
                 )))
             }
             Value::JsonObject(_) => {
                 return Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{}` is json object type not deletable.",
-                    field_name
+                    "Field `{field_name}` is json object type not deletable."
                 )))
             },
             Value::Bool(b) => Term::from_field_bool(field, b),
@@ -341,16 +338,14 @@ impl Index {
                     if !field_entry.is_indexed() {
                         return Err(exceptions::PyValueError::new_err(
                             format!(
-                            "Field `{}` is not set as indexed in the schema.",
-                            default_field_name
+                            "Field `{default_field_name}` is not set as indexed in the schema."
                         ),
                         ));
                     }
                     default_fields.push(field);
                 } else {
                     return Err(exceptions::PyValueError::new_err(format!(
-                        "Field `{}` is not defined in the schema.",
-                        default_field_name
+                        "Field `{default_field_name}` is not defined in the schema."
                     )));
                 }
             }

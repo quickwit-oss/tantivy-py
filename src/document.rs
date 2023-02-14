@@ -56,23 +56,26 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             // TODO implement me
             unimplemented!();
         }
-        Value::Date(d) => PyDateTime::new(
-            py,
-            d.into_utc().year(),
-            d.into_utc().month() as u8,
-            d.into_utc().day() as u8,
-            d.into_utc().hour() as u8,
-            d.into_utc().minute() as u8,
-            d.into_utc().second() as u8,
-            d.into_utc().microsecond() as u32,
-            None,
-        )?
-        .into_py(py),
+        Value::Date(d) => {
+            let utc = d.into_utc();
+            PyDateTime::new(
+                py,
+                utc.year(),
+                utc.month() as u8,
+                utc.day(),
+                utc.hour(),
+                utc.minute(),
+                utc.second(),
+                utc.microsecond(),
+                None,
+            )?
+            .into_py(py)
+        }
         Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
         Value::JsonObject(json_object) => {
             let inner: HashMap<_, _> = json_object
                 .iter()
-                .map(|(k, v)| (k, value_to_object(&v, py)))
+                .map(|(k, v)| (k, value_to_object(v, py)))
                 .collect();
             inner.to_object(py)
         }
@@ -84,11 +87,11 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
 fn value_to_string(value: &Value) -> String {
     match value {
         Value::Str(text) => text.clone(),
-        Value::U64(num) => format!("{}", num),
-        Value::I64(num) => format!("{}", num),
-        Value::F64(num) => format!("{}", num),
-        Value::Bytes(bytes) => format!("{:?}", bytes),
-        Value::Date(d) => format!("{:?}", d),
+        Value::U64(num) => format!("{num}"),
+        Value::I64(num) => format!("{num}"),
+        Value::F64(num) => format!("{num}"),
+        Value::Bytes(bytes) => format!("{bytes:?}"),
+        Value::Date(d) => format!("{d:?}"),
         Value::Facet(facet) => facet.to_string(),
         Value::PreTokStr(_pretok) => {
             // TODO implement me
@@ -97,7 +100,7 @@ fn value_to_string(value: &Value) -> String {
         Value::JsonObject(json_object) => {
             serde_json::to_string(&json_object).unwrap()
         }
-        Value::Bool(b) => format!("{}", b),
+        Value::Bool(b) => format!("{b}"),
         Value::IpAddr(i) => format!("{}", *i),
     }
 }
@@ -145,10 +148,10 @@ impl fmt::Debug for Document {
                     .chars()
                     .take(10)
                     .collect();
-                format!("{}=[{}]", field_name, values_str)
+                format!("{field_name}=[{values_str}]")
             })
             .join(",");
-        write!(f, "Document({})", doc_str)
+        write!(f, "Document({doc_str})")
     }
 }
 
@@ -189,9 +192,9 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
         )));
     }
     if let Ok(facet) = any.extract::<Facet>() {
-        return Ok(Value::Facet(facet.inner.clone()));
+        return Ok(Value::Facet(facet.inner));
     }
-    Err(to_pyerr(format!("Value unsupported {:?}", any)))
+    Err(to_pyerr(format!("Value unsupported {any:?}")))
 }
 
 fn extract_value_single_or_list(any: &PyAny) -> PyResult<Vec<Value>> {
@@ -395,13 +398,13 @@ impl Document {
     }
 
     fn __getitem__(&self, field_name: &str) -> PyResult<Vec<PyObject>> {
-        return Python::with_gil(|py| -> PyResult<Vec<PyObject>> {
+        Python::with_gil(|py| -> PyResult<Vec<PyObject>> {
             self.get_all(py, field_name)
-        });
+        })
     }
 
     fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("{:?}", self))
+        Ok(format!("{self:?}"))
     }
 }
 

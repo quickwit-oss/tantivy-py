@@ -224,8 +224,8 @@ impl SchemaBuilder {
             }
             None => None,
         };
-        if fast.is_some() {
-            opts = opts.set_fast(fast.unwrap());
+        if let Some(f) = fast {
+            opts = opts.set_fast(f);
         }
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
