@@ -22,8 +22,8 @@ enum Fruit {
 impl std::fmt::Debug for Fruit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Fruit::Score(s) => f.write_str(&format!("{}", s)),
-            Fruit::Order(o) => f.write_str(&format!("{}", o)),
+            Fruit::Score(s) => f.write_str(&format!("{s}")),
+            Fruit::Order(o) => f.write_str(&format!("{o}")),
         }
     }
 }
@@ -154,10 +154,7 @@ impl Searcher {
             }
         };
 
-        let count = match count_handle {
-            Some(h) => Some(h.extract(&mut multifruit)),
-            None => None,
-        };
+        let count = count_handle.map(|h| h.extract(&mut multifruit));
 
         Ok(SearchResult { hits, count })
     }
@@ -230,11 +227,11 @@ impl From<&tv::DocAddress> for DocAddress {
     }
 }
 
-impl Into<tv::DocAddress> for &DocAddress {
-    fn into(self) -> tv::DocAddress {
+impl From<&DocAddress> for tv::DocAddress {
+    fn from(val: &DocAddress) -> Self {
         tv::DocAddress {
-            segment_ord: self.segment_ord(),
-            doc_id: self.doc(),
+            segment_ord: val.segment_ord(),
+            doc_id: val.doc(),
         }
     }
 }
