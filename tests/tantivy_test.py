@@ -183,6 +183,58 @@ def create_spanish_index():
     index.reload()
     return index
 
+
+def spanish_schema():
+    return (
+        SchemaBuilder()
+        .add_text_field("title", stored=True, tokenizer_name='es_stem')
+        .add_text_field("body", tokenizer_name='es_stem')
+        .build()
+    )
+
+
+def create_spanish_index():
+    # assume all tests will use the same documents for now
+    # other methods may set up function-local indexes
+    index = Index(spanish_schema(), None)
+
+    writer = index.writer()
+
+    # 2 ways of adding documents
+    # 1
+    doc = Document()
+    # create a document instance
+    # add field-value pairs
+    doc.add_text("title", "El viejo y el mar")
+    doc.add_text(
+        "body",
+        (
+            "Era un viejo que pescaba solo en un bote en el Gulf Stream y hacía ochenta y cuatro días que no cogía un pez. "
+        ),
+    )
+    writer.add_document(doc)
+    # 2 use the built-in json support
+    # keys need to coincide with field names
+    doc = Document.from_dict(
+        {
+            "title": "De ratones y hombres",
+            "body": (
+                "Unas millas al sur de Soledad, el río Salinas se ahonda junto al margen de la ladera y fluye profundo y verde. Es tibia el agua, porque se ha deslizado chispeante sobre la arena amarilla y al calor del sol antes de llegar a la angosta laguna. A un lado del río, la dorada falda de la ladera se curva hacia arriba trepando hasta las montañas Gabilán, fuertes y rocosas, pero del lado del valle los árboles bordean la orilla: sauces frescos y verdes cada primavera, que en la s junturas más bajas de sus hojas muestran las consecuencias de la crecida invernal; y sicomoros de troncos veteados, blancos, recostados, y ramas quesear quean sobre el estanque"
+            ),
+        }
+    )
+    writer.add_document(doc)
+    writer.add_json(
+        """{
+            "title": ["Frankenstein", "El moderno Prometeo"],
+            "body": "Te alegrará saber que no ha ocurrido ningún percance al principio de una aventura que siempre consideraste cargada de malos presagios. Llegué aquí ayer, y mi primera tarea es asegurarle a mi querida hermana que me hallo perfectamente y que tengo una gran confianza en el éxito de mi empresa."
+        }"""
+    )
+    writer.commit()
+    index.reload()
+    return index
+
+
 def create_kapiche_index(dir=None):
     # assume all tests will use the same documents for now
     # other methods may set up function-local indexes
@@ -251,6 +303,11 @@ def ram_kapiche_index():
     return create_kapiche_index()
 
 @pytest.fixture(scope="class")
+def spanish_index():
+    return create_spanish_index()
+
+
+@pytest.fixture(scope="class")
 def ram_index_numeric_fields():
     return create_index_with_numeric_fields()
 
@@ -285,6 +342,16 @@ class TestClass(object):
         _, doc_address = result.hits[0]
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+    def test_simple_search_in_spanish(self, spanish_index):
+        index = spanish_index
+        query = index.parse_query("vieja", ["title", "body"])
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        search_doc = index.searcher().doc(doc_address)
+        assert search_doc["title"] == ["El viejo y el mar"]
 
     def test_simple_search_in_kapiche_ram(self, ram_kapiche_index):
         index = ram_kapiche_index
