@@ -1,5 +1,5 @@
+use ::tantivy as tv;
 use pyo3::{exceptions, prelude::*};
-use tantivy as tv;
 
 mod document;
 mod facet;
@@ -94,8 +94,7 @@ pub(crate) fn get_field(
 ) -> PyResult<tv::schema::Field> {
     let field = schema.get_field(field_name).ok_or_else(|| {
         exceptions::PyValueError::new_err(format!(
-            "Field `{}` is not defined in the schema.",
-            field_name
+            "Field `{field_name}` is not defined in the schema."
         ))
     })?;
 
