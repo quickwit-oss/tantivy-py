@@ -6,7 +6,7 @@ use tantivy::schema;
 
 use crate::schema::Schema;
 use std::sync::{Arc, RwLock};
-use tantivy::schema::INDEXED;
+use tantivy::schema::{DateOptions, INDEXED};
 
 /// Tantivy has a very strict schema.
 /// You need to specify in advance whether a field is indexed or not,
@@ -60,11 +60,12 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[args(
+    #[pyo3(signature = (
+        name,
         stored = false,
-        tokenizer_name = "TOKENIZER",
-        index_option = "RECORD"
-    )]
+        tokenizer_name = TOKENIZER,
+        index_option = RECORD
+    ))]
     fn add_text_field(
         &mut self,
         name: &str,
@@ -109,7 +110,7 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[args(stored = false, indexed = false)]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
     fn add_integer_field(
         &mut self,
         name: &str,
@@ -151,7 +152,7 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[args(stored = false, indexed = false)]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
     fn add_unsigned_field(
         &mut self,
         name: &str,
@@ -185,7 +186,7 @@ impl SchemaBuilder {
     ///         field. Fast fields are designed for random access. Access time
     ///         are similar to a random lookup in an array. If more than one
     ///         value is associated to a fast field, only the last one is kept.
-    ///         Can be one of 'single' or 'multi'. If this is set to 'single,
+    ///         Can be one of 'single' or 'multi'. If this is set to 'single',
     ///         the document must have exactly one value associated to the
     ///         document. If this is set to 'multi', the document can have any
     ///         number of values associated to the document. Defaults to None,
@@ -193,7 +194,7 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[args(stored = false, indexed = false)]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
     fn add_date_field(
         &mut self,
         name: &str,
@@ -203,7 +204,29 @@ impl SchemaBuilder {
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
-        let opts = SchemaBuilder::build_int_option(stored, indexed, fast)?;
+        let mut opts = DateOptions::default();
+        if stored {
+            opts = opts.set_stored();
+        }
+        if indexed {
+            opts = opts.set_indexed();
+        }
+        let fast = match fast {
+            Some(f) => {
+                let f = f.to_lowercase();
+                match f.as_ref() {
+                    "single" => Some(schema::Cardinality::SingleValue),
+                    "multi" => Some(schema::Cardinality::MultiValues),
+                    _ => return Err(exceptions::PyValueError::new_err(
+                        "Invalid index option, valid choices are: 'multi' and 'single'"
+                    )),
+                }
+            }
+            None => None,
+        };
+        if let Some(f) = fast {
+            opts = opts.set_fast(f);
+        }
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_date_field(name, opts);
@@ -234,11 +257,12 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[args(
+    #[pyo3(signature = (
+        name,
         stored = false,
-        tokenizer_name = "TOKENIZER",
-        index_option = "RECORD"
-    )]
+        tokenizer_name = TOKENIZER,
+        index_option = RECORD
+    ))]
     fn add_json_field(
         &mut self,
         name: &str,
