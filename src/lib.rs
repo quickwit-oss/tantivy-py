@@ -5,10 +5,12 @@ mod document;
 mod facet;
 mod filters;
 mod index;
+mod more_collectors;
 mod query;
 mod schema;
 mod schemabuilder;
 mod searcher;
+mod searcher_frame_document;
 
 use document::Document;
 use facet::Facet;
