@@ -4,9 +4,9 @@ on:
   push:
     tags:
       - '*'
-#  pull_request:
-#   branches:
-#     - master
+  # pull_request:
+  #   branches:
+  #     - master
 
 jobs:
   create-release:
@@ -46,6 +46,9 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     needs: create-release
+    strategy:
+      matrix:
+        platform: [ 'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu' ]
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@c8454efe5d0bdefd25384362fe217428ca277d57
@@ -62,6 +65,8 @@ jobs:
             static.crates.io:443
             static.rust-lang.org:443
             uploads.github.com:443
+            pypi.org:443
+            files.pythonhosted.org:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435
@@ -71,9 +76,11 @@ jobs:
 
       - uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
         with:
+          rust-toolchain: stable
           manylinux: auto
+          target: ${{ matrix.platform.target }}
           command: build
-          args: --release --sdist -o dist --find-interpreter
+          args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11
 
       - name: Upload wheels
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce  # 3.1.2
@@ -91,6 +98,10 @@ jobs:
   windows:
     runs-on: windows-latest
     needs: create-release
+    strategy:
+      matrix:
+        target: [x64]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@c8454efe5d0bdefd25384362fe217428ca277d57
@@ -100,11 +111,11 @@ jobs:
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435
         with:
-          python-version: 3.8
+          python-version: ${{ matrix.python-version }}
 
       - uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
         env:
-          PYO3_PYTHON: python3.8
+          PYO3_PYTHON: python${{ matrix.python-version }}
         with:
           command: build
           args: --release -o dist
@@ -125,6 +136,9 @@ jobs:
   macos:
     runs-on: macos-latest
     needs: create-release
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@c8454efe5d0bdefd25384362fe217428ca277d57
@@ -134,12 +148,21 @@ jobs:
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435
         with:
-          python-version: 3.8
-          architecture: x64
+          python-version: ${{ matrix.python-version }}
 
-      - uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
+      - name: Build wheels - x86_64
+        uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
         env:
-          PYO3_PYTHON: python3.8
+          PYO3_PYTHON: python${{ matrix.python-version }}
+        with:
+          target: x86_64-apple-darwin
+          command: build
+          args: --release -o dist
+
+      - name: Build wheels - universal2
+        uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
+        env:
+          PYO3_PYTHON: python${{ matrix.python-version }}
         with:
           command: build
           args: --release -o dist --universal2
