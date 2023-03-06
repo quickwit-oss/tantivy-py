@@ -67,6 +67,7 @@ jobs:
             uploads.github.com:443
             pypi.org:443
             files.pythonhosted.org:443
+            ghcr.io:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435
