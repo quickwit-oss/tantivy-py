@@ -78,7 +78,7 @@ jobs:
         with:
           rust-toolchain: stable
           manylinux: auto
-          target: ${{ matrix.platform.target }}
+          target: ${{ matrix.platform }}
           command: build
           args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11
 
