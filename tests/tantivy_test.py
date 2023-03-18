@@ -180,6 +180,7 @@ def ram_index_numeric_fields():
     return create_index_with_numeric_fields()
 
 
+@pytest.fixture(scope="class")
 def spanish_index():
     return create_spanish_index()
 
