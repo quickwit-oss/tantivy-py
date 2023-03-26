@@ -543,7 +543,7 @@ class TestJsonField:
     BytesIO(b"abc").getbuffer(),
 ])
 def test_bytes(bytes_kwarg, bytes_payload):
-    schema = SchemaBuilder().add_bytes_field("embedding",).build()
+    schema = SchemaBuilder().add_bytes_field("embedding").build()
     index = Index(schema)
     writer = index.writer()
 
