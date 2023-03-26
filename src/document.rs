@@ -194,6 +194,9 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     if let Ok(facet) = any.extract::<Facet>() {
         return Ok(Value::Facet(facet.inner));
     }
+    if let Ok(b) = any.extract::<Vec<u8>>() {
+        return Ok(Value::Bytes(b));
+    }
     Err(to_pyerr(format!("Value unsupported {any:?}")))
 }
 
