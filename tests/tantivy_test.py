@@ -1,3 +1,4 @@
+from io import BytesIO
 import tantivy
 import pytest
 
@@ -531,3 +532,27 @@ class TestJsonField:
         # )
         # result = index.searcher().search(query, 2)
         # assert len(result.hits) == 1
+
+
+@pytest.mark.parametrize('bytes_kwarg', [True, False])
+@pytest.mark.parametrize('bytes_payload', [
+    b"abc",
+    bytearray(b"abc"),
+    memoryview(b"abc"),
+    BytesIO(b"abc").read(),
+    BytesIO(b"abc").getbuffer(),
+])
+def test_bytes(bytes_kwarg, bytes_payload):
+    schema = SchemaBuilder().add_bytes_field("embedding",).build()
+    index = Index(schema)
+    writer = index.writer()
+
+    if bytes_kwarg:
+        doc = Document(id=1, embedding=bytes_payload)
+    else:
+        doc = Document(id=1)
+        doc.add_bytes("embedding", bytes_payload)
+
+    writer.add_document(doc)
+    writer.commit()
+    index.reload()
