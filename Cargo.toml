@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 pyo3-build-config = { version = "0.18.1" }
 
 [dependencies]
-chrono = { version = "0.4.23" }
+chrono = { version = "0.4.24" }
 tantivy = { version = "0.19.2" }
 itertools = { version = "0.10.5" }
 futures = { version = "0.3.26" }
