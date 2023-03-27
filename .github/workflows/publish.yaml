@@ -40,7 +40,7 @@ jobs:
           python-version: 3.8
           architecture: x64
 
-      - uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
+      - uses: messense/maturin-action@49e11751aa9751fc4db9c247b8910702ee225df9
         with:
           rust-toolchain: stable
           manylinux: auto
@@ -71,7 +71,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
+      - uses: messense/maturin-action@49e11751aa9751fc4db9c247b8910702ee225df9
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -101,7 +101,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Build wheels - x86_64
-        uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
+        uses: messense/maturin-action@49e11751aa9751fc4db9c247b8910702ee225df9
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -110,7 +110,7 @@ jobs:
           args: --release -o dist
 
       - name: Build wheels - universal2
-        uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
+        uses: messense/maturin-action@49e11751aa9751fc4db9c247b8910702ee225df9
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -175,7 +175,7 @@ jobs:
   #         name: wheels
 
   #     - name: Publish to PyPI Tests
-  #       uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
+  #       uses: messense/maturin-action@49e11751aa9751fc4db9c247b8910702ee225df9
   #       env:
   #         MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
   #       with:
@@ -183,7 +183,7 @@ jobs:
   #         args: --repository-url=https://test.pypi.org/legacy/ --skip-existing *
 
   #     - name: Publish to PyPI
-  #       uses: messense/maturin-action@59e476bfb6fd6e071aaa1cf62bc573e10cdac221
+  #       uses: messense/maturin-action@49e11751aa9751fc4db9c247b8910702ee225df9
   #       env:
   #         MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
   #       with:
