@@ -8,7 +8,7 @@ on:
     branches:
       - master
 
-permissions:  # added using https://github.com/step-security/secure-workflows
+permissions:
   contents: read
 
 jobs:
@@ -16,12 +16,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            static.rust-lang.org:443
 
-      - uses: actions/checkout@d171c3b028d844f2bf14e9fdec0c58114451e4bf
-      - uses: actions-rs/toolchain@63eb9591781c46a70274cb3ebdf190fce92702e8
+      - name: Checkout
+        uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+
+      - name: Rust toolchain
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
         with:
           toolchain: stable
           components: rustfmt
@@ -36,6 +43,8 @@ jobs:
         python-version: [3.9]
         include:
           - os: ubuntu-latest
+            python-version: "3.11"
+          - os: ubuntu-latest
             python-version: "3.10"
           - os: ubuntu-latest
             python-version: 3.8
@@ -44,16 +53,25 @@ jobs:
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            crates.io:443
+            files.pythonhosted.org:443
+            github.com:443
+            pypi.org:443
+            static.crates.io:443
+            static.rust-lang.org:443
 
-      - uses: actions/checkout@d171c3b028d844f2bf14e9fdec0c58114451e4bf
-      - uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5  # 4.2.0
+      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/setup-python@d27e3f3d7c64b4bbf8e4abfb9b63b83e846e0435  # 4.5.0
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions-rs/toolchain@63eb9591781c46a70274cb3ebdf190fce92702e8
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
         with:
           toolchain: stable
 
