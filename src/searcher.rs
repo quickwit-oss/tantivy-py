@@ -10,7 +10,7 @@ use tantivy::collector::{Count, MultiCollector, TopDocs};
 /// A Searcher is used to search the index given a prepared Query.
 #[pyclass]
 pub(crate) struct Searcher {
-    pub(crate) inner: tv::LeasedItem<tv::Searcher>,
+    pub(crate) inner: tv::Searcher,
 }
 
 #[derive(Clone)]
@@ -22,8 +22,8 @@ enum Fruit {
 impl std::fmt::Debug for Fruit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Fruit::Score(s) => f.write_str(&format!("{}", s)),
-            Fruit::Order(o) => f.write_str(&format!("{}", o)),
+            Fruit::Score(s) => f.write_str(&format!("{s}")),
+            Fruit::Order(o) => f.write_str(&format!("{o}")),
         }
     }
 }
@@ -93,7 +93,7 @@ impl Searcher {
     /// Returns `SearchResult` object.
     ///
     /// Raises a ValueError if there was an error with the search.
-    #[args(limit = 10, offset = 0, count = true)]
+    #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0))]
     fn search(
         &self,
         _py: Python,
@@ -154,10 +154,7 @@ impl Searcher {
             }
         };
 
-        let count = match count_handle {
-            Some(h) => Some(h.extract(&mut multifruit)),
-            None => None,
-        };
+        let count = count_handle.map(|h| h.extract(&mut multifruit));
 
         Ok(SearchResult { hits, count })
     }
@@ -230,11 +227,11 @@ impl From<&tv::DocAddress> for DocAddress {
     }
 }
 
-impl Into<tv::DocAddress> for &DocAddress {
-    fn into(self) -> tv::DocAddress {
+impl From<&DocAddress> for tv::DocAddress {
+    fn from(val: &DocAddress) -> Self {
         tv::DocAddress {
-            segment_ord: self.segment_ord(),
-            doc_id: self.doc(),
+            segment_ord: val.segment_ord(),
+            doc_id: val.doc(),
         }
     }
 }

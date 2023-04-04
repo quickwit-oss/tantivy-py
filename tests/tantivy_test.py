@@ -1,3 +1,4 @@
+from io import BytesIO
 import tantivy
 import pytest
 
@@ -12,6 +13,14 @@ def schema():
         .build()
     )
 
+def schema_numeric_fields():
+    return (
+        SchemaBuilder()
+        .add_integer_field("id", stored=True, indexed=True)
+        .add_float_field("rating", stored=True, indexed=True)
+        .add_text_field("body", stored=True)
+        .build()
+    )
 
 def create_index(dir=None):
     # assume all tests will use the same documents for now
@@ -66,6 +75,96 @@ def create_index(dir=None):
     index.reload()
     return index
 
+def create_index_with_numeric_fields(dir=None):
+    index = Index(schema_numeric_fields(), dir)
+    writer = index.writer()
+
+    doc = Document()
+    doc.add_integer("id", 1)
+    doc.add_float("rating", 3.5)
+    doc.add_text(
+        "body",
+        (
+            "He was an old man who fished alone in a skiff in"
+            "the Gulf Stream and he had gone eighty-four days "
+            "now without taking a fish."
+        ),
+    )
+    writer.add_document(doc)
+    doc = Document.from_dict(
+        {
+            "id": 2,
+            "rating": 4.5,
+            "body": (
+                "A few miles south of Soledad, the Salinas River drops "
+                "in close to the hillside bank and runs deep and "
+                "green. The water is warm too, for it has slipped "
+                "twinkling over the yellow sands in the sunlight "
+                "before reaching the narrow pool. On one side of the "
+                "river the golden foothill slopes curve up to the "
+                "strong and rocky Gabilan Mountains, but on the valley "
+                "side the water is lined with trees—willows fresh and "
+                "green with every spring, carrying in their lower leaf "
+                "junctures the debris of the winter’s flooding; and "
+                "sycamores with mottled, white, recumbent limbs and "
+                "branches that arch over the pool"
+            ),
+        }
+    )
+    writer.add_document(doc)
+    writer.commit()
+    index.reload()
+    return index
+
+def spanish_schema():
+    return (
+        SchemaBuilder()
+        .add_text_field("title", stored=True, tokenizer_name='es_stem')
+        .add_text_field("body", tokenizer_name='es_stem')
+        .build()
+    )
+
+
+def create_spanish_index():
+    # assume all tests will use the same documents for now
+    # other methods may set up function-local indexes
+    index = Index(spanish_schema(), None)
+    writer = index.writer()
+
+    # 2 ways of adding documents
+    # 1
+    doc = Document()
+    # create a document instance
+    # add field-value pairs
+    doc.add_text("title", "El viejo y el mar")
+    doc.add_text(
+        "body",
+        (
+            "Era un viejo que pescaba solo en un bote en el Gulf Stream y hacía ochenta y cuatro días que no cogía un pez. "
+        ),
+    )
+    writer.add_document(doc)
+    # 2 use the built-in json support
+    # keys need to coincide with field names
+    doc = Document.from_dict(
+        {
+            "title": "De ratones y hombres",
+            "body": (
+                "Unas millas al sur de Soledad, el río Salinas se ahonda junto al margen de la ladera y fluye profundo y verde. Es tibia el agua, porque se ha deslizado chispeante sobre la arena amarilla y al calor del sol antes de llegar a la angosta laguna. A un lado del río, la dorada falda de la ladera se curva hacia arriba trepando hasta las montañas Gabilán, fuertes y rocosas, pero del lado del valle los árboles bordean la orilla: sauces frescos y verdes cada primavera, que en la s junturas más bajas de sus hojas muestran las consecuencias de la crecida invernal; y sicomoros de troncos veteados, blancos, recostados, y ramas quesear quean sobre el estanque"
+            ),
+        }
+    )
+    writer.add_document(doc)
+    writer.add_json(
+        """{
+            "title": ["Frankenstein", "El moderno Prometeo"],
+            "body": "Te alegrará saber que no ha ocurrido ningún percance al principio de una aventura que siempre consideraste cargada de malos presagios. Llegué aquí ayer, y mi primera tarea es asegurarle a mi querida hermana que me hallo perfectamente y que tengo una gran confianza en el éxito de mi empresa."
+        }"""
+    )
+    writer.commit()
+    index.reload()
+    return index
+
 
 @pytest.fixture()
 def dir_index(tmpdir):
@@ -75,6 +174,16 @@ def dir_index(tmpdir):
 @pytest.fixture(scope="class")
 def ram_index():
     return create_index()
+
+
+@pytest.fixture(scope="class")
+def ram_index_numeric_fields():
+    return create_index_with_numeric_fields()
+
+
+@pytest.fixture(scope="class")
+def spanish_index():
+    return create_spanish_index()
 
 
 class TestClass(object):
@@ -103,6 +212,16 @@ class TestClass(object):
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["The Old Man and the Sea"]
 
+    def test_simple_search_in_spanish(self, spanish_index):
+        index = spanish_index
+        query = index.parse_query("vieja", ["title", "body"])
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        search_doc = index.searcher().doc(doc_address)
+        assert search_doc["title"] == ["El viejo y el mar"]
+
     def test_and_query(self, ram_index):
         index = ram_index
         query = index.parse_query(
@@ -119,6 +238,25 @@ class TestClass(object):
         result = searcher.search(query)
 
         assert len(result.hits) == 1
+
+    def test_and_query_numeric_fields(self, ram_index_numeric_fields):
+        index = ram_index_numeric_fields
+        searcher = index.searcher()
+
+        # 1 result
+        float_query = index.parse_query("3.5", ["rating"])
+        result = searcher.search(float_query)
+        assert len(result.hits) == 1
+        assert searcher.doc(result.hits[0][1])['rating'][0] == 3.5
+
+        integer_query = index.parse_query("1", ["id"])
+        result = searcher.search(integer_query)
+        assert len(result.hits) == 1
+
+        # 0 result
+        integer_query = index.parse_query("10", ["id"])
+        result = searcher.search(integer_query)
+        assert len(result.hits) == 0
 
     def test_and_query_parser_default_fields(self, ram_index):
         query = ram_index.parse_query("winter", default_field_names=["title"])
@@ -279,8 +417,9 @@ class TestFromDiskClass(object):
 
 
 class TestSearcher(object):
-    def test_searcher_repr(self, ram_index):
+    def test_searcher_repr(self, ram_index, ram_index_numeric_fields):
         assert repr(ram_index.searcher()) == "Searcher(num_docs=3, num_segments=1)"
+        assert repr(ram_index_numeric_fields.searcher()) == "Searcher(num_docs=2, num_segments=1)"
 
 
 class TestDocument(object):
@@ -393,3 +532,27 @@ class TestJsonField:
         # )
         # result = index.searcher().search(query, 2)
         # assert len(result.hits) == 1
+
+
+@pytest.mark.parametrize('bytes_kwarg', [True, False])
+@pytest.mark.parametrize('bytes_payload', [
+    b"abc",
+    bytearray(b"abc"),
+    memoryview(b"abc"),
+    BytesIO(b"abc").read(),
+    BytesIO(b"abc").getbuffer(),
+])
+def test_bytes(bytes_kwarg, bytes_payload):
+    schema = SchemaBuilder().add_bytes_field("embedding").build()
+    index = Index(schema)
+    writer = index.writer()
+
+    if bytes_kwarg:
+        doc = Document(id=1, embedding=bytes_payload)
+    else:
+        doc = Document(id=1)
+        doc.add_bytes("embedding", bytes_payload)
+
+    writer.add_document(doc)
+    writer.commit()
+    index.reload()
