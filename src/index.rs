@@ -1,7 +1,12 @@
 #![allow(clippy::new_ret_no_self)]
 
-use pyo3::{exceptions, prelude::*, types::PyAny};
+use pyo3::{
+    exceptions,
+    prelude::*,
+    types::{PyAny, PyDateAccess, PyDateTime, PyInt, PyTimeAccess},
+};
 
+use crate::facet::Facet;
 use crate::{
     document::{extract_value, Document},
     filters::get_stopwords_filter_en,
@@ -14,10 +19,12 @@ use crate::{
     searcher_frame_document::StatSearcher,
     to_pyerr,
 };
+
+use chrono::{offset::TimeZone, Utc};
 use tantivy as tv;
 use tantivy::{
     directory::MmapDirectory,
-    schema::{NamedFieldDocument, Term, Value},
+    schema::{NamedFieldDocument, Term, Type, Value},
     tokenizer::{
         Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer,
         StopWordFilter, TextAnalyzer, WhitespaceTokenizer,
@@ -131,6 +138,86 @@ impl IndexWriter {
     #[getter]
     fn commit_opstamp(&self) -> PyResult<u64> {
         Ok(self.inner()?.commit_opstamp())
+    }
+
+    /// Delete all documents containing a given term.
+    /// This function checks the type of the field and then converts the given value to
+    /// that particular type, instead of the other way around.
+    ///
+    /// Args:
+    ///     field_name (str): The field name for which we want to filter deleted docs.
+    ///     field_value (PyAny): Python object with the value we want to filter.
+    ///
+    /// If the field_name is not on the schema raises ValueError exception.
+    /// If the field_value is not supported raises Exception.
+    fn delete_documents_kapiche(
+        &mut self,
+        field_name: &str,
+        field_value: &PyAny,
+    ) -> PyResult<u64> {
+        let field = get_field(&self.schema, field_name)?;
+        let field_value_type =
+            self.schema.get_field_entry(field).field_type().value_type();
+        let term = match field_value_type {
+            Type::U64 => {
+                let value: u64 = field_value.extract::<u64>()?;
+                Ok(Term::from_field_u64(field, value))
+            },
+            Type::I64 => {
+                let value: i64 = field_value.extract::<i64>()?;
+                Ok(Term::from_field_i64(field, value))
+            },
+            Type::Str => {
+                let value: String = field_value.extract::<String>()?;
+                Ok(Term::from_field_text(field, &value))
+            },
+            Type::F64 => {
+                let value: f64 = field_value.extract::<f64>()?;
+                Ok(Term::from_field_f64(field, value))
+            },
+            Type::Bool => {
+                Err(exceptions::PyValueError::new_err(format!(
+                    "Field `{field_name}` is bytes type not deletable."
+                )))
+            },
+            Type::Date => {
+                let py_datetime = field_value.downcast::<PyDateTime>()?;
+                let datetime = Utc
+                    .with_ymd_and_hms(
+                        py_datetime.get_year(),
+                        py_datetime.get_month().into(),
+                        py_datetime.get_day().into(),
+                        py_datetime.get_hour().into(),
+                        py_datetime.get_minute().into(),
+                        py_datetime.get_second().into(),
+                    )
+                .single().unwrap();
+                let value = tv::DateTime::from_timestamp_secs(
+                datetime.timestamp(),
+                );
+                Ok(Term::from_field_date(field, value))
+            },
+            Type::Facet => {
+                let value: Facet = field_value.extract::<Facet>()?;
+                Ok(Term::from_facet(field, &value.inner))
+            },
+            Type::Bytes => {
+                Err(exceptions::PyValueError::new_err(format!(
+                    "Field `{field_name}` is bytes type not deletable."
+                )))
+            },
+            Type::IpAddr => {
+                Err(exceptions::PyValueError::new_err(format!(
+                    "Field `{field_name}` is IpAddr object type and hasn not been implemented yet."
+                )))
+            },
+            Type::Json => {
+                Err(exceptions::PyValueError::new_err(format!(
+                    "Field `{field_name}` is json object type not deletable."
+                )))
+            },
+        };
+        Ok(self.inner_index_writer.delete_term(term?))
     }
 
     /// Delete all documents containing a given term.

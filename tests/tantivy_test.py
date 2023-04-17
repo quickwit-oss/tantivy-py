@@ -32,6 +32,7 @@ def kapiche_schema():
     return (
         SchemaBuilder()
         .add_text_field("title", stored=True)
+        .add_unsigned_field("id", stored=True, indexed=True)
         .add_text_field("body", tokenizer_name='kapiche_tokenizer')
         .build()
     )
@@ -246,6 +247,7 @@ def create_kapiche_index(dir=None):
     doc = Document()
     # create a document instance
     # add field-value pairs
+    doc.add_unsigned("id", 1)
     doc.add_text("title", "The Old Man and the Sea")
     doc.add_text(
         "body",
@@ -277,9 +279,11 @@ def create_kapiche_index(dir=None):
             ),
         }
     )
+    doc.add_unsigned('id', 3)
     writer.add_document(doc)
     writer.add_json(
         """{
+            "id": 3,
             "title": ["Frankenstein", "The Modern Prometheus"],
             "body": "You will rejoice to hear that no disaster has accompanied the commencement of an enterprise which you have regarded with such evil forebodings.  I arrived here yesterday, and my first task is to assure my dear sister of my welfare and increasing confidence in the success of my undertaking."
         }"""
@@ -372,6 +376,21 @@ class TestClass(object):
         _, doc_address = result.hits[0]
         search_doc = index.searcher().doc(doc_address)
         assert search_doc["title"] == ["El viejo y el mar"]
+
+    def test_delete_documents_kapiche(self, ram_kapiche_index):
+        index = ram_kapiche_index
+        query = index.parse_query("id:1 id:2 id:3")
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 3
+
+        writer = index.writer()
+        writer.delete_documents_kapiche('id', 1)
+        writer.commit()
+        index.reload()
+
+        result = index.searcher().search(query)
+        assert len(result.hits) == 2
 
     def test_and_query(self, ram_index):
         index = ram_index
