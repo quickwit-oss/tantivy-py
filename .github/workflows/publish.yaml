@@ -15,7 +15,7 @@ jobs:
         platform: [ 'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu' ]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@03bee3930647ebbf994244c21ddbc0d4933aab4f
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -62,7 +62,7 @@ jobs:
         python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@03bee3930647ebbf994244c21ddbc0d4933aab4f
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
@@ -91,7 +91,7 @@ jobs:
         python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@03bee3930647ebbf994244c21ddbc0d4933aab4f
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
@@ -130,7 +130,7 @@ jobs:
       contents: write # To add assets to a release.
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@03bee3930647ebbf994244c21ddbc0d4933aab4f # v2.1.0
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969 # v2.1.0
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
@@ -166,7 +166,7 @@ jobs:
   #   needs: [ macos, windows, linux ]
   #   steps:
   #     - name: Harden Runner
-  #       uses: step-security/harden-runner@03bee3930647ebbf994244c21ddbc0d4933aab4f
+  #       uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
   #       with:
   #         egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 

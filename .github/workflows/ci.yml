@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@03bee3930647ebbf994244c21ddbc0d4933aab4f
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
         with:
           disable-sudo: true
           egress-policy: block
@@ -50,7 +50,7 @@ jobs:
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@03bee3930647ebbf994244c21ddbc0d4933aab4f
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
         with:
           disable-sudo: true
           egress-policy: block
