@@ -64,6 +64,7 @@ jobs:
             github.com:443
             pypi.org:443
             static.crates.io:443
+            index.crates.io:443
             static.rust-lang.org:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089

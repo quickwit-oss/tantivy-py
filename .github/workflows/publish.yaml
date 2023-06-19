@@ -29,6 +29,7 @@ jobs:
             quay.io:443
             sh.rustup.rs:443
             static.crates.io:443
+            index.crates.io:443
             static.rust-lang.org:443
             uploads.github.com:443
             pypi.org:443
