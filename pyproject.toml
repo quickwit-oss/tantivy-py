@@ -5,3 +5,6 @@ build-backend = "maturin"
 [project]
 name = "tantivy"
 requires-python = ">=3.7"
+
+[tool.maturin]
+bindings = "pyo3"
