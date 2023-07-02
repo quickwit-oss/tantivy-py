@@ -22,6 +22,7 @@ jobs:
             api.github.com:443
             cdn03.quay.io:443
             crates.io:443
+            index.crates.io:443
             github.com:443
             objects.githubusercontent.com:443
             quay.io:443
