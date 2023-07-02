@@ -362,7 +362,6 @@ impl SchemaBuilder {
         let opts = if indexed { opts.set_indexed() } else { opts };
         let opts = if fast { opts.set_fast() } else { opts };
         Ok(opts)
-
     }
 
     fn build_text_option(
