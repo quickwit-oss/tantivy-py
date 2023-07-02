@@ -1,5 +1,6 @@
-import tantivy
+import gc
 import pytest
+import psutil
 
 from tantivy import Document, Index, SchemaBuilder
 
@@ -76,7 +77,67 @@ class TestClass(object):
 
         result = index.stat_searcher().search(query, {1, 3, 5, 6, 7})
         assert sorted(result.unique_docs_frames) == [(1, 1), (3, 5)]
-        assert result.unique_docs == {1, 3}
-        assert result.unique_frames == {1, 5}
+        assert list(result.unique_docs) == [1, 3]
+        assert list(result.unique_frames) == [1, 5]
         print(f"{result.hits}")
         print(f"{result.unique_docs_frames}")
+
+
+def test_stat_searcher_memory():
+    # Create index
+    schema = (
+        SchemaBuilder()
+        .add_text_field("title", stored=True)
+        .add_text_field("body", tokenizer_name='kapiche_tokenizer')
+        .add_unsigned_field("document_id__", stored=True, indexed=True, fast='single')
+        .add_unsigned_field("frame_id__", stored=True, indexed=True, fast='single')
+        .add_unsigned_field("sentence_id__", stored=True, indexed=True, fast='single')
+        .build()
+    )
+
+    index = Index(schema, None)
+    writer = index.writer()
+
+    sherlock = (
+        open("tests/sherlock.txt", "r", encoding="utf-8-sig").read().split("\n\n")
+    )
+    for i, paragraph in enumerate(sherlock):
+        doc = Document()
+        doc.add_text("title", f"Paragraph {i}")
+        doc.add_text("body", paragraph)
+        doc.add_unsigned("document_id__", i)
+        doc.add_unsigned("frame_id__", i)
+        doc.add_unsigned("sentence_id__", i)
+        writer.add_document(doc)
+
+    writer.commit()
+    index.reload()
+    gc.collect()
+
+    # Run search
+    query = index.parse_query("Holmes", ["body"])
+
+    p = psutil.Process()
+    print()
+    print(f'Scored     {"iter":>4}: {"":>16} {"":>16} {"delt.Mem (bytes)":>16}')
+    n = 200
+    m0 = p.memory_info().rss
+    total_mem_growth = 0
+    for i in range(n):
+        result = index.stat_searcher().search(query, set())
+        items = sorted(result.unique_docs_frames)
+        del items
+        del result
+        gc.collect()
+        if i % (n // 10) == 0:
+            m1 = p.memory_info().rss
+            print(f'Score=Fals {i:0>4}: {m0:>16d} {m1:>16d} {(m1 - m0):>16d}')
+            total_mem_growth += (m1 - m0)
+            m0 = p.memory_info().rss
+
+    assert total_mem_growth < 500_000
+
+    result = index.stat_searcher().search(query, set())
+    items = sorted(result.unique_docs_frames)
+    assert len(items) == 439
+    assert items[:4] == [(0, 0), (2, 2), (11, 11), (18, 18)]
