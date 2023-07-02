@@ -260,13 +260,13 @@ class TestClass(object):
 
     def test_and_query_parser_default_fields(self, ram_index):
         query = ram_index.parse_query("winter", default_field_names=["title"])
-        assert repr(query) == """Query(TermQuery(Term(type=Str, field=0, "winter")))"""
+        assert repr(query) == """Query(TermQuery(Term(field=0, type=Str, "winter")))"""
 
     def test_and_query_parser_default_fields_undefined(self, ram_index):
         query = ram_index.parse_query("winter")
         assert (
             repr(query)
-            == """Query(BooleanQuery { subqueries: [(Should, TermQuery(Term(type=Str, field=0, "winter"))), (Should, TermQuery(Term(type=Str, field=1, "winter")))] })"""
+            == """Query(BooleanQuery { subqueries: [(Should, TermQuery(Term(field=0, type=Str, "winter"))), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
         )
 
     def test_query_errors(self, ram_index):
@@ -278,7 +278,7 @@ class TestClass(object):
     def test_order_by_search(self):
         schema = (
             SchemaBuilder()
-            .add_unsigned_field("order", fast="single")
+            .add_unsigned_field("order", fast=True)
             .add_text_field("title", stored=True)
             .build()
         )
@@ -418,8 +418,8 @@ class TestFromDiskClass(object):
 
 class TestSearcher(object):
     def test_searcher_repr(self, ram_index, ram_index_numeric_fields):
-        assert repr(ram_index.searcher()) == "Searcher(num_docs=3, num_segments=1)"
-        assert repr(ram_index_numeric_fields.searcher()) == "Searcher(num_docs=2, num_segments=1)"
+        assert repr(ram_index.searcher()) == "Searcher(num_docs=3, num_segments=3)"
+        assert repr(ram_index_numeric_fields.searcher()) == "Searcher(num_docs=2, num_segments=2)"
 
 
 class TestDocument(object):

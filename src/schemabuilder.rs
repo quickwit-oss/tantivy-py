@@ -110,13 +110,13 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = false))]
     fn add_integer_field(
         &mut self,
         name: &str,
         stored: bool,
         indexed: bool,
-        fast: Option<&str>,
+        fast: bool,
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
@@ -132,13 +132,13 @@ impl SchemaBuilder {
         Ok(self.clone())
     }
 
-    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = false))]
     fn add_float_field(
         &mut self,
         name: &str,
         stored: bool,
         indexed: bool,
-        fast: Option<&str>,
+        fast: bool,
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
@@ -174,13 +174,13 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = false))]
     fn add_unsigned_field(
         &mut self,
         name: &str,
         stored: bool,
         indexed: bool,
-        fast: Option<&str>,
+        fast: bool,
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
@@ -216,13 +216,13 @@ impl SchemaBuilder {
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[pyo3(signature = (name, stored = false, indexed = false, fast = None))]
+    #[pyo3(signature = (name, stored = false, indexed = false, fast = false))]
     fn add_date_field(
         &mut self,
         name: &str,
         stored: bool,
         indexed: bool,
-        fast: Option<&str>,
+        fast: bool,
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
@@ -233,21 +233,8 @@ impl SchemaBuilder {
         if indexed {
             opts = opts.set_indexed();
         }
-        let fast = match fast {
-            Some(f) => {
-                let f = f.to_lowercase();
-                match f.as_ref() {
-                    "single" => Some(schema::Cardinality::SingleValue),
-                    "multi" => Some(schema::Cardinality::MultiValues),
-                    _ => return Err(exceptions::PyValueError::new_err(
-                        "Invalid index option, valid choices are: 'multi' and 'single'"
-                    )),
-                }
-            }
-            None => None,
-        };
-        if let Some(f) = fast {
-            opts = opts.set_fast(f);
+        if fast {
+            opts = opts.set_fast();
         }
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
@@ -368,34 +355,14 @@ impl SchemaBuilder {
     fn build_numeric_option(
         stored: bool,
         indexed: bool,
-        fast: Option<&str>,
+        fast: bool,
     ) -> PyResult<schema::NumericOptions> {
         let opts = schema::NumericOptions::default();
-
         let opts = if stored { opts.set_stored() } else { opts };
         let opts = if indexed { opts.set_indexed() } else { opts };
-
-        let fast = match fast {
-            Some(f) => {
-                let f = f.to_lowercase();
-                match f.as_ref() {
-                    "single" => Some(schema::Cardinality::SingleValue),
-                    "multi" => Some(schema::Cardinality::MultiValues),
-                    _ => return Err(exceptions::PyValueError::new_err(
-                        "Invalid index option, valid choices are: 'multivalue' and 'singlevalue'"
-                    )),
-                }
-            }
-            None => None,
-        };
-
-        let opts = if let Some(f) = fast {
-            opts.set_fast(f)
-        } else {
-            opts
-        };
-
+        let opts = if fast { opts.set_fast() } else { opts };
         Ok(opts)
+
     }
 
     fn build_text_option(

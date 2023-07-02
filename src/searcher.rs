@@ -1,6 +1,6 @@
 #![allow(clippy::new_ret_no_self)]
 
-use crate::{document::Document, get_field, query::Query, to_pyerr};
+use crate::{document::Document, query::Query, to_pyerr};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
@@ -113,10 +113,11 @@ impl Searcher {
 
         let (mut multifruit, hits) = {
             if let Some(order_by) = order_by_field {
-                let field = get_field(&self.inner.index().schema(), order_by)?;
+                // let schema = &self.inner.index().schema();
+                // let field = get_field(schema, order_by)?;
                 let collector = TopDocs::with_limit(limit)
                     .and_offset(offset)
-                    .order_by_u64_field(field);
+                    .order_by_u64_field(order_by);
                 let top_docs_handle = multicollector.add_collector(collector);
                 let ret = self.inner.search(query.get(), &multicollector);
 

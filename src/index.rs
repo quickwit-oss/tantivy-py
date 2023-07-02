@@ -331,7 +331,7 @@ impl Index {
         let schema = self.index.schema();
         if let Some(default_field_names_vec) = default_field_names {
             for default_field_name in &default_field_names_vec {
-                if let Some(field) = schema.get_field(default_field_name) {
+                if let Ok(field) = schema.get_field(default_field_name) {
                     let field_entry = schema.get_field_entry(field);
                     if !field_entry.is_indexed() {
                         return Err(exceptions::PyValueError::new_err(
@@ -385,10 +385,11 @@ impl Index {
         ];
 
         for (name, lang) in &analyzers {
-            let an = TextAnalyzer::from(SimpleTokenizer)
+            let an = TextAnalyzer::builder(SimpleTokenizer::default())
                 .filter(RemoveLongFilter::limit(40))
                 .filter(LowerCaser)
-                .filter(Stemmer::new(*lang));
+                .filter(Stemmer::new(*lang))
+                .build();
             index.tokenizers().register(name, an);
         }
     }
