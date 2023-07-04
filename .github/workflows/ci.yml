@@ -60,6 +60,7 @@ jobs:
           allowed-endpoints: >
             api.github.com:443
             crates.io:443
+            index.crates.io:443
             files.pythonhosted.org:443
             github.com:443
             pypi.org:443
