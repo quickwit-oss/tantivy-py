@@ -13,6 +13,7 @@ def schema():
         .build()
     )
 
+
 def schema_numeric_fields():
     return (
         SchemaBuilder()
@@ -21,6 +22,7 @@ def schema_numeric_fields():
         .add_text_field("body", stored=True)
         .build()
     )
+
 
 def create_index(dir=None):
     # assume all tests will use the same documents for now
@@ -75,6 +77,7 @@ def create_index(dir=None):
     index.reload()
     return index
 
+
 def create_index_with_numeric_fields(dir=None):
     index = Index(schema_numeric_fields(), dir)
     writer = index.writer(10_000_000, 1)
@@ -116,11 +119,12 @@ def create_index_with_numeric_fields(dir=None):
     index.reload()
     return index
 
+
 def spanish_schema():
     return (
         SchemaBuilder()
-        .add_text_field("title", stored=True, tokenizer_name='es_stem')
-        .add_text_field("body", tokenizer_name='es_stem')
+        .add_text_field("title", stored=True, tokenizer_name="es_stem")
+        .add_text_field("body", tokenizer_name="es_stem")
         .build()
     )
 
@@ -247,7 +251,7 @@ class TestClass(object):
         float_query = index.parse_query("3.5", ["rating"])
         result = searcher.search(float_query)
         assert len(result.hits) == 1
-        assert searcher.doc(result.hits[0][1])['rating'][0] == 3.5
+        assert searcher.doc(result.hits[0][1])["rating"][0] == 3.5
 
         integer_query = index.parse_query("1", ["id"])
         result = searcher.search(integer_query)
@@ -350,6 +354,82 @@ class TestClass(object):
         searcher = index.searcher()
         result = searcher.search(query, 10, order_by_field="order")
         assert len(result.hits) == 0
+
+    def test_doc_from_dict_schema_validation(self):
+        schema = (
+            SchemaBuilder()
+            .add_unsigned_field("unsigned")
+            .add_integer_field("signed")
+            .add_float_field("float")
+            .add_unsigned_field("single_unsigned", fast="single")
+            .build()
+        )
+
+        good = Document.from_dict(
+            {"unsigned": 1000, "signed": -5, "float": 0.4, "single_unsigned": 42},
+            schema,
+        )
+
+        good = Document.from_dict(
+            {"unsigned": 1000, "signed": -5, "float": 0.4, "single_unsigned": [42]},
+            schema,
+        )
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict(
+                {"unsigned": -50, "signed": -5, "float": 0.4, "single_unsigned": 42},
+                schema,
+            )
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict(
+                {"unsigned": 1000, "signed": 50.4, "float": 0.4, "single_unsigned": 42},
+                schema,
+            )
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict(
+                {
+                    "unsigned": 1000,
+                    "signed": -5,
+                    "float": "bad_string",
+                    "single_unsigned": 42,
+                },
+                schema,
+            )
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict(
+                {
+                    "unsigned": 1000,
+                    "signed": -5,
+                    "float": 0.4,
+                    "single_unsigned": [1, 2, 3],
+                },
+                schema,
+            )
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict(
+                {
+                    "unsigned": [1000, -50],
+                    "signed": -5,
+                    "float": 0.4,
+                    "single_unsigned": 42,
+                },
+                schema,
+            )
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict(
+                {
+                    "unsigned": 1000,
+                    "signed": [-5, 150, -3.14],
+                    "float": 0.4,
+                    "single_unsigned": 42,
+                },
+                schema,
+            )
 
 
 class TestUpdateClass(object):
@@ -534,14 +614,17 @@ class TestJsonField:
         # assert len(result.hits) == 1
 
 
-@pytest.mark.parametrize('bytes_kwarg', [True, False])
-@pytest.mark.parametrize('bytes_payload', [
-    b"abc",
-    bytearray(b"abc"),
-    memoryview(b"abc"),
-    BytesIO(b"abc").read(),
-    BytesIO(b"abc").getbuffer(),
-])
+@pytest.mark.parametrize("bytes_kwarg", [True, False])
+@pytest.mark.parametrize(
+    "bytes_payload",
+    [
+        b"abc",
+        bytearray(b"abc"),
+        memoryview(b"abc"),
+        BytesIO(b"abc").read(),
+        BytesIO(b"abc").getbuffer(),
+    ],
+)
 def test_bytes(bytes_kwarg, bytes_payload):
     schema = SchemaBuilder().add_bytes_field("embedding").build()
     index = Index(schema)
