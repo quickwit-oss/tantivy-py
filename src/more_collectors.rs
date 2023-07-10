@@ -84,7 +84,7 @@ impl Collector for StatsCollector {
     }
 
     fn requires_scoring(&self) -> bool {
-        true
+        false
     }
 
     fn merge_fruits(

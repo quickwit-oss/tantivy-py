@@ -5,7 +5,6 @@ use std::iter::FromIterator;
 
 use crate::more_collectors::StatsCollector;
 use crate::{document::Document, query::Query, to_pyerr};
-use pyo3::types::PySet;
 use pyo3::{exceptions::PyValueError, prelude::*};
 use tantivy as tv;
 use tantivy::collector::FilterCollector;
@@ -16,30 +15,6 @@ use tantivy::collector::FilterCollector;
 #[pyclass]
 pub(crate) struct StatSearcher {
     pub(crate) inner: tv::Searcher,
-}
-
-#[derive(Clone)]
-enum Fruit {
-    Score(f32),
-    Order(u64),
-}
-
-impl std::fmt::Debug for Fruit {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Fruit::Score(s) => f.write_str(&format!("{s}")),
-            Fruit::Order(o) => f.write_str(&format!("{o}")),
-        }
-    }
-}
-
-impl ToPyObject for Fruit {
-    fn to_object(&self, py: Python) -> PyObject {
-        match self {
-            Fruit::Score(s) => s.to_object(py),
-            Fruit::Order(o) => o.to_object(py),
-        }
-    }
 }
 
 #[pyclass]
@@ -56,28 +31,44 @@ impl SearchResult {
     }
 
     #[getter]
-    fn unique_docs(&self, py: Python) -> PyResult<Vec<u64>> {
+    fn unique_docs(&self, py: Python) -> PyResult<BTreeSet<u64>> {
         let s =
             BTreeSet::from_iter(self.hits.iter().map(|(d, f, s, score)| *d));
-        let v = Vec::from_iter(s.into_iter());
-        Ok(v)
+        Ok(s)
     }
 
     #[getter]
-    fn unique_frames(&self, py: Python) -> PyResult<Vec<u64>> {
+    fn unique_frames(&self, py: Python) -> PyResult<BTreeSet<u64>> {
         let s =
             BTreeSet::from_iter(self.hits.iter().map(|(d, f, s, score)| *f));
-        let v = Vec::from_iter(s.into_iter());
-        Ok(v)
+        Ok(s)
     }
 
     #[getter]
-    fn unique_docs_frames(&self, py: Python) -> PyResult<Vec<(u64, u64)>> {
+    fn unique_docs_frames(&self, py: Python) -> PyResult<BTreeSet<(u64, u64)>> {
         let s = BTreeSet::from_iter(
             self.hits.iter().map(|(d, f, s, score)| (*d, *f)),
         );
-        let v = Vec::from_iter(s.into_iter());
-        Ok(v)
+        Ok(s)
+    }
+
+    /// This is an optimization to allow Python callers to obtain vectors
+    /// without having to do iteration to get them.
+    #[getter]
+    fn unique_docs_frames_unzipped(
+        &self,
+        py: Python,
+    ) -> PyResult<(Vec<u64>, Vec<u64>)> {
+        let s = BTreeSet::from_iter(
+            self.hits.iter().map(|(d, f, s, score)| (*d, *f)),
+        );
+        let mut v1 = Vec::with_capacity(s.len());
+        let mut v2 = Vec::with_capacity(s.len());
+        for (d, f) in s.into_iter() {
+            v1.push(d);
+            v2.push(f);
+        }
+        Ok((v1, v2))
     }
 }
 
@@ -95,38 +86,36 @@ impl StatSearcher {
     /// Returns `SearchResult` object.
     ///
     /// Raises a ValueError if there was an error with the search.
-    #[pyo3(signature = (query, allowed_frame_ids))]
+    #[pyo3(signature = (query, filter_fastfield_name=None, filter_fastfield_values=None))]
     fn search(
         &self,
         _py: Python,
         query: &Query,
-        allowed_frame_ids: &PySet,
+        filter_fastfield_name: Option<String>,
+        filter_fastfield_values: Option<BTreeSet<u64>>,
     ) -> PyResult<SearchResult> {
-        let frame_id = self.inner.schema().get_field("frame_id__").ok_or(
-            PyValueError::new_err("Field frame_id__ not found".to_string()),
-        )?;
-
-        let mut filter_active = false;
-        let mut analysis_filter: BTreeSet<u64> = BTreeSet::new();
-        if !allowed_frame_ids.is_empty() {
-            filter_active = true;
-            analysis_filter.extend(
-                allowed_frame_ids
-                    .iter()
-                    .map(|v| Ok::<u64, PyErr>(v.extract::<u64>()?))
-                    .flatten(),
-            );
-        }
+        if filter_fastfield_values.is_some() {
+            if filter_fastfield_name.is_none() {
+                let msg = format!(
+                    "If filter values are provided, the field name must also be given."
+                );
+                return Err(PyValueError::new_err(msg));
+            }
+        };
 
         let sc = StatsCollector::new();
-        let ret = if filter_active {
+
+        let ret = if let Some(members) = filter_fastfield_values {
+            let field_name = filter_fastfield_name.unwrap();
+            let field = self.inner.schema().get_field(&field_name).ok_or({
+                let msg = format!("Field {field_name} not found");
+                PyValueError::new_err(msg)
+            })?;
             self.inner.search(
                 query.get(),
                 &FilterCollector::new(
-                    frame_id,
-                    move |value: u64| {
-                        filter_active & analysis_filter.contains(&value)
-                    },
+                    field,
+                    move |value: u64| members.contains(&value),
                     sc,
                 ),
             )

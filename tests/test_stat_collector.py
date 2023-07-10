@@ -64,23 +64,33 @@ class TestClass(object):
         assert len(result.hits) == 5
         _, doc_address = result.hits[0]
 
-    def test_stat_searcher(self, ram_kapiche_index):
+    def test_stat_searcher_none(self, ram_kapiche_index):
         index = ram_kapiche_index
         query = index.parse_query("sea", ["body"])
-
-        result = index.stat_searcher().search(query, set())
+        result = index.stat_searcher().search(query)
         assert sorted(result.unique_docs_frames) == [(1, 1), (1, 2), (2, 4), (3, 5)]
 
     def test_stat_searcher_filter(self, ram_kapiche_index):
         index = ram_kapiche_index
         query = index.parse_query("sea", ["body"])
 
-        result = index.stat_searcher().search(query, {1, 3, 5, 6, 7})
+        result = index.stat_searcher().search(query, "frame_id__", {1, 3, 5, 6, 7})
         assert sorted(result.unique_docs_frames) == [(1, 1), (3, 5)]
         assert list(result.unique_docs) == [1, 3]
         assert list(result.unique_frames) == [1, 5]
         print(f"{result.hits}")
         print(f"{result.unique_docs_frames}")
+
+    def test_stat_searcher_filter_unzipped(self, ram_kapiche_index):
+        index = ram_kapiche_index
+        query = index.parse_query("sea", ["body"])
+
+        result = index.stat_searcher().search(query, "frame_id__", {1, 3, 5, 6, 7})
+        d, f = result.unique_docs_frames_unzipped
+        assert sorted(d) == [1, 3]
+        assert sorted(f) == [1, 5]
+        assert list(result.unique_docs) == [1, 3]
+        assert list(result.unique_frames) == [1, 5]
 
 
 def test_stat_searcher_memory():
@@ -124,7 +134,7 @@ def test_stat_searcher_memory():
     m0 = p.memory_info().rss
     total_mem_growth = 0
     for i in range(n):
-        result = index.stat_searcher().search(query, set())
+        result = index.stat_searcher().search(query)
         items = sorted(result.unique_docs_frames)
         del items
         del result
@@ -137,7 +147,7 @@ def test_stat_searcher_memory():
 
     assert total_mem_growth < 500_000
 
-    result = index.stat_searcher().search(query, set())
+    result = index.stat_searcher().search(query)
     items = sorted(result.unique_docs_frames)
     assert len(items) == 439
     assert items[:4] == [(0, 0), (2, 2), (11, 11), (18, 18)]
