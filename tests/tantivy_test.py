@@ -26,7 +26,7 @@ def create_index(dir=None):
     # assume all tests will use the same documents for now
     # other methods may set up function-local indexes
     index = Index(schema(), dir)
-    writer = index.writer()
+    writer = index.writer(10_000_000, 1)
 
     # 2 ways of adding documents
     # 1
@@ -77,7 +77,7 @@ def create_index(dir=None):
 
 def create_index_with_numeric_fields(dir=None):
     index = Index(schema_numeric_fields(), dir)
-    writer = index.writer()
+    writer = index.writer(10_000_000, 1)
 
     doc = Document()
     doc.add_integer("id", 1)
