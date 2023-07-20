@@ -113,8 +113,6 @@ impl Searcher {
 
         let (mut multifruit, hits) = {
             if let Some(order_by) = order_by_field {
-                // let schema = &self.inner.index().schema();
-                // let field = get_field(schema, order_by)?;
                 let collector = TopDocs::with_limit(limit)
                     .and_offset(offset)
                     .order_by_u64_field(order_by);
