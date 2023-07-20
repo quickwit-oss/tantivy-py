@@ -86,7 +86,7 @@ pub(crate) fn get_field(
     schema: &tv::schema::Schema,
     field_name: &str,
 ) -> PyResult<tv::schema::Field> {
-    let field = schema.get_field(field_name).ok_or_else(|| {
+    let field = schema.get_field(field_name).map_err(|_err| {
         exceptions::PyValueError::new_err(format!(
             "Field `{field_name}` is not defined in the schema."
         ))

@@ -26,7 +26,7 @@ def create_index(dir=None):
     # assume all tests will use the same documents for now
     # other methods may set up function-local indexes
     index = Index(schema(), dir)
-    writer = index.writer()
+    writer = index.writer(10_000_000, 1)
 
     # 2 ways of adding documents
     # 1
@@ -77,7 +77,7 @@ def create_index(dir=None):
 
 def create_index_with_numeric_fields(dir=None):
     index = Index(schema_numeric_fields(), dir)
-    writer = index.writer()
+    writer = index.writer(10_000_000, 1)
 
     doc = Document()
     doc.add_integer("id", 1)
@@ -260,13 +260,13 @@ class TestClass(object):
 
     def test_and_query_parser_default_fields(self, ram_index):
         query = ram_index.parse_query("winter", default_field_names=["title"])
-        assert repr(query) == """Query(TermQuery(Term(type=Str, field=0, "winter")))"""
+        assert repr(query) == """Query(TermQuery(Term(field=0, type=Str, "winter")))"""
 
     def test_and_query_parser_default_fields_undefined(self, ram_index):
         query = ram_index.parse_query("winter")
         assert (
             repr(query)
-            == """Query(BooleanQuery { subqueries: [(Should, TermQuery(Term(type=Str, field=0, "winter"))), (Should, TermQuery(Term(type=Str, field=1, "winter")))] })"""
+            == """Query(BooleanQuery { subqueries: [(Should, TermQuery(Term(field=0, type=Str, "winter"))), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
         )
 
     def test_query_errors(self, ram_index):
@@ -278,7 +278,7 @@ class TestClass(object):
     def test_order_by_search(self):
         schema = (
             SchemaBuilder()
-            .add_unsigned_field("order", fast="single")
+            .add_unsigned_field("order", fast=True)
             .add_text_field("title", stored=True)
             .build()
         )
