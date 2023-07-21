@@ -18,6 +18,8 @@ chrono = "0.4.23"
 tantivy = "0.20.1"
 itertools = "0.10.5"
 futures = "0.3.26"
+pythonize = "0.19.0"
+serde = "~1.0"
 serde_json = "1.0.91"
 
 [dependencies.pyo3]

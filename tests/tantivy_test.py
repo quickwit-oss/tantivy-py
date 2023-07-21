@@ -1,6 +1,7 @@
 from io import BytesIO
 import copy
 import tantivy
+import pickle
 import pytest
 
 from tantivy import Document, Index, SchemaBuilder
@@ -473,6 +474,15 @@ class TestClass(object):
         assert eng_result1 != esp_result
         assert eng_result2 != esp_result
 
+    def test_search_result_pickle(self, ram_index):
+        index = ram_index
+        query = index.parse_query("sea whale", ["title", "body"])
+
+        orig = index.searcher().search(query, 10)
+        pickled = pickle.loads(pickle.dumps(orig))
+
+        assert orig == pickled
+
 
 class TestUpdateClass(object):
     def test_delete_update(self, ram_index):
@@ -541,7 +551,10 @@ class TestFromDiskClass(object):
 class TestSearcher(object):
     def test_searcher_repr(self, ram_index, ram_index_numeric_fields):
         assert repr(ram_index.searcher()) == "Searcher(num_docs=3, num_segments=1)"
-        assert repr(ram_index_numeric_fields.searcher()) == "Searcher(num_docs=2, num_segments=1)"
+        assert (
+            repr(ram_index_numeric_fields.searcher())
+            == "Searcher(num_docs=2, num_segments=1)"
+        )
 
 
 class TestDocument(object):
@@ -603,6 +616,12 @@ class TestDocument(object):
         assert doc1 == doc2
         assert doc1 == doc3
         assert doc2 == doc3
+
+    def test_document_pickle(self):
+        orig = Document(id=1, title="hello world!")
+        pickled = pickle.loads(pickle.dumps(orig))
+
+        assert orig == pickled
 
 
 class TestJsonField:
@@ -719,3 +738,34 @@ def test_facet_eq():
     assert facet1 == facet2
     assert facet1 != facet3
     assert facet2 != facet3
+
+
+def test_schema_pickle():
+    orig = (
+        SchemaBuilder()
+        .add_integer_field("id", stored=True, indexed=True)
+        .add_unsigned_field("unsigned")
+        .add_float_field("rating", stored=True, indexed=True)
+        .add_text_field("body", stored=True)
+        .add_date_field("date")
+        .add_json_field("json")
+        .add_bytes_field("bytes")
+        .build()
+    )
+
+    pickled = pickle.loads(pickle.dumps(orig))
+
+    assert orig == pickled
+
+
+def test_facet_pickle():
+    orig = tantivy.Facet.from_string("/europe/france")
+    pickled = pickle.loads(pickle.dumps(orig))
+
+    assert orig == pickled
+
+def test_doc_address_pickle():
+    orig = tantivy.DocAddress(42, 123)
+    pickled = pickle.loads(pickle.dumps(orig))
+
+    assert orig == pickled
