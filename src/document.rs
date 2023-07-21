@@ -9,11 +9,11 @@ use pyo3::{
     },
 };
 
-use chrono::{offset::TimeZone, Utc};
+use chrono::{offset::TimeZone, NaiveDateTime, Utc};
 
 use tantivy as tv;
 
-use crate::{facet::Facet, to_pyerr};
+use crate::{facet::Facet, schema::Schema, to_pyerr};
 use serde_json::Value as JsonValue;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -128,7 +128,25 @@ fn value_to_string(value: &Value) -> String {
 ///
 /// Example:
 ///     >>> doc = tantivy.Document(title="The Old Man and the Sea", body="...")
-
+///
+/// For numeric fields, the [`Document`] constructor does not have any
+/// information about the type and will try to guess the type.
+/// Therefore, it is recommended to use the [`Document::from_dict()`],
+/// [`Document::extract()`], or `Document::add_*()` functions to provide
+/// explicit type information.
+///
+/// Example:
+///     >>> schema = (
+///             SchemaBuilder()
+///                 .add_unsigned_field("unsigned")
+///                 .add_integer_field("signed")
+///                 .add_float_field("float")
+///                 .build()
+///         )
+///     >>> doc = tantivy.Document.from_dict(
+///             {"unsigned": 1000, "signed": -5, "float": 0.4},
+///             schema,
+///         )
 #[pyclass]
 #[derive(Default)]
 pub(crate) struct Document {
@@ -175,18 +193,7 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     if let Ok(num) = any.extract::<f64>() {
         return Ok(Value::F64(num));
     }
-    if let Ok(py_datetime) = any.downcast::<PyDateTime>() {
-        let datetime = Utc
-            .with_ymd_and_hms(
-                py_datetime.get_year(),
-                py_datetime.get_month().into(),
-                py_datetime.get_day().into(),
-                py_datetime.get_hour().into(),
-                py_datetime.get_minute().into(),
-                py_datetime.get_second().into(),
-            )
-            .single()
-            .unwrap();
+    if let Ok(datetime) = any.extract::<NaiveDateTime>() {
         return Ok(Value::Date(tv::DateTime::from_timestamp_secs(
             datetime.timestamp(),
         )));
@@ -200,6 +207,60 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     Err(to_pyerr(format!("Value unsupported {any:?}")))
 }
 
+pub(crate) fn extract_value_for_type(
+    any: &PyAny,
+    tv_type: tv::schema::Type,
+    field_name: &str,
+) -> PyResult<Value> {
+    // Helper function to create `PyErr`s returned by this function.
+    fn to_pyerr_for_type<'a, E: std::error::Error>(
+        type_name: &'a str,
+        field_name: &'a str,
+        any: &'a PyAny,
+    ) -> impl Fn(E) -> PyErr + 'a {
+        move |_| {
+            to_pyerr(format!(
+                "Expected {} type for field {}, got {:?}",
+                type_name, field_name, any
+            ))
+        }
+    }
+
+    let value = match tv_type {
+        tv::schema::Type::Str => Value::Str(
+            any.extract::<String>()
+                .map_err(to_pyerr_for_type("Str", field_name, any))?,
+        ),
+        tv::schema::Type::U64 => Value::U64(
+            any.extract::<u64>()
+                .map_err(to_pyerr_for_type("U64", field_name, any))?,
+        ),
+        tv::schema::Type::I64 => Value::I64(
+            any.extract::<i64>()
+                .map_err(to_pyerr_for_type("I64", field_name, any))?,
+        ),
+        tv::schema::Type::F64 => Value::F64(
+            any.extract::<f64>()
+                .map_err(to_pyerr_for_type("F64", field_name, any))?,
+        ),
+        tv::schema::Type::Date => {
+            let datetime = any
+                .extract::<NaiveDateTime>()
+                .map_err(to_pyerr_for_type("DateTime", field_name, any))?;
+
+            Value::Date(tv::DateTime::from_timestamp_secs(datetime.timestamp()))
+        }
+        tv::schema::Type::Facet => Value::Facet(
+            any.extract::<Facet>()
+                .map_err(to_pyerr_for_type("Facet", field_name, any))?
+                .inner,
+        ),
+        _ => return Err(to_pyerr(format!("Value unsupported {:?}", any))),
+    };
+
+    Ok(value)
+}
+
 fn extract_value_single_or_list(any: &PyAny) -> PyResult<Vec<Value>> {
     if let Ok(values) = any.downcast::<PyList>() {
         values.iter().map(extract_value).collect()
@@ -208,51 +269,124 @@ fn extract_value_single_or_list(any: &PyAny) -> PyResult<Vec<Value>> {
     }
 }
 
+fn extract_value_single_or_list_for_type(
+    any: &PyAny,
+    field_type: &tv::schema::FieldType,
+    field_name: &str,
+) -> PyResult<Vec<Value>> {
+    // Check if a numeric fast field supports multivalues.
+    if let Ok(values) = any.downcast::<PyList>() {
+        values
+            .iter()
+            .map(|any| {
+                extract_value_for_type(any, field_type.value_type(), field_name)
+            })
+            .collect()
+    } else {
+        Ok(vec![extract_value_for_type(
+            any,
+            field_type.value_type(),
+            field_name,
+        )?])
+    }
+}
+
+impl Document {
+    fn extract_py_values_from_dict(
+        py_dict: &PyDict,
+        schema: Option<&Schema>,
+        out_field_values: &mut BTreeMap<String, Vec<tv::schema::Value>>,
+    ) -> PyResult<()> {
+        // TODO: Reserve when https://github.com/rust-lang/rust/issues/72631 is stable.
+        // out_field_values.reserve(py_dict.len());
+
+        for key_value_any in py_dict.items() {
+            if let Ok(key_value) = key_value_any.downcast::<PyTuple>() {
+                if key_value.len() != 2 {
+                    continue;
+                }
+                let key = key_value.get_item(0)?.extract::<String>()?;
+
+                let field_type = if let Some(schema) = schema {
+                    let field_type = schema
+                        .inner
+                        .get_field(key.as_str())
+                        .map(|field| {
+                            schema.inner.get_field_entry(field).field_type()
+                        })
+                        .ok();
+
+                    if let Some(field_type) = field_type {
+                        // A field type was found, so validate it after the values are extracted.
+                        Some(field_type)
+                    } else {
+                        // The field does not exist in the schema, so skip over it.
+                        continue;
+                    }
+                } else {
+                    // No schema was provided, so do not validate anything.
+                    None
+                };
+
+                let value_list = if let Some(field_type) = field_type {
+                    extract_value_single_or_list_for_type(
+                        key_value.get_item(1)?,
+                        field_type,
+                        key.as_str(),
+                    )?
+                } else {
+                    extract_value_single_or_list(key_value.get_item(1)?)?
+                };
+
+                out_field_values.insert(key, value_list);
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[pymethods]
 impl Document {
+    /// Creates a new document with optional fields from `**kwargs`.
+    ///
+    /// Note that the types of numeric fields are unknown here. To
+    /// provide explicit type information, use the [`from_dict()`],
+    /// [`extend()`], or `add_<type>()` functions.
     #[new]
     #[pyo3(signature = (**kwargs))]
     fn new(kwargs: Option<&PyDict>) -> PyResult<Self> {
         let mut document = Document::default();
         if let Some(field_dict) = kwargs {
-            document.extend(field_dict)?;
+            document.extend(field_dict, None)?;
         }
         Ok(document)
     }
 
-    fn extend(&mut self, py_dict: &PyDict) -> PyResult<()> {
-        let mut field_values: BTreeMap<String, Vec<tv::schema::Value>> =
-            BTreeMap::new();
-        for key_value_any in py_dict.items() {
-            if let Ok(key_value) = key_value_any.downcast::<PyTuple>() {
-                if key_value.len() != 2 {
-                    continue;
-                }
-                let key: String = key_value.get_item(0)?.extract()?;
-                let value_list =
-                    extract_value_single_or_list(key_value.get_item(1)?)?;
-                field_values.insert(key, value_list);
-            }
-        }
-        self.field_values.extend(field_values.into_iter());
-        Ok(())
+    fn extend(
+        &mut self,
+        py_dict: &PyDict,
+        schema: Option<&Schema>,
+    ) -> PyResult<()> {
+        Document::extract_py_values_from_dict(
+            py_dict,
+            schema,
+            &mut self.field_values,
+        )
     }
 
     #[staticmethod]
-    fn from_dict(py_dict: &PyDict) -> PyResult<Document> {
+    fn from_dict(
+        py_dict: &PyDict,
+        schema: Option<&Schema>,
+    ) -> PyResult<Document> {
         let mut field_values: BTreeMap<String, Vec<tv::schema::Value>> =
             BTreeMap::new();
-        for key_value_any in py_dict.items() {
-            if let Ok(key_value) = key_value_any.downcast::<PyTuple>() {
-                if key_value.len() != 2 {
-                    continue;
-                }
-                let key: String = key_value.get_item(0)?.extract()?;
-                let value_list =
-                    extract_value_single_or_list(key_value.get_item(1)?)?;
-                field_values.insert(key, value_list);
-            }
-        }
+        Document::extract_py_values_from_dict(
+            py_dict,
+            schema,
+            &mut field_values,
+        )?;
         Ok(Document { field_values })
     }
 
