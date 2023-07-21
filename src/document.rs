@@ -128,7 +128,25 @@ fn value_to_string(value: &Value) -> String {
 ///
 /// Example:
 ///     >>> doc = tantivy.Document(title="The Old Man and the Sea", body="...")
-
+///
+/// For numeric fields, the [`Document`] constructor does not have any
+/// information about the type and will try to guess the type.
+/// Therefore, it is recommended to use the [`Document::from_dict()`],
+/// [`Document::extract()`], or `Document::add_*()` functions to provide
+/// explicit type information.
+///
+/// Example:
+///     >>> schema = (
+///             SchemaBuilder()
+///                 .add_unsigned_field("unsigned")
+///                 .add_integer_field("signed")
+///                 .add_float_field("float")
+///                 .build()
+///         )
+///     >>> doc = tantivy.Document.from_dict(
+///             {"unsigned": 1000, "signed": -5, "float": 0.4},
+///             schema,
+///         )
 #[pyclass]
 #[derive(Default)]
 pub(crate) struct Document {
@@ -330,6 +348,11 @@ impl Document {
 
 #[pymethods]
 impl Document {
+    /// Creates a new document with optional fields from `**kwargs`.
+    ///
+    /// Note that the types of numeric fields are unknown here. To
+    /// provide explicit type information, use the [`from_dict()`],
+    /// [`extend()`], or `add_<type>()` functions.
     #[new]
     #[pyo3(signature = (**kwargs))]
     fn new(kwargs: Option<&PyDict>) -> PyResult<Self> {
