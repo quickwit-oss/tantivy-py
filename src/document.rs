@@ -9,7 +9,7 @@ use pyo3::{
     },
 };
 
-use chrono::{offset::TimeZone, DateTime, Utc};
+use chrono::{offset::TimeZone, NaiveDateTime, Utc};
 
 use tantivy as tv;
 
@@ -175,7 +175,7 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     if let Ok(num) = any.extract::<f64>() {
         return Ok(Value::F64(num));
     }
-    if let Ok(datetime) = any.extract::<DateTime<Utc>>() {
+    if let Ok(datetime) = any.extract::<NaiveDateTime>() {
         return Ok(Value::Date(tv::DateTime::from_timestamp_secs(
             datetime.timestamp(),
         )));
@@ -227,7 +227,7 @@ pub(crate) fn extract_value_for_type(
         ),
         tv::schema::Type::Date => {
             let datetime = any
-                .extract::<DateTime<Utc>>()
+                .extract::<NaiveDateTime>()
                 .map_err(to_pyerr_for_type("DateTime", field_name, any))?;
 
             Value::Date(tv::DateTime::from_timestamp_secs(datetime.timestamp()))
@@ -263,7 +263,7 @@ fn extract_value_single_or_list_for_type(
             .map(|any| {
                 extract_value_for_type(any, field_type.value_type(), field_name)
             })
-            .collect::<PyResult<Vec<Value>>>()
+            .collect()
     } else {
         Ok(vec![extract_value_for_type(
             any,

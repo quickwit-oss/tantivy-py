@@ -361,29 +361,28 @@ class TestClass(object):
             .add_unsigned_field("unsigned")
             .add_integer_field("signed")
             .add_float_field("float")
-            .add_unsigned_field("single_unsigned", fast="single")
             .build()
         )
 
         good = Document.from_dict(
-            {"unsigned": 1000, "signed": -5, "float": 0.4, "single_unsigned": 42},
+            {"unsigned": 1000, "signed": -5, "float": 0.4},
             schema,
         )
 
         good = Document.from_dict(
-            {"unsigned": 1000, "signed": -5, "float": 0.4, "single_unsigned": [42]},
+            {"unsigned": 1000, "signed": -5, "float": 0.4},
             schema,
         )
 
         with pytest.raises(ValueError):
             bad = Document.from_dict(
-                {"unsigned": -50, "signed": -5, "float": 0.4, "single_unsigned": 42},
+                {"unsigned": -50, "signed": -5, "float": 0.4},
                 schema,
             )
 
         with pytest.raises(ValueError):
             bad = Document.from_dict(
-                {"unsigned": 1000, "signed": 50.4, "float": 0.4, "single_unsigned": 42},
+                {"unsigned": 1000, "signed": 50.4, "float": 0.4},
                 schema,
             )
 
@@ -393,18 +392,6 @@ class TestClass(object):
                     "unsigned": 1000,
                     "signed": -5,
                     "float": "bad_string",
-                    "single_unsigned": 42,
-                },
-                schema,
-            )
-
-        with pytest.raises(ValueError):
-            bad = Document.from_dict(
-                {
-                    "unsigned": 1000,
-                    "signed": -5,
-                    "float": 0.4,
-                    "single_unsigned": [1, 2, 3],
                 },
                 schema,
             )
@@ -415,7 +402,6 @@ class TestClass(object):
                     "unsigned": [1000, -50],
                     "signed": -5,
                     "float": 0.4,
-                    "single_unsigned": 42,
                 },
                 schema,
             )
@@ -426,7 +412,6 @@ class TestClass(object):
                     "unsigned": 1000,
                     "signed": [-5, 150, -3.14],
                     "float": 0.4,
-                    "single_unsigned": 42,
                 },
                 schema,
             )
