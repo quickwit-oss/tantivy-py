@@ -13,7 +13,9 @@ use chrono::{offset::TimeZone, NaiveDateTime, Utc};
 
 use tantivy as tv;
 
-use crate::{facet::Facet, schema::Schema, to_pyerr};
+use crate::{
+    facet::Facet, impl_py_copy, impl_py_deepcopy, schema::Schema, to_pyerr,
+};
 use serde_json::Value as JsonValue;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -147,11 +149,14 @@ fn value_to_string(value: &Value) -> String {
 ///             {"unsigned": 1000, "signed": -5, "float": 0.4},
 ///             schema,
 ///         )
-#[pyclass]
-#[derive(Default)]
+#[pyclass(module = "tantivy")]
+#[derive(Clone, Default)]
 pub(crate) struct Document {
     pub(crate) field_values: BTreeMap<String, Vec<tv::schema::Value>>,
 }
+
+impl_py_copy!(Document);
+impl_py_deepcopy!(Document);
 
 impl fmt::Debug for Document {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

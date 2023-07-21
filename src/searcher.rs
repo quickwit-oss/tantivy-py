@@ -1,6 +1,8 @@
 #![allow(clippy::new_ret_no_self)]
 
-use crate::{document::Document, query::Query, to_pyerr};
+use crate::{
+    document::Document, impl_py_copy, impl_py_deepcopy, query::Query, to_pyerr,
+};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
@@ -37,7 +39,8 @@ impl ToPyObject for Fruit {
     }
 }
 
-#[pyclass]
+#[pyclass(module = "tantivy")]
+#[derive(Clone)]
 /// Object holding a results successful search.
 pub(crate) struct SearchResult {
     hits: Vec<(Fruit, DocAddress)>,
@@ -46,6 +49,9 @@ pub(crate) struct SearchResult {
     /// to true during the search.
     count: Option<usize>,
 }
+
+impl_py_copy!(SearchResult);
+impl_py_deepcopy!(SearchResult);
 
 #[pymethods]
 impl SearchResult {
@@ -194,12 +200,15 @@ impl Searcher {
 /// It consists in an id identifying its segment, and its segment-local DocId.
 /// The id used for the segment is actually an ordinal in the list of segment
 /// hold by a Searcher.
-#[pyclass]
+#[pyclass(module = "tantivy")]
 #[derive(Clone, Debug)]
 pub(crate) struct DocAddress {
     pub(crate) segment_ord: tv::SegmentOrdinal,
     pub(crate) doc: tv::DocId,
 }
+
+impl_py_copy!(DocAddress);
+impl_py_deepcopy!(DocAddress);
 
 #[pymethods]
 impl DocAddress {

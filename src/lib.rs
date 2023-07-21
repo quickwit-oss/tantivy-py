@@ -94,3 +94,27 @@ pub(crate) fn get_field(
 
     Ok(field)
 }
+
+#[macro_export]
+macro_rules! impl_py_copy {
+    ($pyo3_ty:ty) => {
+        #[pymethods]
+        impl $pyo3_ty {
+            pub fn __copy__(&self) -> Self {
+                self.clone()
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_py_deepcopy {
+    ($pyo3_ty:ty) => {
+        #[pymethods]
+        impl $pyo3_ty {
+            pub fn __deepcopy__(&self, _memo: &::pyo3::types::PyDict) -> Self {
+                self.clone()
+            }
+        }
+    };
+}

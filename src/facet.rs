@@ -1,3 +1,4 @@
+use crate::{impl_py_copy, impl_py_deepcopy};
 use pyo3::{prelude::*, types::PyType};
 use tantivy::schema;
 
@@ -10,11 +11,14 @@ use tantivy::schema;
 /// implicitely imply that a document belonging to a facet also belongs to the
 /// ancestor of its facet. In the example above, /electronics/tv_and_video/
 /// and /electronics.
-#[pyclass]
+#[pyclass(module = "tantivy")]
 #[derive(Clone)]
 pub(crate) struct Facet {
     pub(crate) inner: schema::Facet,
 }
+
+impl_py_copy!(Facet);
+impl_py_deepcopy!(Facet);
 
 #[pymethods]
 impl Facet {
