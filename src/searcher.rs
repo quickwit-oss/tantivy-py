@@ -164,6 +164,12 @@ impl Searcher {
         self.inner.num_docs()
     }
 
+    /// Returns the number of segments in the index.
+    #[getter]
+    fn num_segments(&self) -> usize {
+        self.inner.segment_readers().len()
+    }
+
     /// Fetches a document from Tantivy's store given a DocAddress.
     ///
     /// Args:
