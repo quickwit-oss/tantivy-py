@@ -1,5 +1,7 @@
-use crate::{impl_py_copy, impl_py_deepcopy, impl_py_eq};
-use pyo3::{prelude::*, types::PyType};
+use pyo3::{
+    basic::CompareOp, exceptions::PyNotImplementedError, prelude::*,
+    types::PyType,
+};
 use tantivy::schema;
 
 /// A Facet represent a point in a given hierarchy.
@@ -11,15 +13,11 @@ use tantivy::schema;
 /// implicitely imply that a document belonging to a facet also belongs to the
 /// ancestor of its facet. In the example above, /electronics/tv_and_video/
 /// and /electronics.
-#[pyclass(module = "tantivy")]
+#[pyclass(frozen)]
 #[derive(Clone, PartialEq)]
 pub(crate) struct Facet {
     pub(crate) inner: schema::Facet,
 }
-
-impl_py_copy!(Facet);
-impl_py_deepcopy!(Facet);
-impl_py_eq!(Facet);
 
 #[pymethods]
 impl Facet {
@@ -71,5 +69,15 @@ impl Facet {
 
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("Facet({})", self.to_path_str()))
+    }
+
+    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+        match op {
+            CompareOp::Eq => Ok(self == other),
+            CompareOp::Ne => Ok(self != other),
+            _ => Err(PyNotImplementedError::new_err(format!(
+                "{op:?} op is not supported"
+            ))),
+        }
     }
 }

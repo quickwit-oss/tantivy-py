@@ -3,6 +3,8 @@
 
 use itertools::Itertools;
 use pyo3::{
+    basic::CompareOp,
+    exceptions::PyNotImplementedError,
     prelude::*,
     types::{
         PyAny, PyDateAccess, PyDateTime, PyDict, PyList, PyTimeAccess, PyTuple,
@@ -13,10 +15,7 @@ use chrono::{offset::TimeZone, NaiveDateTime, Utc};
 
 use tantivy as tv;
 
-use crate::{
-    facet::Facet, impl_py_copy, impl_py_deepcopy, impl_py_eq, schema::Schema,
-    to_pyerr,
-};
+use crate::{facet::Facet, schema::Schema, to_pyerr};
 use serde_json::Value as JsonValue;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -150,15 +149,11 @@ fn value_to_string(value: &Value) -> String {
 ///             {"unsigned": 1000, "signed": -5, "float": 0.4},
 ///             schema,
 ///         )
-#[pyclass(module = "tantivy")]
+#[pyclass]
 #[derive(Clone, Default, PartialEq)]
 pub(crate) struct Document {
     pub(crate) field_values: BTreeMap<String, Vec<tv::schema::Value>>,
 }
-
-impl_py_copy!(Document);
-impl_py_deepcopy!(Document);
-impl_py_eq!(Document);
 
 impl fmt::Debug for Document {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -558,6 +553,24 @@ impl Document {
 
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("{self:?}"))
+    }
+
+    fn __copy__(&self) -> Self {
+        self.clone()
+    }
+
+    fn __deepcopy__(&self, _memo: &PyDict) -> Self {
+        self.clone()
+    }
+
+    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+        match op {
+            CompareOp::Eq => Ok(self == other),
+            CompareOp::Ne => Ok(self != other),
+            _ => Err(PyNotImplementedError::new_err(format!(
+                "{op:?} op is not supported"
+            ))),
+        }
     }
 }
 

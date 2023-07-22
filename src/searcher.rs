@@ -1,10 +1,11 @@
 #![allow(clippy::new_ret_no_self)]
 
-use crate::{
-    document::Document, impl_py_copy, impl_py_deepcopy, impl_py_eq,
-    query::Query, to_pyerr,
+use crate::{document::Document, query::Query, to_pyerr};
+use pyo3::{
+    basic::CompareOp,
+    exceptions::{PyNotImplementedError, PyValueError},
+    prelude::*,
 };
-use pyo3::{exceptions::PyValueError, prelude::*};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
 
@@ -40,7 +41,7 @@ impl ToPyObject for Fruit {
     }
 }
 
-#[pyclass(module = "tantivy")]
+#[pyclass(frozen)]
 #[derive(Clone, PartialEq)]
 /// Object holding a results successful search.
 pub(crate) struct SearchResult {
@@ -50,10 +51,6 @@ pub(crate) struct SearchResult {
     /// to true during the search.
     count: Option<usize>,
 }
-
-impl_py_copy!(SearchResult);
-impl_py_deepcopy!(SearchResult);
-impl_py_eq!(SearchResult);
 
 #[pymethods]
 impl SearchResult {
@@ -65,6 +62,16 @@ impl SearchResult {
             ))
         } else {
             Ok(format!("SearchResult(hits: {:?})", self.hits))
+        }
+    }
+
+    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+        match op {
+            CompareOp::Eq => Ok(self == other),
+            CompareOp::Ne => Ok(self != other),
+            _ => Err(PyNotImplementedError::new_err(format!(
+                "{op:?} op is not supported"
+            ))),
         }
     }
 
@@ -202,16 +209,12 @@ impl Searcher {
 /// It consists in an id identifying its segment, and its segment-local DocId.
 /// The id used for the segment is actually an ordinal in the list of segment
 /// hold by a Searcher.
-#[pyclass(module = "tantivy")]
+#[pyclass(frozen)]
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct DocAddress {
     pub(crate) segment_ord: tv::SegmentOrdinal,
     pub(crate) doc: tv::DocId,
 }
-
-impl_py_copy!(DocAddress);
-impl_py_deepcopy!(DocAddress);
-impl_py_eq!(DocAddress);
 
 #[pymethods]
 impl DocAddress {
@@ -226,6 +229,16 @@ impl DocAddress {
     #[getter]
     fn doc(&self) -> u32 {
         self.doc
+    }
+
+    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+        match op {
+            CompareOp::Eq => Ok(self == other),
+            CompareOp::Ne => Ok(self != other),
+            _ => Err(PyNotImplementedError::new_err(format!(
+                "{op:?} op is not supported"
+            ))),
+        }
     }
 }
 

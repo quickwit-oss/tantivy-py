@@ -432,15 +432,6 @@ class TestClass(object):
         assert eng_result1 != esp_result
         assert eng_result2 != esp_result
 
-    def test_search_result_copy(self, ram_index):
-        index = ram_index
-        query = index.parse_query("sea whale", ["title", "body"])
-
-        result1 = index.searcher().search(query, 10)
-        result2 = index.searcher().search(query, 10)
-
-        assert result1 == result2
-
 
 class TestUpdateClass(object):
     def test_delete_update(self, ram_index):
@@ -687,13 +678,3 @@ def test_facet_eq():
     assert facet1 == facet2
     assert facet1 != facet3
     assert facet2 != facet3
-
-
-def test_facet_copy():
-    facet1 = tantivy.Facet.from_string("/europe/france")
-    facet2 = copy.copy(facet1)
-    facet3 = copy.deepcopy(facet2)
-
-    assert facet1 == facet2
-    assert facet1 == facet3
-    assert facet2 == facet3
