@@ -1,4 +1,5 @@
 from io import BytesIO
+import copy
 import tantivy
 import pytest
 
@@ -416,6 +417,30 @@ class TestClass(object):
                 schema,
             )
 
+    def test_search_result_eq(self, ram_index, spanish_index):
+        eng_index = ram_index
+        eng_query = eng_index.parse_query("sea whale", ["title", "body"])
+
+        esp_index = spanish_index
+        esp_query = esp_index.parse_query("vieja", ["title", "body"])
+
+        eng_result1 = eng_index.searcher().search(eng_query, 10)
+        eng_result2 = eng_index.searcher().search(eng_query, 10)
+        esp_result = esp_index.searcher().search(esp_query, 10)
+
+        assert eng_result1 == eng_result2
+        assert eng_result1 != esp_result
+        assert eng_result2 != esp_result
+
+    def test_search_result_copy(self, ram_index):
+        index = ram_index
+        query = index.parse_query("sea whale", ["title", "body"])
+
+        result1 = index.searcher().search(query, 10)
+        result2 = index.searcher().search(query, 10)
+
+        assert result1 == result2
+
 
 class TestUpdateClass(object):
     def test_delete_update(self, ram_index):
@@ -529,6 +554,24 @@ class TestDocument(object):
         with pytest.raises(ValueError):
             tantivy.Document(name={})
 
+    def test_document_eq(self):
+        doc1 = tantivy.Document(name="Bill", reference=[1, 2])
+        doc2 = tantivy.Document.from_dict({"name": "Bill", "reference": [1, 2]})
+        doc3 = tantivy.Document(name="Bob", reference=[3, 4])
+
+        assert doc1 == doc2
+        assert doc1 != doc3
+        assert doc2 != doc3
+
+    def test_document_copy(self):
+        doc1 = tantivy.Document(name="Bill", reference=[1, 2])
+        doc2 = copy.copy(doc1)
+        doc3 = copy.deepcopy(doc2)
+
+        assert doc1 == doc2
+        assert doc1 == doc3
+        assert doc2 == doc3
+
 
 class TestJsonField:
     def test_query_from_json_field(self):
@@ -624,3 +667,33 @@ def test_bytes(bytes_kwarg, bytes_payload):
     writer.add_document(doc)
     writer.commit()
     index.reload()
+
+
+def test_schema_eq():
+    schema1 = schema()
+    schema2 = schema()
+    schema3 = schema_numeric_fields()
+
+    assert schema1 == schema2
+    assert schema1 != schema3
+    assert schema2 != schema3
+
+
+def test_facet_eq():
+    facet1 = tantivy.Facet.from_string("/europe/france")
+    facet2 = tantivy.Facet.from_string("/europe/france")
+    facet3 = tantivy.Facet.from_string("/europe/germany")
+
+    assert facet1 == facet2
+    assert facet1 != facet3
+    assert facet2 != facet3
+
+
+def test_facet_copy():
+    facet1 = tantivy.Facet.from_string("/europe/france")
+    facet2 = copy.copy(facet1)
+    facet3 = copy.deepcopy(facet2)
+
+    assert facet1 == facet2
+    assert facet1 == facet3
+    assert facet2 == facet3

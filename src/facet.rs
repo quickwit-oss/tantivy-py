@@ -1,4 +1,4 @@
-use crate::{impl_py_copy, impl_py_deepcopy};
+use crate::{impl_py_copy, impl_py_deepcopy, impl_py_eq};
 use pyo3::{prelude::*, types::PyType};
 use tantivy::schema;
 
@@ -12,13 +12,14 @@ use tantivy::schema;
 /// ancestor of its facet. In the example above, /electronics/tv_and_video/
 /// and /electronics.
 #[pyclass(module = "tantivy")]
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub(crate) struct Facet {
     pub(crate) inner: schema::Facet,
 }
 
 impl_py_copy!(Facet);
 impl_py_deepcopy!(Facet);
+impl_py_eq!(Facet);
 
 #[pymethods]
 impl Facet {

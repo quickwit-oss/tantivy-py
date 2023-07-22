@@ -1,7 +1,8 @@
 #![allow(clippy::new_ret_no_self)]
 
 use crate::{
-    document::Document, impl_py_copy, impl_py_deepcopy, query::Query, to_pyerr,
+    document::Document, impl_py_copy, impl_py_deepcopy, impl_py_eq,
+    query::Query, to_pyerr,
 };
 use pyo3::{exceptions::PyValueError, prelude::*};
 use tantivy as tv;
@@ -15,7 +16,7 @@ pub(crate) struct Searcher {
     pub(crate) inner: tv::Searcher,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 enum Fruit {
     Score(f32),
     Order(u64),
@@ -40,7 +41,7 @@ impl ToPyObject for Fruit {
 }
 
 #[pyclass(module = "tantivy")]
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 /// Object holding a results successful search.
 pub(crate) struct SearchResult {
     hits: Vec<(Fruit, DocAddress)>,
@@ -52,6 +53,7 @@ pub(crate) struct SearchResult {
 
 impl_py_copy!(SearchResult);
 impl_py_deepcopy!(SearchResult);
+impl_py_eq!(SearchResult);
 
 #[pymethods]
 impl SearchResult {
@@ -201,7 +203,7 @@ impl Searcher {
 /// The id used for the segment is actually an ordinal in the list of segment
 /// hold by a Searcher.
 #[pyclass(module = "tantivy")]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct DocAddress {
     pub(crate) segment_ord: tv::SegmentOrdinal,
     pub(crate) doc: tv::DocId,
@@ -209,6 +211,7 @@ pub(crate) struct DocAddress {
 
 impl_py_copy!(DocAddress);
 impl_py_deepcopy!(DocAddress);
+impl_py_eq!(DocAddress);
 
 #[pymethods]
 impl DocAddress {

@@ -118,3 +118,27 @@ macro_rules! impl_py_deepcopy {
         }
     };
 }
+
+#[macro_export]
+macro_rules! impl_py_eq {
+    ($pyo3_ty:ty) => {
+        #[pymethods]
+        impl $pyo3_ty {
+            fn __richcmp__(
+                &self,
+                other: &Self,
+                op: ::pyo3::class::basic::CompareOp,
+            ) -> PyResult<bool> {
+                match op {
+                    ::pyo3::class::basic::CompareOp::Eq => Ok(self == other),
+                    ::pyo3::class::basic::CompareOp::Ne => Ok(self != other),
+                    _ => {
+                        Err(::pyo3::exceptions::PyNotImplementedError::new_err(
+                            format!("{op:?} op is not supported"),
+                        ))
+                    }
+                }
+            }
+        }
+    };
+}
