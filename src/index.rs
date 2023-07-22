@@ -35,7 +35,7 @@ pub(crate) struct IndexWriter {
 impl IndexWriter {
     fn inner(&self) -> PyResult<&tv::IndexWriter> {
         self.inner_index_writer.as_ref().ok_or_else(|| {
-            exceptions::PyValueError::new_err(
+            exceptions::PyRuntimeError::new_err(
                 "IndexWriter was consumed and no longer in a valid state",
             )
         })
@@ -43,7 +43,7 @@ impl IndexWriter {
 
     fn inner_mut(&mut self) -> PyResult<&mut tv::IndexWriter> {
         self.inner_index_writer.as_mut().ok_or_else(|| {
-            exceptions::PyValueError::new_err(
+            exceptions::PyRuntimeError::new_err(
                 "IndexWriter was consumed and no longer in a valid state",
             )
         })
@@ -51,7 +51,7 @@ impl IndexWriter {
 
     fn take_inner(&mut self) -> PyResult<tv::IndexWriter> {
         self.inner_index_writer.take().ok_or_else(|| {
-            exceptions::PyValueError::new_err(
+            exceptions::PyRuntimeError::new_err(
                 "IndexWriter was consumed and no longer in a valid state",
             )
         })

@@ -384,7 +384,7 @@ class TestClass(object):
         writer.wait_merging_threads()
 
         # Accessing the writer again should result in an error.
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeError):
             writer.wait_merging_threads()
 
         index.reload()
