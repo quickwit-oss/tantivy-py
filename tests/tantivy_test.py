@@ -355,6 +355,47 @@ class TestClass(object):
         result = searcher.search(query, 10, order_by_field="order")
         assert len(result.hits) == 0
 
+    def test_with_merges(self):
+        # This test is taken from tantivy's test suite:
+        # https://github.com/quickwit-oss/tantivy/blob/42acd334f49d5ff7e4fe846b5c12198f24409b50/src/indexer/index_writer.rs#L1130
+        schema = SchemaBuilder().add_text_field("text", stored=True).build()
+
+        index = Index(schema)
+        index.config_reader(reload_policy="Manual")
+
+        writer = index.writer()
+
+        for _ in range(100):
+            doc = Document()
+            doc.add_text("text", "a")
+
+            writer.add_document(doc)
+
+        writer.commit()
+
+        for _ in range(100):
+            doc = Document()
+            doc.add_text("text", "a")
+
+            writer.add_document(doc)
+
+        # This should create 8 segments and trigger a merge.
+        writer.commit()
+        writer.wait_merging_threads()
+
+        # Accessing the writer again should result in an error.
+        with pytest.raises(ValueError):
+            writer.wait_merging_threads()
+
+        index.reload()
+
+        query = index.parse_query("a")
+        searcher = index.searcher()
+        result = searcher.search(query, limit=500, count=True)
+        assert result.count == 200
+
+        assert searcher.num_segments < 8
+
     def test_doc_from_dict_schema_validation(self):
         schema = (
             SchemaBuilder()
