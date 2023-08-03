@@ -1,7 +1,4 @@
-use pyo3::{
-    basic::CompareOp, exceptions::PyNotImplementedError, prelude::*,
-    types::PyType,
-};
+use pyo3::{basic::CompareOp, prelude::*, types::PyType};
 use tantivy::schema;
 
 /// A Facet represent a point in a given hierarchy.
@@ -71,13 +68,16 @@ impl Facet {
         Ok(format!("Facet({})", self.to_path_str()))
     }
 
-    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
         match op {
-            CompareOp::Eq => Ok(self == other),
-            CompareOp::Ne => Ok(self != other),
-            _ => Err(PyNotImplementedError::new_err(format!(
-                "{op:?} op is not supported"
-            ))),
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
         }
     }
 }

@@ -1,11 +1,7 @@
 #![allow(clippy::new_ret_no_self)]
 
 use crate::{document::Document, query::Query, to_pyerr};
-use pyo3::{
-    basic::CompareOp,
-    exceptions::{PyNotImplementedError, PyValueError},
-    prelude::*,
-};
+use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
 
@@ -65,13 +61,16 @@ impl SearchResult {
         }
     }
 
-    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
         match op {
-            CompareOp::Eq => Ok(self == other),
-            CompareOp::Ne => Ok(self != other),
-            _ => Err(PyNotImplementedError::new_err(format!(
-                "{op:?} op is not supported"
-            ))),
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
         }
     }
 
@@ -231,13 +230,16 @@ impl DocAddress {
         self.doc
     }
 
-    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
         match op {
-            CompareOp::Eq => Ok(self == other),
-            CompareOp::Ne => Ok(self != other),
-            _ => Err(PyNotImplementedError::new_err(format!(
-                "{op:?} op is not supported"
-            ))),
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
         }
     }
 }

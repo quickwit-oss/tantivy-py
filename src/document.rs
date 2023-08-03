@@ -4,7 +4,6 @@
 use itertools::Itertools;
 use pyo3::{
     basic::CompareOp,
-    exceptions::PyNotImplementedError,
     prelude::*,
     types::{
         PyAny, PyDateAccess, PyDateTime, PyDict, PyList, PyTimeAccess, PyTuple,
@@ -563,13 +562,16 @@ impl Document {
         self.clone()
     }
 
-    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
         match op {
-            CompareOp::Eq => Ok(self == other),
-            CompareOp::Ne => Ok(self != other),
-            _ => Err(PyNotImplementedError::new_err(format!(
-                "{op:?} op is not supported"
-            ))),
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
         }
     }
 }

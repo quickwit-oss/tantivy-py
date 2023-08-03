@@ -1,4 +1,4 @@
-use pyo3::{basic::CompareOp, exceptions::PyNotImplementedError, prelude::*};
+use pyo3::{basic::CompareOp, prelude::*};
 use tantivy as tv;
 
 /// Tantivy schema.
@@ -13,13 +13,16 @@ pub(crate) struct Schema {
 
 #[pymethods]
 impl Schema {
-    fn __richcmp__(&self, other: &Self, op: CompareOp) -> PyResult<bool> {
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
         match op {
-            CompareOp::Eq => Ok(self == other),
-            CompareOp::Ne => Ok(self != other),
-            _ => Err(PyNotImplementedError::new_err(format!(
-                "{op:?} op is not supported"
-            ))),
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
         }
     }
 }
