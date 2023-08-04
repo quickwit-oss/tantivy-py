@@ -3,6 +3,7 @@
 
 use itertools::Itertools;
 use pyo3::{
+    basic::CompareOp,
     prelude::*,
     types::{
         PyAny, PyDateAccess, PyDateTime, PyDict, PyList, PyTimeAccess, PyTuple,
@@ -148,7 +149,7 @@ fn value_to_string(value: &Value) -> String {
 ///             schema,
 ///         )
 #[pyclass]
-#[derive(Default)]
+#[derive(Clone, Default, PartialEq)]
 pub(crate) struct Document {
     pub(crate) field_values: BTreeMap<String, Vec<tv::schema::Value>>,
 }
@@ -551,6 +552,27 @@ impl Document {
 
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("{self:?}"))
+    }
+
+    fn __copy__(&self) -> Self {
+        self.clone()
+    }
+
+    fn __deepcopy__(&self, _memo: &PyDict) -> Self {
+        self.clone()
+    }
+
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
+        match op {
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
+        }
     }
 }
 

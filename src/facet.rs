@@ -1,4 +1,4 @@
-use pyo3::{prelude::*, types::PyType};
+use pyo3::{basic::CompareOp, prelude::*, types::PyType};
 use tantivy::schema;
 
 /// A Facet represent a point in a given hierarchy.
@@ -10,8 +10,8 @@ use tantivy::schema;
 /// implicitely imply that a document belonging to a facet also belongs to the
 /// ancestor of its facet. In the example above, /electronics/tv_and_video/
 /// and /electronics.
-#[pyclass]
-#[derive(Clone)]
+#[pyclass(frozen)]
+#[derive(Clone, PartialEq)]
 pub(crate) struct Facet {
     pub(crate) inner: schema::Facet,
 }
@@ -66,5 +66,18 @@ impl Facet {
 
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!("Facet({})", self.to_path_str()))
+    }
+
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
+        match op {
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
+        }
     }
 }

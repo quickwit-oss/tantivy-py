@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use tantivy as tv;
 
 /// Tantivy's Query
-#[pyclass]
+#[pyclass(frozen)]
 pub(crate) struct Query {
     pub(crate) inner: Box<dyn tv::query::Query>,
 }

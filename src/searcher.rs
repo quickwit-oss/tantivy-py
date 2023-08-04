@@ -1,7 +1,7 @@
 #![allow(clippy::new_ret_no_self)]
 
 use crate::{document::Document, query::Query, to_pyerr};
-use pyo3::{exceptions::PyValueError, prelude::*};
+use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
 
@@ -13,7 +13,7 @@ pub(crate) struct Searcher {
     pub(crate) inner: tv::Searcher,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 enum Fruit {
     Score(f32),
     Order(u64),
@@ -37,7 +37,8 @@ impl ToPyObject for Fruit {
     }
 }
 
-#[pyclass]
+#[pyclass(frozen)]
+#[derive(Clone, PartialEq)]
 /// Object holding a results successful search.
 pub(crate) struct SearchResult {
     hits: Vec<(Fruit, DocAddress)>,
@@ -57,6 +58,19 @@ impl SearchResult {
             ))
         } else {
             Ok(format!("SearchResult(hits: {:?})", self.hits))
+        }
+    }
+
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
+        match op {
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
         }
     }
 
@@ -200,8 +214,8 @@ impl Searcher {
 /// It consists in an id identifying its segment, and its segment-local DocId.
 /// The id used for the segment is actually an ordinal in the list of segment
 /// hold by a Searcher.
-#[pyclass]
-#[derive(Clone, Debug)]
+#[pyclass(frozen)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct DocAddress {
     pub(crate) segment_ord: tv::SegmentOrdinal,
     pub(crate) doc: tv::DocId,
@@ -220,6 +234,19 @@ impl DocAddress {
     #[getter]
     fn doc(&self) -> u32 {
         self.doc
+    }
+
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
+        match op {
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
+        }
     }
 }
 
