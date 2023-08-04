@@ -1,0 +1,15 @@
+site_name: tantivy-py
+# site_url: https://example.com
+nav:
+  - Home: index.md
+  - Tutorials: tutorials.md
+  - How-to Guides: howto.md
+  - Explanation: explanation.md
+  - Reference: reference.md
+  - About: about.md
+theme: readthedocs
+
+# Can nest documents under above sections
+# - 'User Guide':
+#     - 'Writing your docs': 'writing-your-docs.md'
+#     - 'Styling your docs': 'styling-your-docs.md'

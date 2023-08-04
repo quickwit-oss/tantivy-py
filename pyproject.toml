@@ -6,5 +6,11 @@ build-backend = "maturin"
 name = "tantivy"
 requires-python = ">=3.7"
 
+[project.optional-dependencies]
+dev = [
+    "nox",
+    "mkdocs",
+]
+
 [tool.maturin]
 bindings = "pyo3"
