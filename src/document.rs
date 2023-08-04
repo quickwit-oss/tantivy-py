@@ -6,7 +6,8 @@ use pyo3::{
     basic::CompareOp,
     prelude::*,
     types::{
-        PyAny, PyDateAccess, PyDateTime, PyDict, PyList, PyTimeAccess, PyTuple,
+        PyAny, PyBool, PyDateAccess, PyDateTime, PyDict, PyList, PyTimeAccess,
+        PyTuple,
     },
 };
 
@@ -25,6 +26,9 @@ use tantivy::schema::Value;
 pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     if let Ok(s) = any.extract::<String>() {
         return Ok(Value::Str(s));
+    }
+    if any.is_exact_instance_of::<PyBool>() {
+        return Ok(Value::Bool(any.extract::<bool>()?));
     }
     if let Ok(num) = any.extract::<i64>() {
         return Ok(Value::I64(num));
@@ -77,6 +81,10 @@ pub(crate) fn extract_value_for_type(
         tv::schema::Type::I64 => Value::I64(
             any.extract::<i64>()
                 .map_err(to_pyerr_for_type("I64", field_name, any))?,
+        ),
+        tv::schema::Type::Bool => Value::Bool(
+            any.extract::<bool>()
+                .map_err(to_pyerr_for_type("Bool", field_name, any))?,
         ),
         tv::schema::Type::F64 => Value::F64(
             any.extract::<f64>()
@@ -379,6 +387,15 @@ impl Document {
     ///     field_name (str): The field name for which we are adding the value.
     ///     value (f64): The float that will be added to the document.
     fn add_float(&mut self, field_name: String, value: f64) {
+        self.add_value(field_name, value);
+    }
+
+    /// Add a boolean value to the document.
+    ///
+    /// Args:
+    ///     field_name (str): The field name for which we are adding the value.
+    ///     value (bool): The boolean that will be added to the document.
+    fn add_boolean(&mut self, field_name: String, value: bool) {
         self.add_value(field_name, value);
     }
 
