@@ -427,10 +427,14 @@ impl Document {
     /// Args:
     ///     field_name (str): The field for which we are adding the bytes.
     ///     value (str): The json object that will be added to the document.
-    fn add_json(&mut self, field_name: String, json: &str) {
+    ///
+    /// Raises a ValueError if the json is invalid.
+    fn add_json(&mut self, field_name: String, json: &str) -> PyResult<()> {
         let json_object: serde_json::Value =
-            serde_json::from_str(json).unwrap();
+            serde_json::from_str(json).map_err(to_pyerr)?;
         self.add_value(field_name, json_object);
+
+        Ok(())
     }
 
     /// Returns the number of added fields that have been added to the document
