@@ -1,5 +1,7 @@
 from io import BytesIO
+
 import copy
+import datetime
 import tantivy
 import pickle
 import pytest
@@ -567,8 +569,6 @@ class TestDocument(object):
         assert doc.to_dict() == {"name": ["Bill"], "reference": [1, 2]}
 
     def test_document_with_date(self):
-        import datetime
-
         date = datetime.datetime(2019, 8, 12, 13, 0, 0)
         doc = tantivy.Document(name="Bill", date=date)
         assert doc["date"][0] == date
@@ -618,7 +618,18 @@ class TestDocument(object):
         assert doc2 == doc3
 
     def test_document_pickle(self):
-        orig = Document(id=1, title="hello world!")
+        orig = Document()
+        orig.add_unsigned("unsigned", 1)
+        orig.add_integer("integer", 5)
+        orig.add_float("float", 1.0)
+        orig.add_date("birth", datetime.datetime(2019, 8, 12, 13, 0, 5))
+        orig.add_text("title", "hello world!")
+        orig.add_json("json", '{"a": 1, "b": 2}')
+        orig.add_bytes("bytes", b"abc")
+
+        facet = tantivy.Facet.from_string("/europe/france")
+        orig.add_facet("facet", facet)
+
         pickled = pickle.loads(pickle.dumps(orig))
 
         assert orig == pickled
@@ -763,6 +774,7 @@ def test_facet_pickle():
     pickled = pickle.loads(pickle.dumps(orig))
 
     assert orig == pickled
+
 
 def test_doc_address_pickle():
     orig = tantivy.DocAddress(42, 123)
