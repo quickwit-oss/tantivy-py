@@ -43,7 +43,7 @@ jobs:
           python-version: 3.8
           architecture: x64
 
-      - uses: messense/maturin-action@6d52485c3b3044e20b4c8ee6ce6f61e20a7645b0
+      - uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
         with:
           rust-toolchain: stable
           manylinux: auto
@@ -74,7 +74,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: messense/maturin-action@6d52485c3b3044e20b4c8ee6ce6f61e20a7645b0
+      - uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -104,7 +104,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Build wheels - x86_64
-        uses: messense/maturin-action@6d52485c3b3044e20b4c8ee6ce6f61e20a7645b0
+        uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -113,7 +113,7 @@ jobs:
           args: --release -o dist
 
       - name: Build wheels - universal2
-        uses: messense/maturin-action@6d52485c3b3044e20b4c8ee6ce6f61e20a7645b0
+        uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
