@@ -98,11 +98,12 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the numeric options as a single-valued
-    ///         fast field. Fast fields are designed for random access. Access
-    ///         time are similar to a random lookup in an array. If more than
-    ///         one value is associated to a fast field, only the last one is
-    ///         kept.
+    ///     fast (str, optional): Set the numeric options as a fast field. A
+    ///         fast field is a column-oriented fashion storage for tantivy.
+    ///         It is designed for the fast random access of some document
+    ///         fields given a document id. Read access performance is
+    ///         comparable to that of an array lookup. If more than one value
+    ///         is associated with a fast field, only the last one is kept.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
@@ -136,11 +137,12 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the numeric options as a single-valued
-    ///         fast field. Fast fields are designed for random access. Access
-    ///         time are similar to a random lookup in an array. If more than
-    ///         one value is associated to a fast field, only the last one is
-    ///         kept.
+    ///     fast (str, optional): Set the numeric options as a fast field. A
+    ///         fast field is a column-oriented fashion storage for tantivy.
+    ///         It is designed for the fast random access of some document
+    ///         fields given a document id. Read access performance is
+    ///         comparable to that of an array lookup. If more than one value
+    ///         is associated with a fast field, only the last one is kept.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
@@ -174,11 +176,12 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the numeric options as a single-valued
-    ///         fast field. Fast fields are designed for random access. Access
-    ///         time are similar to a random lookup in an array. If more than
-    ///         one value is associated to a fast field, only the last one is
-    ///         kept.
+    ///     fast (str, optional): Set the numeric options as a fast field. A
+    ///         fast field is a column-oriented fashion storage for tantivy.
+    ///         It is designed for the fast random access of some document
+    ///         fields given a document id. Read access performance is
+    ///         comparable to that of an array lookup. If more than one value
+    ///         is associated with a fast field, only the last one is kept.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
@@ -212,11 +215,12 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the numeric options as a single-valued
-    ///         fast field. Fast fields are designed for random access. Access
-    ///         time are similar to a random lookup in an array. If more than
-    ///         one value is associated to a fast field, only the last one is
-    ///         kept.
+    ///     fast (str, optional): Set the numeric options as a fast field. A
+    ///         fast field is a column-oriented fashion storage for tantivy.
+    ///         It is designed for the fast random access of some document
+    ///         fields given a document id. Read access performance is
+    ///         comparable to that of an array lookup. If more than one value
+    ///         is associated with a fast field, only the last one is kept.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
@@ -250,11 +254,12 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the date options as a single-valued
-    ///         fast field. Fast fields are designed for random access. Access
-    ///         time are similar to a random lookup in an array. If more than
-    ///         one value is associated to a fast field, only the last one is
-    ///         kept.
+    ///     fast (str, optional): Set the date options as a fast field. A fast
+    ///         field is a column-oriented fashion storage for tantivy. It is
+    ///         designed for the fast random access of some document fields
+    ///         given a document id. Read access performance is comparable to
+    ///         that of an array lookup. If more than one value is associated
+    ///         with a fast field, only the last one is kept.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
