@@ -101,9 +101,7 @@ impl SchemaBuilder {
     ///     fast (str, optional): Set the numeric options as a fast field. A
     ///         fast field is a column-oriented fashion storage for tantivy.
     ///         It is designed for the fast random access of some document
-    ///         fields given a document id. Read access performance is
-    ///         comparable to that of an array lookup. If more than one value
-    ///         is associated with a fast field, only the last one is kept.
+    ///         fields given a document id.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
@@ -140,9 +138,7 @@ impl SchemaBuilder {
     ///     fast (str, optional): Set the numeric options as a fast field. A
     ///         fast field is a column-oriented fashion storage for tantivy.
     ///         It is designed for the fast random access of some document
-    ///         fields given a document id. Read access performance is
-    ///         comparable to that of an array lookup. If more than one value
-    ///         is associated with a fast field, only the last one is kept.
+    ///         fields given a document id.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
@@ -179,9 +175,7 @@ impl SchemaBuilder {
     ///     fast (str, optional): Set the numeric options as a fast field. A
     ///         fast field is a column-oriented fashion storage for tantivy.
     ///         It is designed for the fast random access of some document
-    ///         fields given a document id. Read access performance is
-    ///         comparable to that of an array lookup. If more than one value
-    ///         is associated with a fast field, only the last one is kept.
+    ///         fields given a document id.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
@@ -218,9 +212,7 @@ impl SchemaBuilder {
     ///     fast (str, optional): Set the numeric options as a fast field. A
     ///         fast field is a column-oriented fashion storage for tantivy.
     ///         It is designed for the fast random access of some document
-    ///         fields given a document id. Read access performance is
-    ///         comparable to that of an array lookup. If more than one value
-    ///         is associated with a fast field, only the last one is kept.
+    ///         fields given a document id.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
@@ -257,9 +249,7 @@ impl SchemaBuilder {
     ///     fast (str, optional): Set the date options as a fast field. A fast
     ///         field is a column-oriented fashion storage for tantivy. It is
     ///         designed for the fast random access of some document fields
-    ///         given a document id. Read access performance is comparable to
-    ///         that of an array lookup. If more than one value is associated
-    ///         with a fast field, only the last one is kept.
+    ///         given a document id.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
