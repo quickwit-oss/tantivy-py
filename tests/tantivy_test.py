@@ -20,6 +20,7 @@ def schema_numeric_fields():
         SchemaBuilder()
         .add_integer_field("id", stored=True, indexed=True)
         .add_float_field("rating", stored=True, indexed=True)
+        .add_boolean_field("is_good", stored=True, indexed=True)
         .add_text_field("body", stored=True)
         .build()
     )
@@ -86,6 +87,7 @@ def create_index_with_numeric_fields(dir=None):
     doc = Document()
     doc.add_integer("id", 1)
     doc.add_float("rating", 3.5)
+    doc.add_boolean("is_good", True)
     doc.add_text(
         "body",
         (
@@ -99,6 +101,7 @@ def create_index_with_numeric_fields(dir=None):
         {
             "id": 2,
             "rating": 4.5,
+            "is_good": False,
             "body": (
                 "A few miles south of Soledad, the Salinas River drops "
                 "in close to the hillside bank and runs deep and "
@@ -113,7 +116,7 @@ def create_index_with_numeric_fields(dir=None):
                 "sycamores with mottled, white, recumbent limbs and "
                 "branches that arch over the pool"
             ),
-        }
+        },
     )
     writer.add_document(doc)
     writer.commit()
