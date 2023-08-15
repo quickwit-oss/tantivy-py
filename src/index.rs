@@ -5,6 +5,7 @@ use pyo3::{exceptions, prelude::*, types::PyAny};
 use crate::{
     document::{extract_value, Document},
     get_field,
+    parser_error::QueryParserErrorIntoPy,
     query::Query,
     schema::Schema,
     searcher::Searcher,
@@ -398,6 +399,67 @@ impl Index {
         let query = parser.parse_query(query).map_err(to_pyerr)?;
 
         Ok(Query { inner: query })
+    }
+
+    /// Parse a query leniently.
+    ///
+    /// This variant parses invalid query on a best effort basis. If some part of the query can't
+    /// reasonably be executed (range query without field, searching on a non existing field,
+    /// searching without precising field when no default field is provided...), they may get turned
+    /// into a "match-nothing" subquery.
+    ///
+    /// Args:
+    ///     query: the query, following the tantivy query language.
+    ///     default_fields_names (List[Field]): A list of fields used to search if no
+    ///         field is specified in the query.
+    ///
+    /// Returns a tuple containing the parsed query and a list of errors.
+    ///
+    /// Raises ValueError if a field in `default_field_names` is not defined or marked as indexed.
+    #[pyo3(signature = (query, default_field_names = None))]
+    pub fn parse_query_lenient(
+        &self,
+        query: &str,
+        default_field_names: Option<Vec<String>>,
+    ) -> PyResult<(Query, Vec<PyObject>)> {
+        let mut default_fields = vec![];
+        let schema = self.index.schema();
+
+        if let Some(default_field_names_vec) = default_field_names {
+            for default_field_name in &default_field_names_vec {
+                if let Ok(field) = schema.get_field(default_field_name) {
+                    let field_entry = schema.get_field_entry(field);
+                    if !field_entry.is_indexed() {
+                        return Err(exceptions::PyValueError::new_err(
+                            format!(
+                            "Field `{default_field_name}` is not set as indexed in the schema."
+                        ),
+                        ));
+                    }
+                    default_fields.push(field);
+                } else {
+                    return Err(exceptions::PyValueError::new_err(format!(
+                        "Field `{default_field_name}` is not defined in the schema."
+                    )));
+                }
+            }
+        } else {
+            for (field, field_entry) in self.index.schema().fields() {
+                if field_entry.is_indexed() {
+                    default_fields.push(field);
+                }
+            }
+        }
+        let parser =
+            tv::query::QueryParser::for_index(&self.index, default_fields);
+        let (query, errors) = parser.parse_query_lenient(query);
+
+        Python::with_gil(|py| {
+            let errors =
+                errors.into_iter().map(|err| err.into_py(py)).collect();
+
+            Ok((Query { inner: query }, errors))
+        })
     }
 }
 
