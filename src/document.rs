@@ -449,7 +449,7 @@ impl<'de> Deserialize<'de> for Document {
     where
         D: Deserializer<'de>,
     {
-        HashMap::<String, Vec<SerdeValue>>::deserialize(deserializer).map(
+        BTreeMap::<String, Vec<SerdeValue>>::deserialize(deserializer).map(
             |field_map| Document {
                 field_values: field_map
                     .into_iter()
