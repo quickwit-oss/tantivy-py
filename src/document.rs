@@ -16,9 +16,7 @@ use tantivy::{self as tv, schema::Value};
 
 use crate::{facet::Facet, schema::Schema, to_pyerr};
 use serde::{
-    de::{MapAccess, Visitor},
-    ser::SerializeMap,
-    Deserialize, Deserializer, Serialize, Serializer,
+    ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_json::Value as JsonValue;
 use std::{
@@ -243,8 +241,12 @@ where
     i64::deserialize(deserializer).map(tv::DateTime::from_timestamp_nanos)
 }
 
-/// An equivalent type to [`tantivy::schema::Value`] but uses tagging in its serialization to
-/// differentiate between different integer types.
+/// An equivalent type to [`tantivy::schema::Value`], but unlike the tantivy crate's serialization
+/// implementation, it uses tagging in its serialization and deserialization to differentiate
+/// between different integer types.
+///
+/// [`BorrowedSerdeValue`] is often used for the serialization path, as owning the data is not
+/// necessary for serialization.
 #[derive(Deserialize, Serialize)]
 enum SerdeValue {
     /// The str type is used for any text information.
@@ -295,6 +297,53 @@ impl From<SerdeValue> for Value {
 
 impl From<Value> for SerdeValue {
     fn from(value: Value) -> Self {
+        match value {
+            Value::Str(v) => Self::Str(v),
+            Value::PreTokStr(v) => Self::PreTokStr(v),
+            Value::U64(v) => Self::U64(v),
+            Value::I64(v) => Self::I64(v),
+            Value::F64(v) => Self::F64(v),
+            Value::Date(v) => Self::Date(v),
+            Value::Facet(v) => Self::Facet(v),
+            Value::Bytes(v) => Self::Bytes(v),
+            Value::JsonObject(v) => Self::JsonObject(v),
+            Value::Bool(v) => Self::Bool(v),
+            Value::IpAddr(v) => Self::IpAddr(v),
+        }
+    }
+}
+
+/// A non-owning version of [`SerdeValue`]. This is used in serialization to avoid unnecessary
+/// cloning.
+#[derive(Serialize)]
+enum BorrowedSerdeValue<'a> {
+    /// The str type is used for any text information.
+    Str(&'a str),
+    /// Pre-tokenized str type,
+    PreTokStr(&'a tv::tokenizer::PreTokenizedString),
+    /// Unsigned 64-bits Integer `u64`
+    U64(&'a u64),
+    /// Signed 64-bits Integer `i64`
+    I64(&'a i64),
+    /// 64-bits Float `f64`
+    F64(&'a f64),
+    /// Bool value
+    Bool(&'a bool),
+    #[serde(serialize_with = "serialize_datetime")]
+    /// Date/time with microseconds precision
+    Date(&'a tv::DateTime),
+    /// Facet
+    Facet(&'a tv::schema::Facet),
+    /// Arbitrarily sized byte array
+    Bytes(&'a [u8]),
+    /// Json object value.
+    JsonObject(&'a serde_json::Map<String, serde_json::Value>),
+    /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
+    IpAddr(&'a Ipv6Addr),
+}
+
+impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
+    fn from(value: &'a Value) -> Self {
         match value {
             Value::Str(v) => Self::Str(v),
             Value::PreTokStr(v) => Self::PreTokStr(v),
@@ -388,7 +437,7 @@ impl Serialize for Document {
             serializer.serialize_map(Some(self.field_values.len()))?;
         for (k, v) in &self.field_values {
             let ser_v: Vec<_> =
-                v.iter().cloned().map(SerdeValue::from).collect();
+                v.iter().map(BorrowedSerdeValue::from).collect();
             map.serialize_entry(&k, &ser_v)?;
         }
         map.end()
@@ -400,43 +449,18 @@ impl<'de> Deserialize<'de> for Document {
     where
         D: Deserializer<'de>,
     {
-        struct MapVisitor;
-
-        impl<'de> Visitor<'de> for MapVisitor {
-            type Value = BTreeMap<String, Vec<Value>>;
-
-            fn expecting(
-                &self,
-                formatter: &mut fmt::Formatter<'_>,
-            ) -> fmt::Result {
-                formatter.write_str("a map")
-            }
-
-            fn visit_map<M>(
-                self,
-                mut access: M,
-            ) -> Result<Self::Value, M::Error>
-            where
-                M: MapAccess<'de>,
-            {
-                let mut map = BTreeMap::new();
-
-                while let Some((key, value)) =
-                    access.next_entry::<String, Vec<SerdeValue>>()?
-                {
-                    map.insert(
-                        key,
-                        value.into_iter().map(SerdeValue::into).collect(),
-                    );
-                }
-
-                Ok(map)
-            }
-        }
-
-        Ok(Self {
-            field_values: deserializer.deserialize_map(MapVisitor)?,
-        })
+        HashMap::<String, Vec<SerdeValue>>::deserialize(deserializer).map(
+            |field_map| Document {
+                field_values: field_map
+                    .into_iter()
+                    .map(|(k, v)| {
+                        let v: Vec<_> =
+                            v.into_iter().map(Value::from).collect();
+                        (k, v)
+                    })
+                    .collect(),
+            },
+        )
     }
 }
 
