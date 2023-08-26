@@ -1,4 +1,10 @@
-use pyo3::{basic::CompareOp, prelude::*, types::PyType};
+use crate::to_pyerr;
+use pyo3::{
+    basic::CompareOp,
+    prelude::*,
+    types::{PyTuple, PyType},
+};
+use serde::{Deserialize, Serialize};
 use tantivy::schema;
 
 /// A Facet represent a point in a given hierarchy.
@@ -10,14 +16,22 @@ use tantivy::schema;
 /// implicitely imply that a document belonging to a facet also belongs to the
 /// ancestor of its facet. In the example above, /electronics/tv_and_video/
 /// and /electronics.
-#[pyclass(frozen)]
-#[derive(Clone, PartialEq)]
+#[pyclass(frozen, module = "tantivy")]
+#[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub(crate) struct Facet {
     pub(crate) inner: schema::Facet,
 }
 
 #[pymethods]
 impl Facet {
+    /// Creates a `Facet` from its binary representation.
+    #[staticmethod]
+    fn from_encoded(encoded_bytes: Vec<u8>) -> PyResult<Self> {
+        let inner =
+            schema::Facet::from_encoded(encoded_bytes).map_err(to_pyerr)?;
+        Ok(Self { inner })
+    }
+
     /// Create a new instance of the "root facet" Equivalent to /.
     #[classmethod]
     fn root(_cls: &PyType) -> Facet {
@@ -79,5 +93,19 @@ impl Facet {
             CompareOp::Ne => (self != other).into_py(py),
             _ => py.NotImplemented(),
         }
+    }
+
+    fn __reduce__<'a>(
+        slf: PyRef<'a, Self>,
+        py: Python<'a>,
+    ) -> PyResult<&'a PyTuple> {
+        let encoded_bytes = slf.inner.encoded_str().as_bytes().to_vec();
+        Ok(PyTuple::new(
+            py,
+            [
+                slf.into_py(py).getattr(py, "from_encoded")?,
+                PyTuple::new(py, [encoded_bytes]).to_object(py),
+            ],
+        ))
     }
 }

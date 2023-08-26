@@ -13,15 +13,18 @@ use pyo3::{
 
 use chrono::{offset::TimeZone, NaiveDateTime, Utc};
 
-use tantivy as tv;
+use tantivy::{self as tv, schema::Value};
 
 use crate::{facet::Facet, schema::Schema, to_pyerr};
+use serde::{
+    ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer,
+};
 use serde_json::Value as JsonValue;
 use std::{
     collections::{BTreeMap, HashMap},
     fmt,
+    net::Ipv6Addr,
 };
-use tantivy::schema::Value;
 
 pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     if let Ok(s) = any.extract::<String>() {
@@ -222,6 +225,149 @@ fn value_to_string(value: &Value) -> String {
     }
 }
 
+/// Serializes a [`tv::DateTime`] object.
+///
+/// Since tantivy stores it as a single `i64` nanosecond timestamp, it is serialized and
+/// deserialized as one.
+fn serialize_datetime<S: Serializer>(
+    dt: &tv::DateTime,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    dt.into_timestamp_nanos().serialize(serializer)
+}
+
+/// Deserializes a [`tv::DateTime`] object.
+///
+/// Since tantivy stores it as a single `i64` nanosecond timestamp, it is serialized and
+/// deserialized as one.
+fn deserialize_datetime<'de, D>(
+    deserializer: D,
+) -> Result<tv::DateTime, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    i64::deserialize(deserializer).map(tv::DateTime::from_timestamp_nanos)
+}
+
+/// An equivalent type to [`tantivy::schema::Value`], but unlike the tantivy crate's serialization
+/// implementation, it uses tagging in its serialization and deserialization to differentiate
+/// between different integer types.
+///
+/// [`BorrowedSerdeValue`] is often used for the serialization path, as owning the data is not
+/// necessary for serialization.
+#[derive(Deserialize, Serialize)]
+enum SerdeValue {
+    /// The str type is used for any text information.
+    Str(String),
+    /// Pre-tokenized str type,
+    PreTokStr(tv::tokenizer::PreTokenizedString),
+    /// Unsigned 64-bits Integer `u64`
+    U64(u64),
+    /// Signed 64-bits Integer `i64`
+    I64(i64),
+    /// 64-bits Float `f64`
+    F64(f64),
+    /// Bool value
+    Bool(bool),
+    #[serde(
+        deserialize_with = "deserialize_datetime",
+        serialize_with = "serialize_datetime"
+    )]
+    /// Date/time with microseconds precision
+    Date(tv::DateTime),
+    /// Facet
+    Facet(tv::schema::Facet),
+    /// Arbitrarily sized byte array
+    Bytes(Vec<u8>),
+    /// Json object value.
+    JsonObject(serde_json::Map<String, serde_json::Value>),
+    /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
+    IpAddr(Ipv6Addr),
+}
+
+impl From<SerdeValue> for Value {
+    fn from(value: SerdeValue) -> Self {
+        match value {
+            SerdeValue::Str(v) => Self::Str(v),
+            SerdeValue::PreTokStr(v) => Self::PreTokStr(v),
+            SerdeValue::U64(v) => Self::U64(v),
+            SerdeValue::I64(v) => Self::I64(v),
+            SerdeValue::F64(v) => Self::F64(v),
+            SerdeValue::Date(v) => Self::Date(v),
+            SerdeValue::Facet(v) => Self::Facet(v),
+            SerdeValue::Bytes(v) => Self::Bytes(v),
+            SerdeValue::JsonObject(v) => Self::JsonObject(v),
+            SerdeValue::Bool(v) => Self::Bool(v),
+            SerdeValue::IpAddr(v) => Self::IpAddr(v),
+        }
+    }
+}
+
+impl From<Value> for SerdeValue {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Str(v) => Self::Str(v),
+            Value::PreTokStr(v) => Self::PreTokStr(v),
+            Value::U64(v) => Self::U64(v),
+            Value::I64(v) => Self::I64(v),
+            Value::F64(v) => Self::F64(v),
+            Value::Date(v) => Self::Date(v),
+            Value::Facet(v) => Self::Facet(v),
+            Value::Bytes(v) => Self::Bytes(v),
+            Value::JsonObject(v) => Self::JsonObject(v),
+            Value::Bool(v) => Self::Bool(v),
+            Value::IpAddr(v) => Self::IpAddr(v),
+        }
+    }
+}
+
+/// A non-owning version of [`SerdeValue`]. This is used in serialization to avoid unnecessary
+/// cloning.
+#[derive(Serialize)]
+enum BorrowedSerdeValue<'a> {
+    /// The str type is used for any text information.
+    Str(&'a str),
+    /// Pre-tokenized str type,
+    PreTokStr(&'a tv::tokenizer::PreTokenizedString),
+    /// Unsigned 64-bits Integer `u64`
+    U64(&'a u64),
+    /// Signed 64-bits Integer `i64`
+    I64(&'a i64),
+    /// 64-bits Float `f64`
+    F64(&'a f64),
+    /// Bool value
+    Bool(&'a bool),
+    #[serde(serialize_with = "serialize_datetime")]
+    /// Date/time with microseconds precision
+    Date(&'a tv::DateTime),
+    /// Facet
+    Facet(&'a tv::schema::Facet),
+    /// Arbitrarily sized byte array
+    Bytes(&'a [u8]),
+    /// Json object value.
+    JsonObject(&'a serde_json::Map<String, serde_json::Value>),
+    /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
+    IpAddr(&'a Ipv6Addr),
+}
+
+impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
+    fn from(value: &'a Value) -> Self {
+        match value {
+            Value::Str(v) => Self::Str(v),
+            Value::PreTokStr(v) => Self::PreTokStr(v),
+            Value::U64(v) => Self::U64(v),
+            Value::I64(v) => Self::I64(v),
+            Value::F64(v) => Self::F64(v),
+            Value::Date(v) => Self::Date(v),
+            Value::Facet(v) => Self::Facet(v),
+            Value::Bytes(v) => Self::Bytes(v),
+            Value::JsonObject(v) => Self::JsonObject(v),
+            Value::Bool(v) => Self::Bool(v),
+            Value::IpAddr(v) => Self::IpAddr(v),
+        }
+    }
+}
+
 /// Tantivy's Document is the object that can be indexed and then searched for.
 ///
 /// Documents are fundamentally a collection of unordered tuples
@@ -264,10 +410,10 @@ fn value_to_string(value: &Value) -> String {
 ///             {"unsigned": 1000, "signed": -5, "float": 0.4},
 ///             schema,
 ///         )
-#[pyclass]
+#[pyclass(module = "tantivy")]
 #[derive(Clone, Default, PartialEq)]
 pub(crate) struct Document {
-    pub(crate) field_values: BTreeMap<String, Vec<tv::schema::Value>>,
+    pub(crate) field_values: BTreeMap<String, Vec<Value>>,
 }
 
 impl fmt::Debug for Document {
@@ -287,6 +433,42 @@ impl fmt::Debug for Document {
             })
             .join(",");
         write!(f, "Document({doc_str})")
+    }
+}
+
+impl Serialize for Document {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map =
+            serializer.serialize_map(Some(self.field_values.len()))?;
+        for (k, v) in &self.field_values {
+            let ser_v: Vec<_> =
+                v.iter().map(BorrowedSerdeValue::from).collect();
+            map.serialize_entry(&k, &ser_v)?;
+        }
+        map.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Document {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        BTreeMap::<String, Vec<SerdeValue>>::deserialize(deserializer).map(
+            |field_map| Document {
+                field_values: field_map
+                    .into_iter()
+                    .map(|(k, v)| {
+                        let v: Vec<_> =
+                            v.into_iter().map(Value::from).collect();
+                        (k, v)
+                    })
+                    .collect(),
+            },
+        )
     }
 }
 
@@ -528,6 +710,26 @@ impl Document {
             CompareOp::Ne => (self != other).into_py(py),
             _ => py.NotImplemented(),
         }
+    }
+
+    #[staticmethod]
+    fn _internal_from_pythonized(serialized: &PyAny) -> PyResult<Self> {
+        pythonize::depythonize(serialized).map_err(to_pyerr)
+    }
+
+    fn __reduce__<'a>(
+        slf: PyRef<'a, Self>,
+        py: Python<'a>,
+    ) -> PyResult<&'a PyTuple> {
+        let serialized = pythonize::pythonize(py, &*slf).map_err(to_pyerr)?;
+
+        Ok(PyTuple::new(
+            py,
+            [
+                slf.into_py(py).getattr(py, "_internal_from_pythonized")?,
+                PyTuple::new(py, [serialized]).to_object(py),
+            ],
+        ))
     }
 }
 
