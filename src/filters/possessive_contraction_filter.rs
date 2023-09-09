@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::filters::filter_constants::CONTRACTION_PATTERNS;
-use tantivy::tokenizer::BoxTokenStream;
+use tantivy::tokenizer::{Tokenizer};
 use tantivy::tokenizer::{Token, TokenFilter, TokenStream};
 
 //    Removes possessive contractions from tokens.
@@ -12,21 +12,35 @@ use tantivy::tokenizer::{Token, TokenFilter, TokenStream};
 pub struct PossessiveContractionFilter;
 
 impl TokenFilter for PossessiveContractionFilter {
-    fn transform<'a>(
-        &self,
-        token_stream: BoxTokenStream<'a>,
-    ) -> BoxTokenStream<'a> {
-        BoxTokenStream::from(PossessiveContractionFilterTokenStream {
-            tail: token_stream,
-            buffer: String::with_capacity(100),
-        })
+    type Tokenizer<T: Tokenizer> = PossessiveContractionFilterWrapper<T>;
+
+    fn transform<T: Tokenizer>(self, tokenizer: T) -> PossessiveContractionFilterWrapper<T> {
+        PossessiveContractionFilterWrapper {
+            inner: tokenizer,
+        }
     }
 }
 
-pub struct PossessiveContractionFilterTokenStream<'a> {
+#[derive(Clone)]
+pub struct PossessiveContractionFilterWrapper<T> {
+    inner: T,
+}
+
+impl<T: Tokenizer> Tokenizer for PossessiveContractionFilterWrapper<T> {
+    type TokenStream<'a> = PossessiveContractionFilterTokenStream<T::TokenStream<'a>>;
+
+    fn token_stream<'a>(&'a mut self, text: &'a str) -> Self::TokenStream<'a> {
+        PossessiveContractionFilterTokenStream {
+            buffer: String::with_capacity(100),
+            tail: self.inner.token_stream(text),
+        }
+    }
+}
+
+pub struct PossessiveContractionFilterTokenStream<T> {
     // buffer acts as temporary string memory to switch out token text.
     buffer: String,
-    tail: BoxTokenStream<'a>,
+    tail: T,
 }
 
 // Creates desired string with possessive contractions substituted in the output string.
@@ -47,10 +61,10 @@ pub fn replace_possessive_contractions(
     if replaced {
         output.push_str(&temp);
     }
-    return replaced;
+    replaced
 }
 
-impl<'a> TokenStream for PossessiveContractionFilterTokenStream<'a> {
+impl<T: TokenStream> TokenStream for PossessiveContractionFilterTokenStream<T> {
     fn advance(&mut self) -> bool {
         // stop if tail is empty
         if !self.tail.advance() {
@@ -102,9 +116,10 @@ mod tests {
     }
 
     fn token_stream_helper(text: &str) -> Vec<Token> {
-        let mut token_stream = TextAnalyzer::from(WhitespaceTokenizer)
+        let mut analyzer = TextAnalyzer::builder(WhitespaceTokenizer::default())
             .filter(PossessiveContractionFilter)
-            .token_stream(text);
+            .build();
+        let mut token_stream = analyzer.token_stream(text);
         let mut tokens = vec![];
         let mut add_token = |token: &Token| {
             tokens.push(token.clone());

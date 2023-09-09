@@ -107,9 +107,12 @@ impl StatSearcher {
 
         let ret = if let Some(members) = filter_fastfield_values {
             let field_name = filter_fastfield_name.unwrap();
-            let field = self.inner.schema().get_field(&field_name).ok_or({
+            let field = self.inner
+                .schema()
+                .get_field(&field_name)
+                .or({
                 let msg = format!("Field {field_name} not found");
-                PyValueError::new_err(msg)
+                Err(PyValueError::new_err(msg))
             })?;
             self.inner.search(
                 query.get(),

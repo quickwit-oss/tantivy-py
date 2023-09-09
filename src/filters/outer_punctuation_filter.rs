@@ -1,6 +1,6 @@
 use std::mem;
 
-use tantivy::tokenizer::BoxTokenStream;
+use tantivy::tokenizer::{BoxTokenStream, Tokenizer};
 use tantivy::tokenizer::{Token, TokenFilter, TokenStream};
 
 // 'OuterPunctuationFilter' removes any leading or trailing punctuations from tokens.
@@ -13,15 +13,13 @@ pub struct OuterPunctuationFilter {
 }
 
 impl TokenFilter for OuterPunctuationFilter {
-    fn transform<'a>(
-        &self,
-        token_stream: BoxTokenStream<'a>,
-    ) -> BoxTokenStream<'a> {
-        BoxTokenStream::from(OuterPunctuationFilterTokenStream {
-            leading_allow: self.leading_allow.clone(),
-            tail: token_stream,
-            buffer: String::with_capacity(100),
-        })
+    type Tokenizer<T: Tokenizer> = OuterPunctuationFilterWrapper<T>;
+
+    fn transform<T: Tokenizer>(self, tokenizer: T) -> OuterPunctuationFilterWrapper<T> {
+        OuterPunctuationFilterWrapper {
+            leading_allow: self.leading_allow,
+            inner: tokenizer,
+        }
     }
 }
 
@@ -32,11 +30,29 @@ impl OuterPunctuationFilter {
     }
 }
 
-pub struct OuterPunctuationFilterTokenStream<'a> {
+#[derive(Clone)]
+pub struct OuterPunctuationFilterWrapper<T> {
+    leading_allow: Vec<char>,
+    inner: T,
+}
+
+impl<T: Tokenizer> Tokenizer for OuterPunctuationFilterWrapper<T> {
+    type TokenStream<'a> = OuterPunctuationFilterTokenStream<T::TokenStream<'a>>;
+
+    fn token_stream<'a>(&'a mut self, text: &'a str) -> Self::TokenStream<'a> {
+        OuterPunctuationFilterTokenStream {
+            leading_allow: self.leading_allow.clone(),
+            buffer: String::with_capacity(100),
+            tail: self.inner.token_stream(text),
+        }
+    }
+}
+
+pub struct OuterPunctuationFilterTokenStream<T> {
     leading_allow: Vec<char>,
     // buffer acts as temporary string memory to switch out token text.
     buffer: String,
-    tail: BoxTokenStream<'a>,
+    tail: T,
 }
 
 pub fn trim_end(text: &str, output: &mut String) {
@@ -52,7 +68,7 @@ pub fn trim_start(leading_allow: &Vec<char>, text: &str, output: &mut String) {
 }
 
 // Trims the token stream of any leading/ trailing punctuations.
-impl<'a> TokenStream for OuterPunctuationFilterTokenStream<'a> {
+impl<T: TokenStream> TokenStream for OuterPunctuationFilterTokenStream<T> {
     fn advance(&mut self) -> bool {
         // stop if tail is empty
         if !self.tail.advance() {
@@ -134,9 +150,10 @@ pub mod tests {
     }
 
     fn token_stream_helper(text: &str) -> Vec<Token> {
-        let mut token_stream = TextAnalyzer::from(WhitespaceTokenizer)
+        let mut analyzer = TextAnalyzer::builder(WhitespaceTokenizer::default())
             .filter(OuterPunctuationFilter::new(vec!['#', '@']))
-            .token_stream(text);
+            .build();
+        let mut token_stream = analyzer.token_stream(text);
         let mut tokens = vec![];
         let mut add_token = |token: &Token| {
             tokens.push(token.clone());

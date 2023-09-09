@@ -1,2 +1,3 @@
 maturin
 pytest>=4.0
+psutil

@@ -44,13 +44,13 @@ impl StatsCollector {
         &self,
         field: &str,
         segment_reader: &SegmentReader,
-    ) -> tantivy::Result<Arc<dyn Column>> {
+    ) -> tantivy::Result<Column> {
         // Look up the correct `Field` instance from the string name
         let f = segment_reader
             .schema()
             .get_field(field)
             .expect("Given field doesn't exist.");
-        segment_reader.fast_fields().u64(f)
+        segment_reader.fast_fields().u64(field)
     }
 }
 
@@ -100,9 +100,9 @@ impl Collector for StatsCollector {
 }
 
 pub struct StatsSegmentCollector {
-    fast_field_reader_document_id: Arc<dyn Column>,
-    fast_field_reader_frame_id: Arc<dyn Column>,
-    fast_field_reader_sentence_id: Arc<dyn Column>,
+    fast_field_reader_document_id: Column,
+    fast_field_reader_frame_id: Column,
+    fast_field_reader_sentence_id: Column,
     stats: Stats,
 }
 
@@ -110,9 +110,9 @@ impl SegmentCollector for StatsSegmentCollector {
     type Fruit = Option<Stats>;
 
     fn collect(&mut self, doc: u32, _score: Score) {
-        let f = self.fast_field_reader_frame_id.get_val(doc);
-        let d = self.fast_field_reader_document_id.get_val(doc);
-        let s = self.fast_field_reader_sentence_id.get_val(doc);
+        let f = self.fast_field_reader_frame_id.values.get_val(doc);
+        let d = self.fast_field_reader_document_id.values.get_val(doc);
+        let s = self.fast_field_reader_sentence_id.values.get_val(doc);
         self.stats.hits.push((d, f, s, _score));
     }
 

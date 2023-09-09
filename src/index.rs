@@ -1,7 +1,12 @@
 #![allow(clippy::new_ret_no_self)]
 
-use pyo3::{exceptions, prelude::*, types::PyAny};
+use pyo3::{
+    exceptions,
+    prelude::*,
+    types::{PyAny, PyDateAccess, PyDateTime, PyInt, PyTimeAccess},
+};
 
+use crate::facet::Facet;
 use crate::{
     document::{extract_value, Document},
     filters::get_stopwords_filter_en,
@@ -14,6 +19,8 @@ use crate::{
     searcher_frame_document::StatSearcher,
     to_pyerr,
 };
+
+use chrono::{offset::TimeZone, Utc};
 use tantivy as tv;
 use tantivy::{
     directory::MmapDirectory,
@@ -210,7 +217,7 @@ impl IndexWriter {
                 )))
             },
         };
-        Ok(self.inner_index_writer.delete_term(term?))
+        Ok(self.inner_mut()?.delete_term(term?))
     }
 
     /// Delete all documents containing a given term.
@@ -287,9 +294,10 @@ pub(crate) struct Index {
 // It combines a WhiteSpaceTokenizer with a StopWordFilter, OuterPunctuationFilter
 // and a PossessiveContractionFilter.
 fn get_kapiche_tokenizer() -> TextAnalyzer {
-    TextAnalyzer::from(WhitespaceTokenizer)
+    TextAnalyzer::builder(WhitespaceTokenizer::default())
         .filter(OuterPunctuationFilter::new(vec!['#', '@']))
         .filter(PossessiveContractionFilter)
+        .build()
 }
 
 #[pymethods]
