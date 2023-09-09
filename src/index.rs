@@ -243,14 +243,19 @@ impl Index {
     /// split between the given number of threads.
     ///
     /// Args:
-    ///     overall_heap_size (int, optional): The total target memory usage of
-    ///         the writer, can't be less than 3000000.
+    ///     overall_heap_size (int, optional): The total target heap memory usage of
+    ///         the writer. Tantivy requires that this can't be less
+    ///         than 3000000 *per thread*. Lower values will result in more
+    ///         frequent internal commits when adding documents (slowing down
+    ///         write progress), and larger values will results in fewer
+    ///         commits but greater memory usage. The best value will depend
+    ///         on your specific use case.
     ///     num_threads (int, optional): The number of threads that the writer
     ///         should use. If this value is 0, tantivy will choose
     ///         automatically the number of threads.
     ///
     /// Raises ValueError if there was an error while creating the writer.
-    #[pyo3(signature = (heap_size = 3000000, num_threads = 0))]
+    #[pyo3(signature = (heap_size = 128_000_000, num_threads = 0))]
     fn writer(
         &self,
         heap_size: usize,
