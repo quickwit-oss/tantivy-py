@@ -56,7 +56,7 @@ impl SnippetGenerator {
         let field = schema
             .inner
             .get_field(field_name)
-            .ok_or("field not found")
+            .or(Err("field not found"))
             .map_err(to_pyerr)?;
         let generator =
             tv::SnippetGenerator::create(&searcher.inner, query.get(), field)
