@@ -5,4 +5,4 @@ import nox
 def test(session):
     session.install("-rrequirements-dev.txt")
     session.install("-e", ".", "--no-build-isolation")
-    session.run("pytest")
+    session.run("pytest", *session.posargs)
