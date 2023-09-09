@@ -1,0 +1,201 @@
+name: Test & Release
+
+on:
+  release:
+    types: [published]
+
+# on:
+#   pull_request:
+#     branches:
+#       - master
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [ 'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu' ]
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            cdn03.quay.io:443
+            crates.io:443
+            github.com:443
+            objects.githubusercontent.com:443
+            quay.io:443
+            sh.rustup.rs:443
+            static.crates.io:443
+            index.crates.io:443
+            static.rust-lang.org:443
+            uploads.github.com:443
+            pypi.org:443
+            files.pythonhosted.org:443
+            ghcr.io:443
+            pkg-containers.githubusercontent.com:443
+
+      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1
+        with:
+          python-version: 3.8
+          architecture: x64
+
+      - uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
+        with:
+          rust-toolchain: stable
+          manylinux: auto
+          target: ${{ matrix.platform }}
+          command: build
+          args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce  # 3.1.2
+        with:
+          name: wheels
+          path: dist
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        target: [x64]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
+        env:
+          PYO3_PYTHON: python${{ matrix.python-version }}
+        with:
+          command: build
+          args: --release -o dist
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce  # 3.1.2
+        with:
+          name: wheels
+          path: dist
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build wheels - x86_64
+        uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
+        env:
+          PYO3_PYTHON: python${{ matrix.python-version }}
+        with:
+          target: x86_64-apple-darwin
+          command: build
+          args: --release -o dist
+
+      - name: Build wheels - universal2
+        uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
+        env:
+          PYO3_PYTHON: python${{ matrix.python-version }}
+        with:
+          command: build
+          args: --release -o dist --universal2
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce  # 3.1.2
+        with:
+          name: wheels
+          path: dist
+
+  python-release-github:
+    runs-on: ubuntu-latest
+    needs: [ macos, windows, linux ]
+    permissions:
+      contents: write # To add assets to a release.
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09 # v2.1.0
+        with:
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            github.com:443
+            static.rust-lang.org:443
+            uploads.github.com:443
+
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+        with:
+          ref: ${{ github.head_ref }}
+
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # v1.0.7
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
+        with:
+          python-version: 3.8
+
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: wheels
+          path: wheels
+
+      - name: Upload release binaries
+        uses: alexellis/upload-assets@259de5111cb56966d046ced998941e93f91d2c93
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          asset_paths: '["./wheels/tantivy-*"]'
+
+  release-pypy:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [ macos, windows, linux ]
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        with:
+          name: wheels
+          path: wheels
+
+      - name: Publish package distributions to Test PyPI
+        uses: pypa/gh-action-pypi-publish@b7f401de30cb6434a1e19f805ff006643653240e # v1.8.10
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: wheels/
+          skip-existing: true
+
+      - name: Publish package distributions to PyPI
+        if: always()
+        uses: pypa/gh-action-pypi-publish@b7f401de30cb6434a1e19f805ff006643653240e # v1.8.10
+        with:
+          packages-dir: wheels/
+          skip-existing: true

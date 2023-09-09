@@ -1,7 +1,8 @@
 #![allow(clippy::new_ret_no_self)]
 
-use crate::{document::Document, get_field, query::Query, to_pyerr};
-use pyo3::{exceptions::PyValueError, prelude::*};
+use crate::{document::Document, query::Query, to_pyerr};
+use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
+use serde::{Deserialize, Serialize};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
 
@@ -13,9 +14,11 @@ pub(crate) struct Searcher {
     pub(crate) inner: tv::Searcher,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, FromPyObject, PartialEq, Serialize)]
 enum Fruit {
+    #[pyo3(transparent)]
     Score(f32),
+    #[pyo3(transparent)]
     Order(u64),
 }
 
@@ -37,7 +40,8 @@ impl ToPyObject for Fruit {
     }
 }
 
-#[pyclass]
+#[pyclass(frozen, module = "tantivy")]
+#[derive(Clone, Default, Deserialize, PartialEq, Serialize)]
 /// Object holding a results successful search.
 pub(crate) struct SearchResult {
     hits: Vec<(Fruit, DocAddress)>,
@@ -49,6 +53,19 @@ pub(crate) struct SearchResult {
 
 #[pymethods]
 impl SearchResult {
+    #[new]
+    fn new(
+        py: Python,
+        hits: Vec<(PyObject, DocAddress)>,
+        count: Option<usize>,
+    ) -> PyResult<Self> {
+        let hits = hits
+            .iter()
+            .map(|(f, d)| Ok((f.extract(py)?, d.clone())))
+            .collect::<PyResult<Vec<_>>>()?;
+        Ok(Self { hits, count })
+    }
+
     fn __repr__(&self) -> PyResult<String> {
         if let Some(count) = self.count {
             Ok(format!(
@@ -58,6 +75,26 @@ impl SearchResult {
         } else {
             Ok(format!("SearchResult(hits: {:?})", self.hits))
         }
+    }
+
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
+        match op {
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
+        }
+    }
+
+    fn __getnewargs__(
+        &self,
+        py: Python,
+    ) -> PyResult<(Vec<(PyObject, DocAddress)>, Option<usize>)> {
+        Ok((self.hits(py)?, self.count))
     }
 
     #[getter]
@@ -113,10 +150,9 @@ impl Searcher {
 
         let (mut multifruit, hits) = {
             if let Some(order_by) = order_by_field {
-                let field = get_field(&self.inner.index().schema(), order_by)?;
                 let collector = TopDocs::with_limit(limit)
                     .and_offset(offset)
-                    .order_by_u64_field(field);
+                    .order_by_u64_field(order_by);
                 let top_docs_handle = multicollector.add_collector(collector);
                 let ret = self.inner.search(query.get(), &multicollector);
 
@@ -165,6 +201,12 @@ impl Searcher {
         self.inner.num_docs()
     }
 
+    /// Returns the number of segments in the index.
+    #[getter]
+    fn num_segments(&self) -> usize {
+        self.inner.segment_readers().len()
+    }
+
     /// Fetches a document from Tantivy's store given a DocAddress.
     ///
     /// Args:
@@ -195,8 +237,8 @@ impl Searcher {
 /// It consists in an id identifying its segment, and its segment-local DocId.
 /// The id used for the segment is actually an ordinal in the list of segment
 /// hold by a Searcher.
-#[pyclass]
-#[derive(Clone, Debug)]
+#[pyclass(frozen, module = "tantivy")]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub(crate) struct DocAddress {
     pub(crate) segment_ord: tv::SegmentOrdinal,
     pub(crate) doc: tv::DocId,
@@ -204,6 +246,11 @@ pub(crate) struct DocAddress {
 
 #[pymethods]
 impl DocAddress {
+    #[new]
+    fn new(segment_ord: tv::SegmentOrdinal, doc: tv::DocId) -> Self {
+        DocAddress { segment_ord, doc }
+    }
+
     /// The segment ordinal is an id identifying the segment hosting the
     /// document. It is only meaningful, in the context of a searcher.
     #[getter]
@@ -215,6 +262,23 @@ impl DocAddress {
     #[getter]
     fn doc(&self) -> u32 {
         self.doc
+    }
+
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: CompareOp,
+        py: Python<'_>,
+    ) -> PyObject {
+        match op {
+            CompareOp::Eq => (self == other).into_py(py),
+            CompareOp::Ne => (self != other).into_py(py),
+            _ => py.NotImplemented(),
+        }
+    }
+
+    fn __getnewargs__(&self) -> PyResult<(tv::SegmentOrdinal, tv::DocId)> {
+        Ok((self.segment_ord, self.doc))
     }
 }
 

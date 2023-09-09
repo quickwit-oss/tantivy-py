@@ -16,7 +16,7 @@ use index::Index;
 use query::Query;
 use schema::Schema;
 use schemabuilder::SchemaBuilder;
-use searcher::{DocAddress, Searcher};
+use searcher::{DocAddress, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
 
 /// Python bindings for the search engine library Tantivy.
@@ -74,6 +74,7 @@ fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Schema>()?;
     m.add_class::<SchemaBuilder>()?;
     m.add_class::<Searcher>()?;
+    m.add_class::<SearchResult>()?;
     m.add_class::<Document>()?;
     m.add_class::<Index>()?;
     m.add_class::<DocAddress>()?;
@@ -92,7 +93,7 @@ pub(crate) fn get_field(
     schema: &tv::schema::Schema,
     field_name: &str,
 ) -> PyResult<tv::schema::Field> {
-    let field = schema.get_field(field_name).ok_or_else(|| {
+    let field = schema.get_field(field_name).map_err(|_err| {
         exceptions::PyValueError::new_err(format!(
             "Field `{field_name}` is not defined in the schema."
         ))

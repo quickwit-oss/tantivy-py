@@ -8,15 +8,31 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+
 jobs:
   Lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Harden Runner
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
+        with:
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            static.rust-lang.org:443
+
+      - name: Checkout
+        uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+
+      - name: Rust toolchain
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
         with:
           toolchain: stable
           components: rustfmt
+
       - name: Check Formatting
         run: cargo fmt --check
 
@@ -36,13 +52,30 @@ jobs:
             python-version: 3.7
     runs-on: "${{ matrix.os }}"
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - name: Harden Runner
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
+        with:
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            crates.io:443
+            files.pythonhosted.org:443
+            github.com:443
+            pypi.org:443
+            static.crates.io:443
+            index.crates.io:443
+            static.rust-lang.org:443
+
+      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1  # 4.7.0
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions-rs/toolchain@v1
+
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@v1
+
+      - uses: Swatinem/rust-cache@e207df5d269b42b69c8bc5101da26f7d31feddb4  # 2.6.2
       - run: python3 -m pip install nox
       - run: nox -s test-${{ matrix.python-version }}

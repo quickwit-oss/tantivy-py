@@ -28,8 +28,34 @@ const RELOAD_POLICY: &str = "commit";
 /// on the index object.
 #[pyclass]
 pub(crate) struct IndexWriter {
-    inner_index_writer: tv::IndexWriter,
+    inner_index_writer: Option<tv::IndexWriter>,
     schema: tv::schema::Schema,
+}
+
+impl IndexWriter {
+    fn inner(&self) -> PyResult<&tv::IndexWriter> {
+        self.inner_index_writer.as_ref().ok_or_else(|| {
+            exceptions::PyRuntimeError::new_err(
+                "IndexWriter was consumed and no longer in a valid state",
+            )
+        })
+    }
+
+    fn inner_mut(&mut self) -> PyResult<&mut tv::IndexWriter> {
+        self.inner_index_writer.as_mut().ok_or_else(|| {
+            exceptions::PyRuntimeError::new_err(
+                "IndexWriter was consumed and no longer in a valid state",
+            )
+        })
+    }
+
+    fn take_inner(&mut self) -> PyResult<tv::IndexWriter> {
+        self.inner_index_writer.take().ok_or_else(|| {
+            exceptions::PyRuntimeError::new_err(
+                "IndexWriter was consumed and no longer in a valid state",
+            )
+        })
+    }
 }
 
 #[pymethods]
@@ -45,7 +71,7 @@ impl IndexWriter {
     pub fn add_document(&mut self, doc: &Document) -> PyResult<u64> {
         let named_doc = NamedFieldDocument(doc.field_values.clone());
         let doc = self.schema.convert_named_doc(named_doc).map_err(to_pyerr)?;
-        self.inner_index_writer.add_document(doc).map_err(to_pyerr)
+        self.inner()?.add_document(doc).map_err(to_pyerr)
     }
 
     /// Helper for the `add_document` method, but passing a json string.
@@ -58,7 +84,7 @@ impl IndexWriter {
     /// since the creation of the index.
     pub fn add_json(&mut self, json: &str) -> PyResult<u64> {
         let doc = self.schema.parse_document(json).map_err(to_pyerr)?;
-        let opstamp = self.inner_index_writer.add_document(doc);
+        let opstamp = self.inner()?.add_document(doc);
         opstamp.map_err(to_pyerr)
     }
 
@@ -72,7 +98,7 @@ impl IndexWriter {
     ///
     /// Returns the `opstamp` of the last document that made it in the commit.
     fn commit(&mut self) -> PyResult<u64> {
-        self.inner_index_writer.commit().map_err(to_pyerr)
+        self.inner_mut()?.commit().map_err(to_pyerr)
     }
 
     /// Rollback to the last commit
@@ -81,14 +107,13 @@ impl IndexWriter {
     /// commit. After calling rollback, the index is in the same state as it
     /// was after the last commit.
     fn rollback(&mut self) -> PyResult<u64> {
-        self.inner_index_writer.rollback().map_err(to_pyerr)
+        self.inner_mut()?.rollback().map_err(to_pyerr)
     }
 
     /// Detect and removes the files that are not used by the index anymore.
     fn garbage_collect_files(&mut self) -> PyResult<()> {
         use futures::executor::block_on;
-        block_on(self.inner_index_writer.garbage_collect_files())
-            .map_err(to_pyerr)?;
+        block_on(self.inner()?.garbage_collect_files()).map_err(to_pyerr)?;
         Ok(())
     }
 
@@ -100,8 +125,8 @@ impl IndexWriter {
     /// This is also the opstamp of the commit that is currently available
     /// for searchers.
     #[getter]
-    fn commit_opstamp(&self) -> u64 {
-        self.inner_index_writer.commit_opstamp()
+    fn commit_opstamp(&self) -> PyResult<u64> {
+        Ok(self.inner()?.commit_opstamp())
     }
 
     /// Delete all documents containing a given term.
@@ -144,7 +169,16 @@ impl IndexWriter {
             Value::Bool(b) => Term::from_field_bool(field, b),
             Value::IpAddr(i) => Term::from_field_ip_addr(field, i)
         };
-        Ok(self.inner_index_writer.delete_term(term))
+        Ok(self.inner()?.delete_term(term))
+    }
+
+    /// If there are some merging threads, blocks until they all finish
+    /// their work and then drop the `IndexWriter`.
+    ///
+    /// This will consume the `IndexWriter`. Further accesses to the
+    /// object will result in an error.
+    pub fn wait_merging_threads(&mut self) -> PyResult<()> {
+        self.take_inner()?.wait_merging_threads().map_err(to_pyerr)
     }
 }
 
@@ -229,7 +263,7 @@ impl Index {
         .map_err(to_pyerr)?;
         let schema = self.index.schema();
         Ok(IndexWriter {
-            inner_index_writer: writer,
+            inner_index_writer: Some(writer),
             schema,
         })
     }
@@ -331,7 +365,7 @@ impl Index {
         let schema = self.index.schema();
         if let Some(default_field_names_vec) = default_field_names {
             for default_field_name in &default_field_names_vec {
-                if let Some(field) = schema.get_field(default_field_name) {
+                if let Ok(field) = schema.get_field(default_field_name) {
                     let field_entry = schema.get_field_entry(field);
                     if !field_entry.is_indexed() {
                         return Err(exceptions::PyValueError::new_err(
@@ -385,10 +419,11 @@ impl Index {
         ];
 
         for (name, lang) in &analyzers {
-            let an = TextAnalyzer::from(SimpleTokenizer)
+            let an = TextAnalyzer::builder(SimpleTokenizer::default())
                 .filter(RemoveLongFilter::limit(40))
                 .filter(LowerCaser)
-                .filter(Stemmer::new(*lang));
+                .filter(Stemmer::new(*lang))
+                .build();
             index.tokenizers().register(name, an);
         }
     }
