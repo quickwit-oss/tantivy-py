@@ -31,6 +31,12 @@ Running the tests is done using:
 
     make test
 
+The `nox` test session will pass pytest arguments through. For example,
+to run only the tests including "simple_search" in the test name, and only
+on Python 3.11:
+
+    nox -s test-3.11 -- -k simple_search
+
 ## Working on tantivy-py documentation
 
 Please be aware that this documentation is structured using the [Diátaxis](https://diataxis.fr/) framework. In very simple terms, this framework will suggest the correct location for different kinds of documentation. Please make sure you gain a basic understanding of the goals of the framework before making large pull requests with new documentation.
