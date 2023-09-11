@@ -308,19 +308,13 @@ impl Index {
         Ok(())
     }
 
-    /// Acquires a Searcher from the searcher pool.
+    /// Returns a searcher
     ///
-    /// If no searcher is available during the call, note that
-    /// this call will block until one is made available.
-    ///
-    /// Searcher are automatically released back into the pool when
-    /// they are dropped. If you observe this function to block forever
-    /// you probably should configure the Index to have a larger
-    /// searcher pool, or you are holding references to previous searcher
-    /// for ever.
-    fn searcher(&self, py: Python) -> Searcher {
+    /// This method should be called every single time a search query is performed.
+    /// The same searcher must be used for a given query, as it ensures the use of a consistent segment set.
+    fn searcher(&self) -> Searcher {
         Searcher {
-            inner: py.allow_threads(|| self.reader.searcher()),
+            inner: self.reader.searcher(),
         }
     }
 
