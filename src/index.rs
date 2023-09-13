@@ -243,14 +243,19 @@ impl Index {
     /// split between the given number of threads.
     ///
     /// Args:
-    ///     overall_heap_size (int, optional): The total target memory usage of
-    ///         the writer, can't be less than 3000000.
+    ///     overall_heap_size (int, optional): The total target heap memory usage of
+    ///         the writer. Tantivy requires that this can't be less
+    ///         than 3000000 *per thread*. Lower values will result in more
+    ///         frequent internal commits when adding documents (slowing down
+    ///         write progress), and larger values will results in fewer
+    ///         commits but greater memory usage. The best value will depend
+    ///         on your specific use case.
     ///     num_threads (int, optional): The number of threads that the writer
     ///         should use. If this value is 0, tantivy will choose
     ///         automatically the number of threads.
     ///
     /// Raises ValueError if there was an error while creating the writer.
-    #[pyo3(signature = (heap_size = 3000000, num_threads = 0))]
+    #[pyo3(signature = (heap_size = 128_000_000, num_threads = 0))]
     fn writer(
         &self,
         heap_size: usize,
@@ -303,19 +308,13 @@ impl Index {
         Ok(())
     }
 
-    /// Acquires a Searcher from the searcher pool.
+    /// Returns a searcher
     ///
-    /// If no searcher is available during the call, note that
-    /// this call will block until one is made available.
-    ///
-    /// Searcher are automatically released back into the pool when
-    /// they are dropped. If you observe this function to block forever
-    /// you probably should configure the Index to have a larger
-    /// searcher pool, or you are holding references to previous searcher
-    /// for ever.
-    fn searcher(&self, py: Python) -> Searcher {
+    /// This method should be called every single time a search query is performed.
+    /// The same searcher must be used for a given query, as it ensures the use of a consistent segment set.
+    fn searcher(&self) -> Searcher {
         Searcher {
-            inner: py.allow_threads(|| self.reader.searcher()),
+            inner: self.reader.searcher(),
         }
     }
 

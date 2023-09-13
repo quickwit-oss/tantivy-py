@@ -740,7 +740,7 @@ impl Document {
     {
         self.field_values
             .entry(field_name)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(Value::from(value));
     }
 

@@ -9,7 +9,6 @@ requires-python = ">=3.7"
 [project.optional-dependencies]
 dev = [
     "nox",
-    "mkdocs",
 ]
 
 [tool.maturin]
