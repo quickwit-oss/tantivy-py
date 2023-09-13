@@ -23,6 +23,21 @@ only supports python3.
 
 # Development
 
+For compiling Python module:
+
+```bash
+# create virtual env
+python -m venv .venv
+source .venv/bin/activate
+
+# install maturin, the build tool for PyO3
+pip install maturin
+
+# compile and install python module in venv
+maturin develop
+```
+
+
 Setting up a development environment can be done in a virtual environment using
 [`nox`](https://nox.thea.codes) or using local packages using the provided `Makefile`.
 

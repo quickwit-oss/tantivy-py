@@ -797,7 +797,7 @@ impl Document {
         Ok(())
     }
 
-    fn iter_values_for_field<'a>(
+    pub fn iter_values_for_field<'a>(
         &'a self,
         field: &str,
     ) -> impl Iterator<Item = &'a Value> + 'a {
