@@ -425,5 +425,10 @@ impl Index {
                 .build();
             index.tokenizers().register(name, an);
         }
+
+        use crate::tokenizer::{JiebaTokenizer, JIEBA};
+        index
+            .tokenizers()
+            .register(JIEBA, JiebaTokenizer::default())
     }
 }

@@ -9,6 +9,7 @@ mod schema;
 mod schemabuilder;
 mod searcher;
 mod snippet;
+mod tokenizer;
 
 use document::Document;
 use facet::Facet;
