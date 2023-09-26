@@ -341,6 +341,22 @@ class TestClass(object):
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["Test title"]
 
+        result = searcher.search(query, 10, order_by_field="order", order_by_order=tantivy.Order.Asc)
+
+        assert len(result.hits) == 3
+
+        _, doc_address = result.hits[2]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Final test title"]
+
+        _, doc_address = result.hits[1]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Another test title"]
+
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Test title"]
+
     def test_order_by_search_without_fast_field(self):
         schema = (
             SchemaBuilder()
@@ -555,10 +571,10 @@ class TestFromDiskClass(object):
 
 class TestSearcher(object):
     def test_searcher_repr(self, ram_index, ram_index_numeric_fields):
-        assert repr(ram_index.searcher()) == "Searcher(num_docs=3, num_segments=1)"
+        assert repr(ram_index.searcher()) == "Searcher(num_docs=3, num_segments=3)"
         assert (
             repr(ram_index_numeric_fields.searcher())
-            == "Searcher(num_docs=2, num_segments=1)"
+            == "Searcher(num_docs=2, num_segments=2)"
         )
 
 

@@ -16,7 +16,7 @@ use index::Index;
 use query::Query;
 use schema::Schema;
 use schemabuilder::SchemaBuilder;
-use searcher::{DocAddress, SearchResult, Searcher};
+use searcher::{DocAddress, Order, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
 
 /// Python bindings for the search engine library Tantivy.
@@ -71,6 +71,7 @@ use snippet::{Snippet, SnippetGenerator};
 ///
 #[pymodule]
 fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<Order>()?;
     m.add_class::<Schema>()?;
     m.add_class::<SchemaBuilder>()?;
     m.add_class::<Searcher>()?;
