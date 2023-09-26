@@ -33,7 +33,7 @@ def create_index(dir=None):
     # assume all tests will use the same documents for now
     # other methods may set up function-local indexes
     index = Index(schema(), dir)
-    writer = index.writer(10_000_000, 1)
+    writer = index.writer(15_000_000, 1)
 
     # 2 ways of adding documents
     # 1
@@ -85,7 +85,7 @@ def create_index(dir=None):
 
 def create_index_with_numeric_fields(dir=None):
     index = Index(schema_numeric_fields(), dir)
-    writer = index.writer(10_000_000, 1)
+    writer = index.writer(15_000_000, 1)
 
     doc = Document()
     doc.add_integer("id", 1)
@@ -571,10 +571,10 @@ class TestFromDiskClass(object):
 
 class TestSearcher(object):
     def test_searcher_repr(self, ram_index, ram_index_numeric_fields):
-        assert repr(ram_index.searcher()) == "Searcher(num_docs=3, num_segments=3)"
+        assert repr(ram_index.searcher()) == "Searcher(num_docs=3, num_segments=1)"
         assert (
             repr(ram_index_numeric_fields.searcher())
-            == "Searcher(num_docs=2, num_segments=2)"
+            == "Searcher(num_docs=2, num_segments=1)"
         )
 
 
