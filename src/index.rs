@@ -117,6 +117,12 @@ impl IndexWriter {
         Ok(())
     }
 
+    /// Deletes all documents from the index.
+    fn delete_all_documents(&mut self) -> PyResult<()> {
+        self.inner()?.delete_all_documents().map_err(to_pyerr)?;
+        Ok(())
+    }
+
     /// The opstamp of the last successful commit.
     ///
     /// This is the opstamp the index will rollback to if there is a failure
