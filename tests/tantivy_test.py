@@ -488,6 +488,18 @@ class TestClass(object):
 
         assert orig == pickled
 
+    def test_delete_all_documents(self, ram_index):
+        index = ram_index
+        writer = index.writer()
+        writer.delete_all_documents()
+        writer.commit()
+
+        index.reload()
+        query = index.parse_query("sea whale", ["title", "body"])
+        result = index.searcher().search(query, 10)
+
+        assert len(result.hits) == 0
+
 
 class TestUpdateClass(object):
     def test_delete_update(self, ram_index):
