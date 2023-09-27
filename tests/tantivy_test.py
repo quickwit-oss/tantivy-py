@@ -341,7 +341,7 @@ class TestClass(object):
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["Test title"]
 
-        result = searcher.search(query, 10, order_by_field="order", order_by_order=tantivy.Order.Asc)
+        result = searcher.search(query, 10, order_by_field="order", order=tantivy.Order.Asc)
 
         assert len(result.hits) == 3
 
