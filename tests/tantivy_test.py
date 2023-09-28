@@ -33,7 +33,7 @@ def create_index(dir=None):
     # assume all tests will use the same documents for now
     # other methods may set up function-local indexes
     index = Index(schema(), dir)
-    writer = index.writer(10_000_000, 1)
+    writer = index.writer(15_000_000, 1)
 
     # 2 ways of adding documents
     # 1
@@ -85,7 +85,7 @@ def create_index(dir=None):
 
 def create_index_with_numeric_fields(dir=None):
     index = Index(schema_numeric_fields(), dir)
-    writer = index.writer(10_000_000, 1)
+    writer = index.writer(15_000_000, 1)
 
     doc = Document()
     doc.add_integer("id", 1)
@@ -338,6 +338,22 @@ class TestClass(object):
         assert searched_doc["title"] == ["Another test title"]
 
         _, doc_address = result.hits[2]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Test title"]
+
+        result = searcher.search(query, 10, order_by_field="order", order=tantivy.Order.Asc)
+
+        assert len(result.hits) == 3
+
+        _, doc_address = result.hits[2]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Final test title"]
+
+        _, doc_address = result.hits[1]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Another test title"]
+
+        _, doc_address = result.hits[0]
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["Test title"]
 

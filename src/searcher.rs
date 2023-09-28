@@ -41,6 +41,26 @@ impl ToPyObject for Fruit {
 }
 
 #[pyclass(frozen, module = "tantivy")]
+#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+/// Enum representing the direction in which something should be sorted.
+pub(crate) enum Order {
+    /// Ascending. Smaller values appear first.
+    Asc,
+
+    /// Descending. Larger values appear first.
+    Desc,
+}
+
+impl From<Order> for tv::Order {
+    fn from(order: Order) -> Self {
+        match order {
+            Order::Asc => tv::Order::Asc,
+            Order::Desc => tv::Order::Desc,
+        }
+    }
+}
+
+#[pyclass(frozen, module = "tantivy")]
 #[derive(Clone, Default, Deserialize, PartialEq, Serialize)]
 /// Object holding a results successful search.
 pub(crate) struct SearchResult {
@@ -126,11 +146,13 @@ impl Searcher {
     ///         fields.
     ///     offset (Field, optional): The offset from which the results have
     ///         to be returned.
+    ///     order (Order, optional): The order in which the results
+    ///         should be sorted. If not specified, defaults to descending.
     ///
     /// Returns `SearchResult` object.
     ///
     /// Raises a ValueError if there was an error with the search.
-    #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0))]
+    #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0, order = Order::Desc))]
     fn search(
         &self,
         py: Python,
@@ -139,6 +161,7 @@ impl Searcher {
         count: bool,
         order_by_field: Option<&str>,
         offset: usize,
+        order: Order,
     ) -> PyResult<SearchResult> {
         py.allow_threads(move || {
             let mut multicollector = MultiCollector::new();
@@ -153,7 +176,7 @@ impl Searcher {
                 if let Some(order_by) = order_by_field {
                     let collector = TopDocs::with_limit(limit)
                         .and_offset(offset)
-                        .order_by_u64_field(order_by);
+                        .order_by_fast_field(order_by, order.into());
                     let top_docs_handle =
                         multicollector.add_collector(collector);
                     let ret = self.inner.search(query.get(), &multicollector);
