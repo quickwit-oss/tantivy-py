@@ -422,34 +422,38 @@ impl Index {
         query: &str,
         default_field_names: Option<Vec<String>>,
     ) -> PyResult<(Query, Vec<PyObject>)> {
-        let mut default_fields = vec![];
         let schema = self.index.schema();
 
-        if let Some(default_field_names_vec) = default_field_names {
-            for default_field_name in &default_field_names_vec {
-                if let Ok(field) = schema.get_field(default_field_name) {
-                    let field_entry = schema.get_field_entry(field);
-                    if !field_entry.is_indexed() {
-                        return Err(exceptions::PyValueError::new_err(
-                            format!(
-                            "Field `{default_field_name}` is not set as indexed in the schema."
-                        ),
-                        ));
-                    }
-                    default_fields.push(field);
-                } else {
-                    return Err(exceptions::PyValueError::new_err(format!(
-                        "Field `{default_field_name}` is not defined in the schema."
-                    )));
-                }
-            }
+        let default_fields = if let Some(default_field_names_vec) =
+            default_field_names
+        {
+            default_field_names_vec
+                .iter()
+                .map(|field_name| {
+                    schema
+                        .get_field(field_name)
+                        .map_err(|_err| {
+                            exceptions::PyValueError::new_err(format!(
+                                "Field `{field_name}` is not defined in the schema."
+                            ))
+                        })
+                        .and_then(|field| {
+                            schema.get_field_entry(field).is_indexed().then_some(field).ok_or(
+                                exceptions::PyValueError::new_err(
+                                    format!(
+                                        "Field `{field_name}` is not set as indexed in the schema."
+                                    ),
+                                ))
+                        })
+                }).collect::<Result<Vec<_>, _>>()?
         } else {
-            for (field, field_entry) in self.index.schema().fields() {
-                if field_entry.is_indexed() {
-                    default_fields.push(field);
-                }
-            }
-        }
+            self.index
+                .schema()
+                .fields()
+                .filter_map(|(f, fe)| fe.is_indexed().then_some(f))
+                .collect::<Vec<_>>()
+        };
+
         let parser =
             tv::query::QueryParser::for_index(&self.index, default_fields);
         let (query, errors) = parser.parse_query_lenient(query);
