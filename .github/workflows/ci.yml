@@ -68,7 +68,7 @@ jobs:
             static.rust-lang.org:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
-      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1  # 4.7.0
+      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236  # 4.7.1
         with:
           python-version: ${{ matrix.python-version }}
 
