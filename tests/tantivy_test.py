@@ -286,6 +286,30 @@ class TestClass(object):
         with pytest.raises(ValueError):
             index.parse_query("bod:men", ["title", "body"])
 
+    def test_query_lenient(self, ram_index_numeric_fields):
+        from tantivy import query_parser_error
+
+        index = ram_index_numeric_fields
+
+        query, errors = index.parse_query_lenient("rating:3.5")
+        assert len(errors) == 0
+        assert repr(query) == """Query(TermQuery(Term(field=1, type=F64, 3.5)))"""
+
+        _, errors = index.parse_query_lenient("bod:men")
+        assert len(errors) == 1
+        assert isinstance(errors[0], query_parser_error.FieldDoesNotExistError)
+
+        query, errors = index.parse_query_lenient(
+            "body:'hello' AND id:<3.5 OR rating:'hi'"
+        )
+        assert len(errors) == 2
+        assert isinstance(errors[0], query_parser_error.ExpectedIntError)
+        assert isinstance(errors[1], query_parser_error.ExpectedFloatError)
+        assert (
+            repr(query)
+            == """Query(BooleanQuery { subqueries: [(Should, BooleanQuery { subqueries: [(Must, TermQuery(Term(field=3, type=Str, "hello")))] })] })"""
+        )
+
     def test_order_by_search(self):
         schema = (
             SchemaBuilder()

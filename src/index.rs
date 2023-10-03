@@ -5,6 +5,7 @@ use pyo3::{exceptions, prelude::*, types::PyAny};
 use crate::{
     document::{extract_value, Document},
     get_field,
+    parser_error::QueryParserErrorIntoPy,
     query::Query,
     schema::Schema,
     searcher::Searcher,
@@ -398,6 +399,71 @@ impl Index {
         let query = parser.parse_query(query).map_err(to_pyerr)?;
 
         Ok(Query { inner: query })
+    }
+
+    /// Parse a query leniently.
+    ///
+    /// This variant parses invalid query on a best effort basis. If some part of the query can't
+    /// reasonably be executed (range query without field, searching on a non existing field,
+    /// searching without precising field when no default field is provided...), they may get turned
+    /// into a "match-nothing" subquery.
+    ///
+    /// Args:
+    ///     query: the query, following the tantivy query language.
+    ///     default_fields_names (List[Field]): A list of fields used to search if no
+    ///         field is specified in the query.
+    ///
+    /// Returns a tuple containing the parsed query and a list of errors.
+    ///
+    /// Raises ValueError if a field in `default_field_names` is not defined or marked as indexed.
+    #[pyo3(signature = (query, default_field_names = None))]
+    pub fn parse_query_lenient(
+        &self,
+        query: &str,
+        default_field_names: Option<Vec<String>>,
+    ) -> PyResult<(Query, Vec<PyObject>)> {
+        let schema = self.index.schema();
+
+        let default_fields = if let Some(default_field_names_vec) =
+            default_field_names
+        {
+            default_field_names_vec
+                .iter()
+                .map(|field_name| {
+                    schema
+                        .get_field(field_name)
+                        .map_err(|_err| {
+                            exceptions::PyValueError::new_err(format!(
+                                "Field `{field_name}` is not defined in the schema."
+                            ))
+                        })
+                        .and_then(|field| {
+                            schema.get_field_entry(field).is_indexed().then_some(field).ok_or(
+                                exceptions::PyValueError::new_err(
+                                    format!(
+                                        "Field `{field_name}` is not set as indexed in the schema."
+                                    ),
+                                ))
+                        })
+                }).collect::<Result<Vec<_>, _>>()?
+        } else {
+            self.index
+                .schema()
+                .fields()
+                .filter_map(|(f, fe)| fe.is_indexed().then_some(f))
+                .collect::<Vec<_>>()
+        };
+
+        let parser =
+            tv::query::QueryParser::for_index(&self.index, default_fields);
+        let (query, errors) = parser.parse_query_lenient(query);
+
+        Python::with_gil(|py| {
+            let errors =
+                errors.into_iter().map(|err| err.into_py(py)).collect();
+
+            Ok((Query { inner: query }, errors))
+        })
     }
 }
 

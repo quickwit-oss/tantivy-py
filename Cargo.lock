@@ -1112,6 +1112,7 @@ dependencies = [
 name = "tantivy"
 version = "0.20.1"
 dependencies = [
+ "base64",
  "chrono",
  "futures",
  "itertools 0.10.5",
