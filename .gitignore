@@ -9,3 +9,6 @@ tantivy.so
 tantivy.dylib
 tantivy/tantivy.cpython*.so
 tantivy.egg-info/
+.venv
+.envrc
+site/

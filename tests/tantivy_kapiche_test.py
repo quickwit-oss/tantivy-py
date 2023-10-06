@@ -512,10 +512,11 @@ class TestFromDiskClass(object):
 
 class TestSearcher(object):
     def test_searcher_repr(self, ram_index, ram_index_numeric_fields):
-        assert repr(ram_index.searcher()) == "Searcher(num_docs=3, num_segments=3)"
+        assert ram_index.searcher().num_docs == 3
+        assert ram_index.searcher().num_segments == 2
         assert (
             repr(ram_index_numeric_fields.searcher())
-            == "Searcher(num_docs=2, num_segments=1)"
+            == "Searcher(num_docs=2, num_segments=2)"
         )
 
 

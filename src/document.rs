@@ -740,7 +740,7 @@ impl Document {
     {
         self.field_values
             .entry(field_name)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(Value::from(value));
     }
 
@@ -797,7 +797,7 @@ impl Document {
         Ok(())
     }
 
-    fn iter_values_for_field<'a>(
+    pub fn iter_values_for_field<'a>(
         &'a self,
         field: &str,
     ) -> impl Iterator<Item = &'a Value> + 'a {

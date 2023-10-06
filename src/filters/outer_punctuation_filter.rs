@@ -15,7 +15,10 @@ pub struct OuterPunctuationFilter {
 impl TokenFilter for OuterPunctuationFilter {
     type Tokenizer<T: Tokenizer> = OuterPunctuationFilterWrapper<T>;
 
-    fn transform<T: Tokenizer>(self, tokenizer: T) -> OuterPunctuationFilterWrapper<T> {
+    fn transform<T: Tokenizer>(
+        self,
+        tokenizer: T,
+    ) -> OuterPunctuationFilterWrapper<T> {
         OuterPunctuationFilterWrapper {
             leading_allow: self.leading_allow,
             inner: tokenizer,
@@ -37,7 +40,8 @@ pub struct OuterPunctuationFilterWrapper<T> {
 }
 
 impl<T: Tokenizer> Tokenizer for OuterPunctuationFilterWrapper<T> {
-    type TokenStream<'a> = OuterPunctuationFilterTokenStream<T::TokenStream<'a>>;
+    type TokenStream<'a> =
+        OuterPunctuationFilterTokenStream<T::TokenStream<'a>>;
 
     fn token_stream<'a>(&'a mut self, text: &'a str) -> Self::TokenStream<'a> {
         OuterPunctuationFilterTokenStream {
@@ -150,9 +154,10 @@ pub mod tests {
     }
 
     fn token_stream_helper(text: &str) -> Vec<Token> {
-        let mut analyzer = TextAnalyzer::builder(WhitespaceTokenizer::default())
-            .filter(OuterPunctuationFilter::new(vec!['#', '@']))
-            .build();
+        let mut analyzer =
+            TextAnalyzer::builder(WhitespaceTokenizer::default())
+                .filter(OuterPunctuationFilter::new(vec!['#', '@']))
+                .build();
         let mut token_stream = analyzer.token_stream(text);
         let mut tokens = vec![];
         let mut add_token = |token: &Token| {

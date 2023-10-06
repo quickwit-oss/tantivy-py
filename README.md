@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/quickwit-inc/tantivy-py.svg?branch=master)](https://travis-ci.org/quickwit-inc/tantivy-py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docs](https://readthedocs.org/projects/tantivy-py/badge/?version=latest&style=flat-default)](https://tantivy-py.readthedocs.io/en/latest/)
 
 tantivy-py
 ==========
@@ -21,6 +22,21 @@ Note that the bindings are using [PyO3](https://github.com/PyO3/pyo3), which
 only supports python3.
 
 # Development
+
+For compiling Python module:
+
+```bash
+# create virtual env
+python -m venv .venv
+source .venv/bin/activate
+
+# install maturin, the build tool for PyO3
+pip install maturin
+
+# compile and install python module in venv
+maturin develop
+```
+
 
 Setting up a development environment can be done in a virtual environment using
 [`nox`](https://nox.thea.codes) or using local packages using the provided `Makefile`.

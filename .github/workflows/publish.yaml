@@ -38,12 +38,12 @@ jobs:
             pkg-containers.githubusercontent.com:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
-      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1
+      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236
         with:
           python-version: 3.8
           architecture: x64
 
-      - uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
+      - uses: messense/maturin-action@a7534cbf4b1b1bc201c7e81a375ae6931a3ee0c8
         with:
           rust-toolchain: stable
           manylinux: auto
@@ -70,11 +70,11 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
-      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1
+      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
+      - uses: messense/maturin-action@a7534cbf4b1b1bc201c7e81a375ae6931a3ee0c8
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -99,12 +99,12 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
-      - uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1
+      - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Build wheels - x86_64
-        uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
+        uses: messense/maturin-action@a7534cbf4b1b1bc201c7e81a375ae6931a3ee0c8
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -113,7 +113,7 @@ jobs:
           args: --release -o dist
 
       - name: Build wheels - universal2
-        uses: messense/maturin-action@9357a23898d2fca5ef8da7ac38aaaedab4ef218f
+        uses: messense/maturin-action@a7534cbf4b1b1bc201c7e81a375ae6931a3ee0c8
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -153,7 +153,7 @@ jobs:
           toolchain: stable
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0
+        uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
         with:
           python-version: 3.8
 

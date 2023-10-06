@@ -13,6 +13,7 @@ use crate::{
     filters::outer_punctuation_filter::OuterPunctuationFilter,
     filters::possessive_contraction_filter::PossessiveContractionFilter,
     get_field,
+    parser_error::QueryParserErrorIntoPy,
     query::Query,
     schema::Schema,
     searcher::Searcher,
@@ -125,6 +126,12 @@ impl IndexWriter {
     fn garbage_collect_files(&mut self) -> PyResult<()> {
         use futures::executor::block_on;
         block_on(self.inner()?.garbage_collect_files()).map_err(to_pyerr)?;
+        Ok(())
+    }
+
+    /// Deletes all documents from the index.
+    fn delete_all_documents(&mut self) -> PyResult<()> {
+        self.inner()?.delete_all_documents().map_err(to_pyerr)?;
         Ok(())
     }
 
@@ -356,14 +363,19 @@ impl Index {
     /// split between the given number of threads.
     ///
     /// Args:
-    ///     overall_heap_size (int, optional): The total target memory usage of
-    ///         the writer, can't be less than 3000000.
+    ///     overall_heap_size (int, optional): The total target heap memory usage of
+    ///         the writer. Tantivy requires that this can't be less
+    ///         than 3000000 *per thread*. Lower values will result in more
+    ///         frequent internal commits when adding documents (slowing down
+    ///         write progress), and larger values will results in fewer
+    ///         commits but greater memory usage. The best value will depend
+    ///         on your specific use case.
     ///     num_threads (int, optional): The number of threads that the writer
     ///         should use. If this value is 0, tantivy will choose
     ///         automatically the number of threads.
     ///
     /// Raises ValueError if there was an error while creating the writer.
-    #[pyo3(signature = (heap_size = 3000000, num_threads = 0))]
+    #[pyo3(signature = (heap_size = 128_000_000, num_threads = 0))]
     fn writer(
         &self,
         heap_size: usize,
@@ -416,19 +428,13 @@ impl Index {
         Ok(())
     }
 
-    /// Acquires a Searcher from the searcher pool.
+    /// Returns a searcher
     ///
-    /// If no searcher is available during the call, note that
-    /// this call will block until one is made available.
-    ///
-    /// Searcher are automatically released back into the pool when
-    /// they are dropped. If you observe this function to block forever
-    /// you probably should configure the Index to have a larger
-    /// searcher pool, or you are holding references to previous searcher
-    /// for ever.
-    fn searcher(&self, py: Python) -> Searcher {
+    /// This method should be called every single time a search query is performed.
+    /// The same searcher must be used for a given query, as it ensures the use of a consistent segment set.
+    fn searcher(&self) -> Searcher {
         Searcher {
-            inner: py.allow_threads(|| self.reader.searcher()),
+            inner: self.reader.searcher(),
         }
     }
 
@@ -512,6 +518,71 @@ impl Index {
         let query = parser.parse_query(query).map_err(to_pyerr)?;
 
         Ok(Query { inner: query })
+    }
+
+    /// Parse a query leniently.
+    ///
+    /// This variant parses invalid query on a best effort basis. If some part of the query can't
+    /// reasonably be executed (range query without field, searching on a non existing field,
+    /// searching without precising field when no default field is provided...), they may get turned
+    /// into a "match-nothing" subquery.
+    ///
+    /// Args:
+    ///     query: the query, following the tantivy query language.
+    ///     default_fields_names (List[Field]): A list of fields used to search if no
+    ///         field is specified in the query.
+    ///
+    /// Returns a tuple containing the parsed query and a list of errors.
+    ///
+    /// Raises ValueError if a field in `default_field_names` is not defined or marked as indexed.
+    #[pyo3(signature = (query, default_field_names = None))]
+    pub fn parse_query_lenient(
+        &self,
+        query: &str,
+        default_field_names: Option<Vec<String>>,
+    ) -> PyResult<(Query, Vec<PyObject>)> {
+        let schema = self.index.schema();
+
+        let default_fields = if let Some(default_field_names_vec) =
+            default_field_names
+        {
+            default_field_names_vec
+                .iter()
+                .map(|field_name| {
+                    schema
+                        .get_field(field_name)
+                        .map_err(|_err| {
+                            exceptions::PyValueError::new_err(format!(
+                                "Field `{field_name}` is not defined in the schema."
+                            ))
+                        })
+                        .and_then(|field| {
+                            schema.get_field_entry(field).is_indexed().then_some(field).ok_or(
+                                exceptions::PyValueError::new_err(
+                                    format!(
+                                        "Field `{field_name}` is not set as indexed in the schema."
+                                    ),
+                                ))
+                        })
+                }).collect::<Result<Vec<_>, _>>()?
+        } else {
+            self.index
+                .schema()
+                .fields()
+                .filter_map(|(f, fe)| fe.is_indexed().then_some(f))
+                .collect::<Vec<_>>()
+        };
+
+        let parser =
+            tv::query::QueryParser::for_index(&self.index, default_fields);
+        let (query, errors) = parser.parse_query_lenient(query);
+
+        Python::with_gil(|py| {
+            let errors =
+                errors.into_iter().map(|err| err.into_py(py)).collect();
+
+            Ok((Query { inner: query }, errors))
+        })
     }
 }
 

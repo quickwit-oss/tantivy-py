@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::filters::filter_constants::CONTRACTION_PATTERNS;
-use tantivy::tokenizer::{Tokenizer};
+use tantivy::tokenizer::Tokenizer;
 use tantivy::tokenizer::{Token, TokenFilter, TokenStream};
 
 //    Removes possessive contractions from tokens.
@@ -14,10 +14,11 @@ pub struct PossessiveContractionFilter;
 impl TokenFilter for PossessiveContractionFilter {
     type Tokenizer<T: Tokenizer> = PossessiveContractionFilterWrapper<T>;
 
-    fn transform<T: Tokenizer>(self, tokenizer: T) -> PossessiveContractionFilterWrapper<T> {
-        PossessiveContractionFilterWrapper {
-            inner: tokenizer,
-        }
+    fn transform<T: Tokenizer>(
+        self,
+        tokenizer: T,
+    ) -> PossessiveContractionFilterWrapper<T> {
+        PossessiveContractionFilterWrapper { inner: tokenizer }
     }
 }
 
@@ -27,7 +28,8 @@ pub struct PossessiveContractionFilterWrapper<T> {
 }
 
 impl<T: Tokenizer> Tokenizer for PossessiveContractionFilterWrapper<T> {
-    type TokenStream<'a> = PossessiveContractionFilterTokenStream<T::TokenStream<'a>>;
+    type TokenStream<'a> =
+        PossessiveContractionFilterTokenStream<T::TokenStream<'a>>;
 
     fn token_stream<'a>(&'a mut self, text: &'a str) -> Self::TokenStream<'a> {
         PossessiveContractionFilterTokenStream {
@@ -116,9 +118,10 @@ mod tests {
     }
 
     fn token_stream_helper(text: &str) -> Vec<Token> {
-        let mut analyzer = TextAnalyzer::builder(WhitespaceTokenizer::default())
-            .filter(PossessiveContractionFilter)
-            .build();
+        let mut analyzer =
+            TextAnalyzer::builder(WhitespaceTokenizer::default())
+                .filter(PossessiveContractionFilter)
+                .build();
         let mut token_stream = analyzer.token_stream(text);
         let mut tokens = vec![];
         let mut add_token = |token: &Token| {

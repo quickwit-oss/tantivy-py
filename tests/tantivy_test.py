@@ -2,11 +2,10 @@ from io import BytesIO
 
 import copy
 import datetime
-import tantivy
 import pickle
 import pytest
-
-from tantivy import Document, Index, SchemaBuilder
+import tantivy
+from tantivy import Document, Index, SchemaBuilder, SnippetGenerator
 
 
 def schema():
@@ -33,7 +32,7 @@ def create_index(dir=None):
     # assume all tests will use the same documents for now
     # other methods may set up function-local indexes
     index = Index(schema(), dir)
-    writer = index.writer(10_000_000, 1)
+    writer = index.writer(15_000_000, 1)
 
     # 2 ways of adding documents
     # 1
@@ -85,7 +84,7 @@ def create_index(dir=None):
 
 def create_index_with_numeric_fields(dir=None):
     index = Index(schema_numeric_fields(), dir)
-    writer = index.writer(10_000_000, 1)
+    writer = index.writer(15_000_000, 1)
 
     doc = Document()
     doc.add_integer("id", 1)
@@ -286,6 +285,30 @@ class TestClass(object):
         with pytest.raises(ValueError):
             index.parse_query("bod:men", ["title", "body"])
 
+    def test_query_lenient(self, ram_index_numeric_fields):
+        from tantivy import query_parser_error
+
+        index = ram_index_numeric_fields
+
+        query, errors = index.parse_query_lenient("rating:3.5")
+        assert len(errors) == 0
+        assert repr(query) == """Query(TermQuery(Term(field=1, type=F64, 3.5)))"""
+
+        _, errors = index.parse_query_lenient("bod:men")
+        assert len(errors) == 1
+        assert isinstance(errors[0], query_parser_error.FieldDoesNotExistError)
+
+        query, errors = index.parse_query_lenient(
+            "body:'hello' AND id:<3.5 OR rating:'hi'"
+        )
+        assert len(errors) == 2
+        assert isinstance(errors[0], query_parser_error.ExpectedIntError)
+        assert isinstance(errors[1], query_parser_error.ExpectedFloatError)
+        assert (
+            repr(query)
+            == """Query(BooleanQuery { subqueries: [(Should, BooleanQuery { subqueries: [(Must, TermQuery(Term(field=3, type=Str, "hello")))] })] })"""
+        )
+
     def test_order_by_search(self):
         schema = (
             SchemaBuilder()
@@ -338,6 +361,22 @@ class TestClass(object):
         assert searched_doc["title"] == ["Another test title"]
 
         _, doc_address = result.hits[2]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Test title"]
+
+        result = searcher.search(query, 10, order_by_field="order", order=tantivy.Order.Asc)
+
+        assert len(result.hits) == 3
+
+        _, doc_address = result.hits[2]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Final test title"]
+
+        _, doc_address = result.hits[1]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Another test title"]
+
+        _, doc_address = result.hits[0]
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["Test title"]
 
@@ -487,6 +526,18 @@ class TestClass(object):
         pickled = pickle.loads(pickle.dumps(orig))
 
         assert orig == pickled
+
+    def test_delete_all_documents(self, ram_index):
+        index = ram_index
+        writer = index.writer()
+        writer.delete_all_documents()
+        writer.commit()
+
+        index.reload()
+        query = index.parse_query("sea whale", ["title", "body"])
+        result = index.searcher().search(query, 10)
+
+        assert len(result.hits) == 0
 
 
 class TestUpdateClass(object):
@@ -784,3 +835,27 @@ def test_doc_address_pickle():
     pickled = pickle.loads(pickle.dumps(orig))
 
     assert orig == pickled
+
+
+class TestSnippets(object):
+    def test_document_snippet(self, dir_index):
+        index_dir, _ = dir_index
+        doc_schema = schema()
+        index = Index(doc_schema, str(index_dir))
+        query = index.parse_query("sea whale", ["title", "body"])
+        searcher = index.searcher()
+        result = searcher.search(query)
+        assert len(result.hits) == 1
+
+        snippet_generator = SnippetGenerator.create(searcher, query, doc_schema, "title")
+
+        for (score, doc_address) in result.hits:
+            doc = searcher.doc(doc_address)
+            snippet = snippet_generator.snippet_from_doc(doc)
+            highlights = snippet.highlighted()
+            assert len(highlights) == 1
+            first = highlights[0]
+            assert first.start == 20
+            assert first.end == 23
+            html_snippet = snippet.to_html()
+            assert html_snippet == 'The Old Man and the <b>Sea</b>'
