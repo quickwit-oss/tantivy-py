@@ -11,7 +11,7 @@ name = "tantivy"
 crate-type = ["cdylib"]
 
 [build-dependencies]
-pyo3-build-config = "0.19.1"
+pyo3-build-config = "0.20.0"
 
 [dependencies]
 base64 = "0.21"
@@ -24,5 +24,5 @@ serde = "1.0"
 serde_json = "1.0.91"
 
 [dependencies.pyo3]
-version = "0.19.1"
+version = "0.20.0"
 features = ["chrono", "extension-module"]
