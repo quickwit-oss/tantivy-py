@@ -18,7 +18,7 @@ impl Query {
 #[pymethods]
 impl Query {
     #[staticmethod]
-    fn term(field_id: u32, text: &str) -> Query {
+    pub fn term(field_id: u32, text: &str) -> Query {
         let term = Term::from_field_text(Field::from_field_id(field_id), text);
         Query {
             inner: Box::new(tv::query::TermQuery::new(
@@ -29,7 +29,7 @@ impl Query {
     }
 
     #[staticmethod]
-    fn fuzzy_term(field_id: u32, distance: u8, text: &str) -> Query {
+    pub fn fuzzy_term(field_id: u32, distance: u8, text: &str) -> Query {
         let ftq = tv::query::FuzzyTermQuery::new(
             Term::from_field_text(Field::from_field_id(field_id), text),
             distance,
@@ -41,7 +41,7 @@ impl Query {
     }
 
     #[staticmethod]
-    fn regex(field_id: u32, pattern: &str) -> PyResult<Query> {
+    pub fn regex(field_id: u32, pattern: &str) -> PyResult<Query> {
         let rq = tv::query::RegexQuery::from_pattern(
             pattern,
             Field::from_field_id(field_id),
@@ -53,7 +53,7 @@ impl Query {
     }
 
     #[staticmethod]
-    fn phrase(field_id: u32, words: Vec<&str>) -> Query {
+    pub fn phrase(field_id: u32, words: Vec<&str>) -> Query {
         let terms = words
             .iter()
             .map(|&w| Term::from_field_text(Field::from_field_id(field_id), w))
@@ -64,7 +64,7 @@ impl Query {
     }
 
     #[staticmethod]
-    fn boost(q: &Query, boost: f32) -> Query {
+    pub fn boost(q: &Query, boost: f32) -> Query {
         let bq = tv::query::BoostQuery::new(q.get().box_clone(), boost);
         Query {
             inner: Box::new(bq),
@@ -72,7 +72,7 @@ impl Query {
     }
 
     #[staticmethod]
-    fn and_q(qs : Vec<PyRef<Query>>) -> Query {
+    pub fn and_q(qs : Vec<PyRef<Query>>) -> Query {
         Query {
             inner: Box::new(tv::query::BooleanQuery::intersection(
                 qs.iter().map(|q| q.get().box_clone()).collect::<Vec<_>>()
@@ -81,7 +81,7 @@ impl Query {
     }
 
     #[staticmethod]
-    fn or_q(qs : Vec<PyRef<Query>>) -> Query {
+    pub fn or_q(qs : Vec<PyRef<Query>>) -> Query {
         Query {
             inner: Box::new(tv::query::BooleanQuery::union(
                 qs.iter().map(|q| q.get().box_clone()).collect::<Vec<_>>()
