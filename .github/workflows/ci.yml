@@ -43,13 +43,13 @@ jobs:
         python-version: [3.9]
         include:
           - os: ubuntu-latest
+            python-version: "3.12"
+          - os: ubuntu-latest
             python-version: "3.11"
           - os: ubuntu-latest
             python-version: "3.10"
           - os: ubuntu-latest
             python-version: 3.8
-          - os: ubuntu-latest
-            python-version: 3.7
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Harden Runner
@@ -66,6 +66,7 @@ jobs:
             static.crates.io:443
             index.crates.io:443
             static.rust-lang.org:443
+            objects.githubusercontent.com:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236  # 4.7.1
