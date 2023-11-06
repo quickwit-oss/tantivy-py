@@ -78,8 +78,10 @@ class TestClass(object):
         assert sorted(result.unique_docs_frames) == [(1, 1), (3, 5)]
         assert list(result.unique_docs) == [1, 3]
         assert list(result.unique_frames) == [1, 5]
+        assert list(result.unique_sentences) == [1, 2, 7]
         print(f"{result.hits}")
         print(f"{result.unique_docs_frames}")
+        print(f"{result.unique_sentences}")
 
     def test_stat_searcher_filter_unzipped(self, ram_kapiche_index):
         index = ram_kapiche_index
@@ -91,6 +93,9 @@ class TestClass(object):
         assert sorted(f) == [1, 5]
         assert list(result.unique_docs) == [1, 3]
         assert list(result.unique_frames) == [1, 5]
+
+        d, f, s = result.unique_docs_frames_sentences_unzipped
+        assert sorted(s) == [1, 2, 7]
 
 
 def test_stat_searcher_memory():

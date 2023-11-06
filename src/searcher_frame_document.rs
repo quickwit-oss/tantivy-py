@@ -45,6 +45,13 @@ impl SearchResult {
     }
 
     #[getter]
+    fn unique_sentences(&self, py: Python) -> PyResult<BTreeSet<u64>> {
+        let s =
+            BTreeSet::from_iter(self.hits.iter().map(|(d, f, s, score)| *s));
+        Ok(s)
+    }
+
+    #[getter]
     fn unique_docs_frames(&self, py: Python) -> PyResult<BTreeSet<(u64, u64)>> {
         let s = BTreeSet::from_iter(
             self.hits.iter().map(|(d, f, s, score)| (*d, *f)),
@@ -69,6 +76,27 @@ impl SearchResult {
             v2.push(f);
         }
         Ok((v1, v2))
+    }
+
+    /// This is an optimization to allow Python callers to obtain vectors
+    /// without having to do iteration to get them.
+    #[getter]
+    fn unique_docs_frames_sentences_unzipped(
+        &self,
+        py: Python,
+    ) -> PyResult<(Vec<u64>, Vec<u64>, Vec<u64>)> {
+        let s = BTreeSet::from_iter(
+            self.hits.iter().map(|(d, f, s, score)| (*d, *f, *s)),
+        );
+        let mut v1 = Vec::with_capacity(s.len());
+        let mut v2 = Vec::with_capacity(s.len());
+        let mut v3 = Vec::with_capacity(s.len());
+        for (d, f, s) in s.into_iter() {
+            v1.push(d);
+            v2.push(f);
+            v3.push(s);
+        }
+        Ok((v1, v2, v3))
     }
 }
 

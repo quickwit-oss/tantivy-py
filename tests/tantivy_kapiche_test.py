@@ -34,7 +34,7 @@ def create_index(dir=None):
     # assume all tests will use the same documents for now
     # other methods may set up function-local indexes
     index = Index(schema(), dir)
-    writer = index.writer()
+    writer = index.writer(15_000_000, 1)
 
     # 2 ways of adding documents
     # 1
@@ -179,7 +179,7 @@ def create_kapiche_index(dir=None):
     # assume all tests will use the same documents for now
     # other methods may set up function-local indexes
     index = Index(kapiche_schema(), dir)
-    writer = index.writer()
+    writer = index.writer(15_000_000, 1)
 
     # 2 ways of adding documents
     # 1
@@ -513,7 +513,7 @@ class TestFromDiskClass(object):
 class TestSearcher(object):
     def test_searcher_repr(self, ram_index, ram_index_numeric_fields):
         assert ram_index.searcher().num_docs == 3
-        assert ram_index.searcher().num_segments == 2
+        assert ram_index.searcher().num_segments == 1
         assert (
             repr(ram_index_numeric_fields.searcher())
             == "Searcher(num_docs=2, num_segments=2)"
