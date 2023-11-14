@@ -41,6 +41,11 @@ impl SchemaBuilder {
         }
     }
 
+    #[staticmethod]
+    fn is_valid_field_name(name: &str) -> bool {
+        schema::is_valid_field_name(name)
+    }
+
     /// Add a new text field to the schema.
     ///
     /// Args:
