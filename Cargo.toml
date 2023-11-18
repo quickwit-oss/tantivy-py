@@ -3,7 +3,7 @@ name = "tantivy"
 version = "0.21.0"
 readme = "README.md"
 authors = ["Damir Jelić <poljar@termina.org.uk>"]
-edition = "2018"
+edition = "2021"
 license = "MIT"
 
 [lib]
