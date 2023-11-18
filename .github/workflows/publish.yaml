@@ -147,7 +147,9 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
 
-      - uses: dtolnay/rust-toolchain@1.73.0
+      - uses: dtolnay/rust-toolchain@439cf607258077187679211f12aa6f19af4a0af7
+        with:
+          toolchain: 1.73.0
 
       - name: Set up Python 3.8
         uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4.7.1
