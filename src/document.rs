@@ -428,8 +428,10 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
 ///     >>> doc = tantivy.Document()
 ///     >>> doc.add_text("title", "The Old Man and the Sea")
 ///     >>> doc.add_text("body", ("He was an old man who fished alone in a "
-///                             "skiff in the Gulf Stream and he had gone "
-///                             "eighty-four days now without taking a fish."))
+///     ...                       "skiff in the Gulf Stream and he had gone "
+///     ...                       "eighty-four days now without taking a fish."))
+///     >>> doc
+///     Document(body=[He was an ],title=[The Old Ma])
 ///
 /// For simplicity, it is also possible to build a `Document` by passing the field
 /// values directly as constructor arguments.
@@ -451,16 +453,16 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
 ///
 /// Example:
 ///     >>> schema = (
-///             SchemaBuilder()
-///                 .add_unsigned_field("unsigned")
-///                 .add_integer_field("signed")
-///                 .add_float_field("float")
-///                 .build()
-///         )
+///     ...     SchemaBuilder()
+///     ...         .add_unsigned_field("unsigned")
+///     ...         .add_integer_field("signed")
+///     ...         .add_float_field("float")
+///     ...         .build()
+///     ... )
 ///     >>> doc = tantivy.Document.from_dict(
-///             {"unsigned": 1000, "signed": -5, "float": 0.4},
-///             schema,
-///         )
+///     ...     {"unsigned": 1000, "signed": -5, "float": 0.4},
+///     ...     schema,
+///     ... )
 #[pyclass(module = "tantivy")]
 #[derive(Clone, Default, PartialEq)]
 pub(crate) struct Document {
