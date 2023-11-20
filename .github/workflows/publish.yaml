@@ -48,7 +48,6 @@ jobs:
 
       - uses: PyO3/maturin-action@683eb33e2cda131da55757dbac7628b2ef22df2f
         with:
-          rust-toolchain: stable
           manylinux: auto
           target: ${{ matrix.platform }}
           command: build
