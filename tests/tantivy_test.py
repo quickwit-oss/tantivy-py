@@ -786,12 +786,12 @@ class TestJsonField:
         doc = Document()
         doc.add_json(
             "attributes",
-            """{
-                "order":1.2,
+            {
+                "order": 1.2,
                 "target": "submit-button",
                 "cart": {"product_id": 133},
-                "description": "das keyboard"
-            }""",
+                "description": "das keyboard",
+            },
         )
 
         writer.add_document(doc)
