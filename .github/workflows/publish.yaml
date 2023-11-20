@@ -22,21 +22,23 @@ jobs:
           egress-policy: block
           allowed-endpoints: >
             api.github.com:443
+            cdn.quay.io:443
+            cdn01.quay.io:443
+            cdn02.quay.io:443
             cdn03.quay.io:443
             crates.io:443
+            files.pythonhosted.org:443
+            ghcr.io:443
             github.com:443
+            index.crates.io:443
             objects.githubusercontent.com:443
+            uploads.github.com:443
+            pkg-containers.githubusercontent.com:443
+            pypi.org:443
             quay.io:443
             sh.rustup.rs:443
             static.crates.io:443
-            index.crates.io:443
             static.rust-lang.org:443
-            uploads.github.com:443
-            pypi.org:443
-            files.pythonhosted.org:443
-            ghcr.io:443
-            pkg-containers.githubusercontent.com:443
-            cdn02.quay.io:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236
@@ -134,8 +136,8 @@ jobs:
           allowed-endpoints: >
             api.github.com:443
             github.com:443
-            static.rust-lang.org:443
             uploads.github.com:443
+            static.rust-lang.org:443 
 
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
         with:
