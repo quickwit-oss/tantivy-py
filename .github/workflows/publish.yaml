@@ -93,6 +93,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423
@@ -104,21 +105,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Build wheels - x86_64
+      - name: Build wheels - ${{ matrix.target }}
         uses: PyO3/maturin-action@683eb33e2cda131da55757dbac7628b2ef22df2f
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
-          target: x86_64-apple-darwin
-          command: build
-          args: --release -o dist
-
-      - name: Build wheels - universal2
-        uses: PyO3/maturin-action@683eb33e2cda131da55757dbac7628b2ef22df2f
-        env:
-          PYO3_PYTHON: python${{ matrix.python-version }}
-        with:
-          target: universal2
+          target: ${{ matrix.target }}
           command: build
           args: --release -o dist
 
