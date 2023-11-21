@@ -674,19 +674,28 @@ impl Document {
         self.add_value(field_name, bytes);
     }
 
-    /// Add a bytes value to the document.
+    /// Add a JSON value to the document.
     ///
     /// Args:
     ///     field_name (str): The field for which we are adding the bytes.
-    ///     value (str): The json object that will be added to the document.
+    ///     value (str | Dict[str, Any]): The JSON object that will be added
+    ///         to the document.
     ///
-    /// Raises a ValueError if the json is invalid.
-    fn add_json(&mut self, field_name: String, json: &str) -> PyResult<()> {
-        let json_object: serde_json::Value =
-            serde_json::from_str(json).map_err(to_pyerr)?;
-        self.add_value(field_name, json_object);
+    /// Raises a ValueError if the JSON is invalid.
+    fn add_json(&mut self, field_name: String, value: &PyAny) -> PyResult<()> {
+        type JsonMap = serde_json::Map<String, serde_json::Value>;
 
-        Ok(())
+        if let Ok(json_str) = value.extract::<&str>() {
+            let json_map: JsonMap =
+                serde_json::from_str(json_str).map_err(to_pyerr)?;
+            self.add_value(field_name, json_map);
+            Ok(())
+        } else if let Ok(json_map) = pythonize::depythonize::<JsonMap>(value) {
+            self.add_value(field_name, json_map);
+            Ok(())
+        } else {
+            Err(to_pyerr("Invalid JSON object. Expected valid JSON string or Dict[str, Any]."))
+        }
     }
 
     /// Returns the number of added fields that have been added to the document
