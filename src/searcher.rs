@@ -161,6 +161,7 @@ impl Searcher {
         count: bool,
         order_by_field: Option<&str>,
         offset: usize,
+        order: Order,
     ) -> PyResult<SearchResult> {
         py.allow_threads(move || {
             let mut multicollector = MultiCollector::new();
@@ -175,7 +176,7 @@ impl Searcher {
                 if let Some(order_by) = order_by_field {
                     let collector = TopDocs::with_limit(limit)
                         .and_offset(offset)
-                        .order_by_u64_field(order_by);
+                        .order_by_fast_field(order_by, order.into());
                     let top_docs_handle =
                         multicollector.add_collector(collector);
                     let ret = self.inner.search(query.get(), &multicollector);

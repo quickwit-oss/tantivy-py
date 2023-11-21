@@ -20,7 +20,7 @@ use index::Index;
 use query::Query;
 use schema::Schema;
 use schemabuilder::SchemaBuilder;
-use searcher::{DocAddress, SearchResult, Searcher};
+use searcher::{DocAddress, Order, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
 
 /// Python bindings for the search engine library Tantivy.
