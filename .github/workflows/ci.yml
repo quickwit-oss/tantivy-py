@@ -28,9 +28,9 @@ jobs:
         uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
 
       - name: Rust toolchain
-        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
+        uses: dtolnay/rust-toolchain@439cf607258077187679211f12aa6f19af4a0af7
         with:
-          toolchain: stable
+          toolchain: 1.73.0
           components: rustfmt
 
       - name: Check Formatting
@@ -76,9 +76,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af
+      - uses: dtolnay/rust-toolchain@439cf607258077187679211f12aa6f19af4a0af7
         with:
-          toolchain: stable
+          toolchain: 1.73.0
 
       - uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8  # 2.7.1
       - run: python3 -m pip install nox
