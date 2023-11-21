@@ -20,7 +20,7 @@ use index::Index;
 use query::Query;
 use schema::Schema;
 use schemabuilder::SchemaBuilder;
-use searcher::{DocAddress, Order, SearchResult, Searcher};
+use searcher::{DocAddress, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
 
 /// Python bindings for the search engine library Tantivy.
@@ -87,6 +87,7 @@ fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Query>()?;
     m.add_class::<Snippet>()?;
     m.add_class::<SnippetGenerator>()?;
+<<<<<<< HEAD
 
     m.add_wrapped(wrap_pymodule!(query_parser_error))?;
 
@@ -137,6 +138,8 @@ fn query_parser_error(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<parser_error::FacetFormatError>()?;
     m.add_class::<parser_error::IpFormatError>()?;
 
+=======
+>>>>>>> f164b0ef4abb6884e5d03fcb1abd10df8fb187ee
     Ok(())
 }
 

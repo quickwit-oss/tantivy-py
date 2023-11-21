@@ -9,9 +9,6 @@ tantivy.so
 tantivy.dylib
 tantivy/tantivy.cpython*.so
 tantivy.egg-info/
-
 .venv
 .envrc
-
-# Exclude the mkdocs site directory
 site/
