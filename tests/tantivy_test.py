@@ -2,6 +2,8 @@ from io import BytesIO
 
 import copy
 import datetime
+import json
+import tantivy
 import pickle
 import pytest
 import tantivy
@@ -364,7 +366,9 @@ class TestClass(object):
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["Test title"]
 
-        result = searcher.search(query, 10, order_by_field="order", order=tantivy.Order.Asc)
+        result = searcher.search(
+            query, 10, order_by_field="order", order=tantivy.Order.Asc
+        )
 
         assert len(result.hits) == 3
 
@@ -442,7 +446,7 @@ class TestClass(object):
 
         assert searcher.num_segments < 8
 
-    def test_doc_from_dict_schema_validation(self):
+    def test_doc_from_dict_numeric_validation(self):
         schema = (
             SchemaBuilder()
             .add_unsigned_field("unsigned")
@@ -502,6 +506,70 @@ class TestClass(object):
                 },
                 schema,
             )
+
+    def test_doc_from_dict_bytes_validation(self):
+        schema = SchemaBuilder().add_bytes_field("bytes").build()
+
+        good = Document.from_dict({"bytes": b"hello"}, schema)
+        good = Document.from_dict({"bytes": [[1, 2, 3], [4, 5, 6]]}, schema)
+        good = Document.from_dict({"bytes": [1, 2, 3]}, schema)
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict({"bytes": [1, 2, 256]}, schema)
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict({"bytes": "hello"}, schema)
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict({"bytes": [1024, "there"]}, schema)
+
+    def test_doc_from_dict_ip_addr_validation(self):
+        schema = SchemaBuilder().add_ip_addr_field("ip").build()
+
+        good = Document.from_dict({"ip": "127.0.0.1"}, schema)
+        good = Document.from_dict({"ip": "::1"}, schema)
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict({"ip": 12309812348}, schema)
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict({"ip": "256.100.0.1"}, schema)
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict(
+                {"ip": "1234:5678:9ABC:DEF0:1234:5678:9ABC:DEF0:1234"}, schema
+            )
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict(
+                {"ip": "1234:5678:9ABC:DEF0:1234:5678:9ABC:GHIJ"}, schema
+            )
+
+    def test_doc_from_dict_json_validation(self):
+        # Test implicit JSON
+        good = Document.from_dict({"dict": {"hello": "world"}})
+
+        schema = SchemaBuilder().add_json_field("json").build()
+
+        good = Document.from_dict({"json": {}}, schema)
+        good = Document.from_dict({"json": {"hello": "world"}}, schema)
+        good = Document.from_dict(
+            {"nested": {"hello": ["world", "!"]}, "numbers": [1, 2, 3]}, schema
+        )
+
+        list_of_jsons = [
+            {"hello": "world"},
+            {"nested": {"hello": ["world", "!"]}, "numbers": [1, 2, 3]},
+        ]
+        good = Document.from_dict({"json": list_of_jsons}, schema)
+
+        good = Document.from_dict({"json": json.dumps(list_of_jsons[1])}, schema)
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict({"json": 123}, schema)
+
+        with pytest.raises(ValueError):
+            bad = Document.from_dict({"json": "hello"}, schema)
 
     def test_search_result_eq(self, ram_index, spanish_index):
         eng_index = ram_index
@@ -648,10 +716,6 @@ class TestDocument(object):
         assert repr(doc["facet"][0]) == "Facet(/asia\\/oceania/fiji)"
         doc = tantivy.Document(facet=facet)
         assert doc["facet"][0].to_path() == ["asia/oceania", "fiji"]
-
-    def test_document_error(self):
-        with pytest.raises(ValueError):
-            tantivy.Document(name={})
 
     def test_document_eq(self):
         doc1 = tantivy.Document(name="Bill", reference=[1, 2])
@@ -847,9 +911,11 @@ class TestSnippets(object):
         result = searcher.search(query)
         assert len(result.hits) == 1
 
-        snippet_generator = SnippetGenerator.create(searcher, query, doc_schema, "title")
+        snippet_generator = SnippetGenerator.create(
+            searcher, query, doc_schema, "title"
+        )
 
-        for (score, doc_address) in result.hits:
+        for score, doc_address in result.hits:
             doc = searcher.doc(doc_address)
             snippet = snippet_generator.snippet_from_doc(doc)
             highlights = snippet.highlighted()
@@ -858,4 +924,4 @@ class TestSnippets(object):
             assert first.start == 20
             assert first.end == 23
             html_snippet = snippet.to_html()
-            assert html_snippet == 'The Old Man and the <b>Sea</b>'
+            assert html_snippet == "The Old Man and the <b>Sea</b>"
