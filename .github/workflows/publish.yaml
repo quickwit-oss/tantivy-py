@@ -22,20 +22,23 @@ jobs:
           egress-policy: block
           allowed-endpoints: >
             api.github.com:443
+            cdn.quay.io:443
+            cdn01.quay.io:443
+            cdn02.quay.io:443
             cdn03.quay.io:443
             crates.io:443
+            files.pythonhosted.org:443
+            ghcr.io:443
             github.com:443
+            index.crates.io:443
             objects.githubusercontent.com:443
+            uploads.github.com:443
+            pkg-containers.githubusercontent.com:443
+            pypi.org:443
             quay.io:443
             sh.rustup.rs:443
             static.crates.io:443
-            index.crates.io:443
             static.rust-lang.org:443
-            uploads.github.com:443
-            pypi.org:443
-            files.pythonhosted.org:443
-            ghcr.io:443
-            pkg-containers.githubusercontent.com:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236
@@ -43,13 +46,13 @@ jobs:
           python-version: 3.8
           architecture: x64
 
-      - uses: messense/maturin-action@683eb33e2cda131da55757dbac7628b2ef22df2f
+      - uses: PyO3/maturin-action@683eb33e2cda131da55757dbac7628b2ef22df2f
         with:
           rust-toolchain: stable
           manylinux: auto
           target: ${{ matrix.platform }}
           command: build
-          args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11
+          args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11 3.12
 
       - name: Upload wheels
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32  # 3.1.3
@@ -74,7 +77,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: messense/maturin-action@683eb33e2cda131da55757dbac7628b2ef22df2f
+      - uses: PyO3/maturin-action@683eb33e2cda131da55757dbac7628b2ef22df2f
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -92,6 +95,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423
@@ -103,22 +107,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Build wheels - x86_64
-        uses: messense/maturin-action@683eb33e2cda131da55757dbac7628b2ef22df2f
+      - name: Build wheels - ${{ matrix.target }}
+        uses: PyO3/maturin-action@683eb33e2cda131da55757dbac7628b2ef22df2f
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
-          target: x86_64-apple-darwin
+          target: ${{ matrix.target }}
           command: build
           args: --release -o dist
-
-      - name: Build wheels - universal2
-        uses: messense/maturin-action@683eb33e2cda131da55757dbac7628b2ef22df2f
-        env:
-          PYO3_PYTHON: python${{ matrix.python-version }}
-        with:
-          command: build
-          args: --release -o dist --universal2
 
       - name: Upload wheels
         uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32  # 3.1.3
@@ -140,8 +136,8 @@ jobs:
           allowed-endpoints: >
             api.github.com:443
             github.com:443
-            static.rust-lang.org:443
             uploads.github.com:443
+            static.rust-lang.org:443 
 
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
         with:
