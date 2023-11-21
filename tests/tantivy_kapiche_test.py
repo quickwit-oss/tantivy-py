@@ -85,7 +85,7 @@ def create_index(dir=None):
 
 def create_index_with_numeric_fields(dir=None):
     index = Index(schema_numeric_fields(), dir)
-    writer = index.writer(10_000_000, 1)
+    writer = index.writer(15_000_000, 1)
 
     doc = Document()
     doc.add_integer("id", 1)
