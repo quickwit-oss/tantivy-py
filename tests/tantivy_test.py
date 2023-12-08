@@ -384,6 +384,57 @@ class TestClass(object):
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["Test title"]
 
+    def test_order_by_search_date(self):
+        schema = (
+            SchemaBuilder()
+            .add_date_field("order", fast=True)
+            .add_text_field("title", stored=True)
+            .build()
+        )
+
+        index = Index(schema)
+        writer = index.writer()
+
+        doc = Document()
+        doc.add_date("order", datetime.datetime(2020, 1, 1))
+        doc.add_text("title", "Test title")
+
+        writer.add_document(doc)
+
+        doc = Document()
+        doc.add_date("order", datetime.datetime(2022, 1, 1))
+        doc.add_text("title", "Final test title")
+        writer.add_document(doc)
+
+        doc = Document()
+        doc.add_date("order", datetime.datetime(2021, 1, 1))
+        doc.add_text("title", "Another test title")
+
+        writer.add_document(doc)
+
+        writer.commit()
+        index.reload()
+
+        query = index.parse_query("test")
+
+        searcher = index.searcher()
+
+        result = searcher.search(query, 10, order_by_field="order")
+
+        assert len(result.hits) == 3
+
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Final test title"]
+
+        _, doc_address = result.hits[1]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Another test title"]
+
+        _, doc_address = result.hits[2]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Test title"]
+
     def test_order_by_search_without_fast_field(self):
         schema = (
             SchemaBuilder()
