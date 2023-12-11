@@ -85,7 +85,7 @@ def create_index(dir=None):
 
 def create_index_with_numeric_fields(dir=None):
     index = Index(schema_numeric_fields(), dir)
-    writer = index.writer(10_000_000, 1)
+    writer = index.writer(15_000_000, 1)
 
     doc = Document()
     doc.add_integer("id", 1)
@@ -516,7 +516,7 @@ class TestSearcher(object):
         assert ram_index.searcher().num_segments == 1
         assert (
             repr(ram_index_numeric_fields.searcher())
-            == "Searcher(num_docs=2, num_segments=2)"
+            == "Searcher(num_docs=2, num_segments=1)"
         )
 
 
@@ -557,10 +557,6 @@ class TestDocument(object):
         assert repr(doc["facet"][0]) == "Facet(/asia\\/oceania/fiji)"
         doc = tantivy.Document(facet=facet)
         assert doc["facet"][0].to_path() == ["asia/oceania", "fiji"]
-
-    def test_document_error(self):
-        with pytest.raises(ValueError):
-            tantivy.Document(name={})
 
 
 class TestJsonField:

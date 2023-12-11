@@ -2,11 +2,11 @@
 
 use pyo3::{exceptions, prelude::*};
 
-use tantivy::schema;
-
 use crate::schema::Schema;
 use std::sync::{Arc, RwLock};
-use tantivy::schema::{DateOptions, INDEXED};
+use tantivy::schema::{
+    self, BytesOptions, DateOptions, IpAddrOptions, INDEXED,
+};
 
 /// Tantivy has a very strict schema.
 /// You need to specify in advance whether a field is indexed or not,
@@ -39,6 +39,11 @@ impl SchemaBuilder {
         SchemaBuilder {
             builder: Arc::new(From::from(Some(schema::Schema::builder()))),
         }
+    }
+
+    #[staticmethod]
+    fn is_valid_field_name(name: &str) -> bool {
+        schema::is_valid_field_name(name)
     }
 
     /// Add a new text field to the schema.
@@ -352,22 +357,96 @@ impl SchemaBuilder {
 
     /// Add a fast bytes field to the schema.
     ///
-    /// Bytes field are not searchable and are only used
-    /// as fast field, to associate any kind of payload
-    /// to a document.
-    ///
     /// Args:
     ///     name (str): The name of the field.
-    fn add_bytes_field(&mut self, name: &str) -> PyResult<Self> {
+    ///     stored (bool, optional): If true sets the field as stored, the
+    ///         content of the field can be later restored from a Searcher.
+    ///         Defaults to False.
+    ///     indexed (bool, optional): If true sets the field to be indexed.
+    ///     fast (str, optional): Set the bytes options as a fast field. A fast
+    ///         field is a column-oriented fashion storage for tantivy. It is
+    ///         designed for the fast random access of some document fields
+    ///         given a document id.
+    #[pyo3(signature = (
+        name,
+        stored = false,
+        indexed = false,
+        fast = false
+    ))]
+    fn add_bytes_field(
+        &mut self,
+        name: &str,
+        stored: bool,
+        indexed: bool,
+        fast: bool,
+    ) -> PyResult<Self> {
         let builder = &mut self.builder;
+        let mut opts = BytesOptions::default();
+        if stored {
+            opts = opts.set_stored();
+        }
+        if indexed {
+            opts = opts.set_indexed();
+        }
+        if fast {
+            opts = opts.set_fast();
+        }
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
-            builder.add_bytes_field(name, INDEXED);
+            builder.add_bytes_field(name, opts);
         } else {
             return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
             ));
         }
+        Ok(self.clone())
+    }
+
+    /// Add an IP address field to the schema.
+    ///
+    /// Args:
+    ///     name (str): The name of the field.
+    ///     stored (bool, optional): If true sets the field as stored, the
+    ///         content of the field can be later restored from a Searcher.
+    ///         Defaults to False.
+    ///     indexed (bool, optional): If true sets the field to be indexed.
+    ///     fast (str, optional): Set the IP address options as a fast field. A
+    ///         fast field is a column-oriented fashion storage for tantivy. It
+    ///         is designed for the fast random access of some document fields
+    ///         given a document id.
+    #[pyo3(signature = (
+        name,
+        stored = false,
+        indexed = false,
+        fast = false
+    ))]
+    fn add_ip_addr_field(
+        &mut self,
+        name: &str,
+        stored: bool,
+        indexed: bool,
+        fast: bool,
+    ) -> PyResult<Self> {
+        let builder = &mut self.builder;
+        let mut opts = IpAddrOptions::default();
+        if stored {
+            opts = opts.set_stored();
+        }
+        if indexed {
+            opts = opts.set_indexed();
+        }
+        if fast {
+            opts = opts.set_fast();
+        }
+
+        if let Some(builder) = builder.write().unwrap().as_mut() {
+            builder.add_ip_addr_field(name, opts);
+        } else {
+            return Err(exceptions::PyValueError::new_err(
+                "Schema builder object isn't valid anymore.",
+            ));
+        }
+
         Ok(self.clone())
     }
 

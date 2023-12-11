@@ -37,6 +37,50 @@ on Python 3.11:
 
     nox -s test-3.11 -- -k simple_search
 
+## Doctests
+
+[Doctests](https://docs.python.org/3/library/doctest.html) are automatically
+enabled for all docstrings in the `tantivy` module. Here is a very basic
+introduction.  Consider the following hypothetical Rust `struct`:
+
+```rust
+/// Tantivy's Document is the object that can be indexed and then searched for.
+///
+/// Documents are fundamentally a collection of unordered tuples
+/// (field_name, value). In this list, one field may appear more than once.
+///
+/// Example:
+///     >>> doc = tantivy.Document()
+///     >>> doc.add_text("title", "The Old Man and the Sea")
+///     >>> doc.add_text("body", ("He was an old man who fished alone in a "
+///     ...                       "skiff in the Gulf Stream and he had gone "
+///     ...                       "eighty-four days now without taking a fish."))
+///     >>> doc
+///     Document(body=[He was an ],title=[The Old Ma])
+///
+#[pyclass(module = "tantivy")]
+#[derive(Clone, Default, PartialEq)]
+pub(crate) struct Document {
+    pub(crate) field_values: BTreeMap<String, Vec<Value>>,
+}
+```
+
+When the tests are executed, pytest will automatically search all the docstrings
+for `>>>` and `...` and execute the code in the docstring. The output of the
+code is compared to the text that follows the code. If the output matches, the
+test passes. If the output does not match, the test fails.
+
+In the above example, a Tantivy document object is created, and then the
+representation of the document is printed. This representation, and indeed any
+output that manual typing would produce, is compared to the text that follows
+and this is how doctests work.
+
+Doctests are a great way to ensure that the documentation is accurate and up to
+date, and doctests are therefore encouraged be present on every public 
+interface that users will interact with. However, doctest are not suitable 
+for coverage testing and other more advanced testing methods so you must
+judge when to use them.
+
 ## Working on tantivy-py documentation
 
 Please be aware that this documentation is structured using the [Diátaxis](https://diataxis.fr/) framework. In very simple terms, this framework will suggest the correct location for different kinds of documentation. Please make sure you gain a basic understanding of the goals of the framework before making large pull requests with new documentation.

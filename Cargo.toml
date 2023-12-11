@@ -1,9 +1,9 @@
 [package]
 name = "tantivy"
-version = "0.21.0"
+version = "0.21.1"
 readme = "README.md"
 authors = ["Damir Jelić <poljar@termina.org.uk>"]
-edition = "2018"
+edition = "2021"
 license = "MIT"
 
 [lib]
@@ -11,18 +11,18 @@ name = "tantivy"
 crate-type = ["cdylib"]
 
 [build-dependencies]
-pyo3-build-config = "0.19.1"
+pyo3-build-config = "0.20.0"
 
 [dependencies]
 base64 = "0.21"
 chrono = "0.4.23"
-tantivy = "0.21.0"
+tantivy = "0.21.1"
 itertools = "0.10.5"
 futures = "0.3.26"
-pythonize = "0.19.0"
+pythonize = "0.20.0"
 serde = "1.0"
 serde_json = "1.0.91"
 
 [dependencies.pyo3]
-version = "0.19.1"
+version = "0.20.0"
 features = ["chrono", "extension-module"]

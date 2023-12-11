@@ -6,9 +6,10 @@ use pyo3::{
     basic::CompareOp,
     prelude::*,
     types::{
-        PyAny, PyBool, PyDateAccess, PyDateTime, PyDict, PyList, PyTimeAccess,
-        PyTuple,
+        PyAny, PyBool, PyDateAccess, PyDateTime, PyDict, PyInt, PyList,
+        PyTimeAccess, PyTuple,
     },
+    Python,
 };
 
 use chrono::{offset::TimeZone, NaiveDateTime, Utc};
@@ -23,7 +24,8 @@ use serde_json::Value as JsonValue;
 use std::{
     collections::{BTreeMap, HashMap},
     fmt,
-    net::Ipv6Addr,
+    net::{IpAddr, Ipv6Addr},
+    str::FromStr,
 };
 
 pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
@@ -49,6 +51,11 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     }
     if let Ok(b) = any.extract::<Vec<u8>>() {
         return Ok(Value::Bytes(b));
+    }
+    if let Ok(dict) = any.downcast::<PyDict>() {
+        if let Ok(json) = pythonize::depythonize(dict) {
+            return Ok(Value::JsonObject(json));
+        }
     }
     Err(to_pyerr(format!("Value unsupported {any:?}")))
 }
@@ -105,7 +112,37 @@ pub(crate) fn extract_value_for_type(
                 .map_err(to_pyerr_for_type("Facet", field_name, any))?
                 .inner,
         ),
-        _ => return Err(to_pyerr(format!("Value unsupported {:?}", any))),
+        tv::schema::Type::Bytes => Value::Bytes(
+            any.extract::<Vec<u8>>()
+                .map_err(to_pyerr_for_type("Bytes", field_name, any))?,
+        ),
+        tv::schema::Type::Json => {
+            if let Ok(json_str) = any.extract::<&str>() {
+                return serde_json::from_str(json_str)
+                    .map(Value::JsonObject)
+                    .map_err(to_pyerr_for_type("Json", field_name, any));
+            }
+
+            Value::JsonObject(
+                any.downcast::<PyDict>()
+                    .map(|dict| pythonize::depythonize(&dict))
+                    .map_err(to_pyerr_for_type("Json", field_name, any))?
+                    .map_err(to_pyerr_for_type("Json", field_name, any))?,
+            )
+        }
+        tv::schema::Type::IpAddr => {
+            let val = any
+                .extract::<&str>()
+                .map_err(to_pyerr_for_type("IpAddr", field_name, any))?;
+
+            IpAddr::from_str(val)
+                .map(|addr| match addr {
+                    IpAddr::V4(addr) => addr.to_ipv6_mapped(),
+                    IpAddr::V6(addr) => addr,
+                })
+                .map(Value::IpAddr)
+                .map_err(to_pyerr_for_type("IpAddr", field_name, any))?
+        }
     };
 
     Ok(value)
@@ -126,6 +163,20 @@ fn extract_value_single_or_list_for_type(
 ) -> PyResult<Vec<Value>> {
     // Check if a numeric fast field supports multivalues.
     if let Ok(values) = any.downcast::<PyList>() {
+        // Process an array of integers as a single entry if it is a bytes field.
+        if field_type.value_type() == tv::schema::Type::Bytes
+            && values
+                .get_item(0)
+                .map(|v| v.is_instance_of::<PyInt>())
+                .unwrap_or(false)
+        {
+            return Ok(vec![extract_value_for_type(
+                values,
+                field_type.value_type(),
+                field_name,
+            )?]);
+        }
+
         values
             .iter()
             .map(|any| {
@@ -377,8 +428,10 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
 ///     >>> doc = tantivy.Document()
 ///     >>> doc.add_text("title", "The Old Man and the Sea")
 ///     >>> doc.add_text("body", ("He was an old man who fished alone in a "
-///                             "skiff in the Gulf Stream and he had gone "
-///                             "eighty-four days now without taking a fish."))
+///     ...                       "skiff in the Gulf Stream and he had gone "
+///     ...                       "eighty-four days now without taking a fish."))
+///     >>> doc
+///     Document(body=[He was an ],title=[The Old Ma])
 ///
 /// For simplicity, it is also possible to build a `Document` by passing the field
 /// values directly as constructor arguments.
@@ -400,16 +453,16 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
 ///
 /// Example:
 ///     >>> schema = (
-///             SchemaBuilder()
-///                 .add_unsigned_field("unsigned")
-///                 .add_integer_field("signed")
-///                 .add_float_field("float")
-///                 .build()
-///         )
+///     ...     SchemaBuilder()
+///     ...         .add_unsigned_field("unsigned")
+///     ...         .add_integer_field("signed")
+///     ...         .add_float_field("float")
+///     ...         .build()
+///     ... )
 ///     >>> doc = tantivy.Document.from_dict(
-///             {"unsigned": 1000, "signed": -5, "float": 0.4},
-///             schema,
-///         )
+///     ...     {"unsigned": 1000, "signed": -5, "float": 0.4},
+///     ...     schema,
+///     ... )
 #[pyclass(module = "tantivy")]
 #[derive(Clone, Default, PartialEq)]
 pub(crate) struct Document {

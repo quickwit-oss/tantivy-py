@@ -41,6 +41,7 @@ jobs:
             github.com:443
             pypi.org:443
             uploads.github.com:443
+            static.rust-lang.org:443
 
       - name: Checkout repository
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
@@ -73,6 +74,6 @@ jobs:
       #   ./location_of_script_within_repo/buildscript.sh
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@c0d1daa7f7e14667747d73a7dbbe8c074bc8bfe2 # v2.2.5
+        uses: github/codeql-action/analyze@66b90a5db151a8042fa97405c6cf843bbe433f7b # v2.2.5
         with:
           category: "/language:${{matrix.language}}"
