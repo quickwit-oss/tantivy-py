@@ -23,7 +23,7 @@ impl Query {
     /// Construct a Tantivy's TermQuery
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, field_value, index_option = "position"))]
-    pub(crate) fn new_term_query(
+    pub(crate) fn term_query(
         schema: &Schema,
         field_name: &str,
         field_value: &PyAny,

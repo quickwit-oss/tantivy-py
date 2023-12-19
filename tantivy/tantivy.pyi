@@ -190,7 +190,7 @@ class Document:
 
 class Query:
     @staticmethod
-    def new_term_query(schema: Schema, field_name: str, field_value: Any, index_option: str = "position") -> Query:
+    def term_query(schema: Schema, field_name: str, field_value: Any, index_option: str = "position") -> Query:
         pass
 
 

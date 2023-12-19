@@ -930,7 +930,7 @@ class TestSnippets(object):
 class TestQuery(object):
     def test_term_query(self, ram_index):
         index = ram_index
-        query = Query.new_term_query(index.schema, "title", "sea")
+        query = Query.term_query(index.schema, "title", "sea")
 
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
