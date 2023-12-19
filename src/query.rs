@@ -29,27 +29,18 @@ impl Query {
         field_value: &PyAny,
         index_option: &str,
     ) -> PyResult<Query> {
-        make_term_query(schema, field_name, field_value, index_option)
+        let term = make_term(&schema.inner, field_name, field_value)?;
+        let index_option = match index_option {
+            "position" => tv::schema::IndexRecordOption::WithFreqsAndPositions,
+            "freq" => tv::schema::IndexRecordOption::WithFreqs,
+            "basic" => tv::schema::IndexRecordOption::Basic,
+            _ => return Err(exceptions::PyValueError::new_err(
+                "Invalid index option, valid choices are: 'basic', 'freq' and 'position'"
+            ))
+        };
+        let inner = tv::query::TermQuery::new(term, index_option);
+        Ok(Query {
+            inner: Box::new(inner),
+        })
     }
-}
-
-fn make_term_query(
-    schema: &Schema,
-    field_name: &str,
-    field_value: &PyAny,
-    index_option: &str,
-) -> PyResult<Query> {
-    let term = make_term(&schema.inner, field_name, field_value)?;
-    let index_option = match index_option {
-        "position" => tv::schema::IndexRecordOption::WithFreqsAndPositions,
-        "freq" => tv::schema::IndexRecordOption::WithFreqs,
-        "basic" => tv::schema::IndexRecordOption::Basic,
-        _ => return Err(exceptions::PyValueError::new_err(
-            "Invalid index option, valid choices are: 'basic', 'freq' and 'position'"
-        ))
-    };
-    let inner = tv::query::TermQuery::new(term, index_option);
-    Ok(Query {
-        inner: Box::new(inner),
-    })
 }
