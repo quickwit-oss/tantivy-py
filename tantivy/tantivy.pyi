@@ -189,7 +189,9 @@ class Document:
 
 
 class Query:
-    pass
+    @staticmethod
+    def term_query(schema: Schema, field_name: str, field_value: Any, index_option: str = "position") -> Query:
+        pass
 
 
 class Order(Enum):

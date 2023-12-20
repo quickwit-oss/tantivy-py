@@ -7,7 +7,7 @@ import tantivy
 import pickle
 import pytest
 import tantivy
-from tantivy import Document, Index, SchemaBuilder, SnippetGenerator
+from tantivy import Document, Index, SchemaBuilder, SnippetGenerator, Query
 
 
 def schema():
@@ -925,3 +925,15 @@ class TestSnippets(object):
             assert first.end == 23
             html_snippet = snippet.to_html()
             assert html_snippet == "The Old Man and the <b>Sea</b>"
+
+
+class TestQuery(object):
+    def test_term_query(self, ram_index):
+        index = ram_index
+        query = Query.term_query(index.schema, "title", "sea")
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
