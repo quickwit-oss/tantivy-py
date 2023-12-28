@@ -29,6 +29,7 @@ pub(crate) struct SchemaBuilder {
     pub(crate) builder: Arc<RwLock<Option<schema::SchemaBuilder>>>,
 }
 
+const NO_TOKENIZER_NAME: &str = "raw";
 const TOKENIZER: &str = "default";
 const RECORD: &str = "position";
 
@@ -53,6 +54,14 @@ impl SchemaBuilder {
     ///     stored (bool, optional): If true sets the field as stored, the
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
+    ///     fast (bool, optional): Set the text options as a fast field. A
+    ///         fast field is a column-oriented fashion storage for tantivy.
+    ///         Text fast fields will have the term ids stored in the fast
+    ///         field. The fast field will be a multivalued fast field.
+    ///         It is recommended to use the "raw" tokenizer, since it will
+    ///         store the original text unchanged. The "default" tokenizer will
+    ///         store the terms as lower case and this will be reflected in the
+    ///         dictionary.
     ///     tokenizer_name (str, optional): The name of the tokenizer that
     ///         should be used to process the field. Defaults to 'default'
     ///     index_option (str, optional): Sets which information should be
@@ -68,6 +77,7 @@ impl SchemaBuilder {
     #[pyo3(signature = (
         name,
         stored = false,
+        fast = false,
         tokenizer_name = TOKENIZER,
         index_option = RECORD
     ))]
@@ -75,12 +85,14 @@ impl SchemaBuilder {
         &mut self,
         name: &str,
         stored: bool,
+        fast: bool,
         tokenizer_name: &str,
         index_option: &str,
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
         let options = SchemaBuilder::build_text_option(
             stored,
+            fast,
             tokenizer_name,
             index_option,
         )?;
@@ -296,6 +308,14 @@ impl SchemaBuilder {
     ///     stored (bool, optional): If true sets the field as stored, the
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
+    ///     fast (bool, optional): Set the text options as a fast field. A
+    ///         fast field is a column-oriented fashion storage for tantivy.
+    ///         Text fast fields will have the term ids stored in the fast
+    ///         field. The fast field will be a multivalued fast field.
+    ///         It is recommended to use the "raw" tokenizer, since it will
+    ///         store the original text unchanged. The "default" tokenizer will
+    ///         store the terms as lower case and this will be reflected in the
+    ///         dictionary.
     ///     tokenizer_name (str, optional): The name of the tokenizer that
     ///         should be used to process the field. Defaults to 'default'
     ///     index_option (str, optional): Sets which information should be
@@ -311,6 +331,7 @@ impl SchemaBuilder {
     #[pyo3(signature = (
         name,
         stored = false,
+        fast = false,
         tokenizer_name = TOKENIZER,
         index_option = RECORD
     ))]
@@ -318,12 +339,14 @@ impl SchemaBuilder {
         &mut self,
         name: &str,
         stored: bool,
+        fast: bool,
         tokenizer_name: &str,
         index_option: &str,
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
         let options = SchemaBuilder::build_text_option(
             stored,
+            fast,
             tokenizer_name,
             index_option,
         )?;
@@ -482,6 +505,7 @@ impl SchemaBuilder {
 
     fn build_text_option(
         stored: bool,
+        fast: bool,
         tokenizer_name: &str,
         index_option: &str,
     ) -> PyResult<schema::TextOptions> {
@@ -502,6 +526,17 @@ impl SchemaBuilder {
             schema::TextOptions::default().set_indexing_options(indexing);
         let options = if stored {
             options.set_stored()
+        } else {
+            options
+        };
+
+        let options = if fast {
+            let text_tokenizer = if tokenizer_name != NO_TOKENIZER_NAME {
+                Some(tokenizer_name)
+            } else {
+                None
+            };
+            options.set_fast(text_tokenizer)
         } else {
             options
         };
