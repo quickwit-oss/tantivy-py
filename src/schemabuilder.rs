@@ -115,7 +115,7 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the numeric options as a fast field. A
+    ///     fast (bool, optional): Set the numeric options as a fast field. A
     ///         fast field is a column-oriented fashion storage for tantivy.
     ///         It is designed for the fast random access of some document
     ///         fields given a document id.
@@ -152,7 +152,7 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the numeric options as a fast field. A
+    ///     fast (bool, optional): Set the numeric options as a fast field. A
     ///         fast field is a column-oriented fashion storage for tantivy.
     ///         It is designed for the fast random access of some document
     ///         fields given a document id.
@@ -189,7 +189,7 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the numeric options as a fast field. A
+    ///     fast (bool, optional): Set the numeric options as a fast field. A
     ///         fast field is a column-oriented fashion storage for tantivy.
     ///         It is designed for the fast random access of some document
     ///         fields given a document id.
@@ -226,7 +226,7 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the numeric options as a fast field. A
+    ///     fast (bool, optional): Set the numeric options as a fast field. A
     ///         fast field is a column-oriented fashion storage for tantivy.
     ///         It is designed for the fast random access of some document
     ///         fields given a document id.
@@ -263,7 +263,7 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the date options as a fast field. A fast
+    ///     fast (bool, optional): Set the date options as a fast field. A fast
     ///         field is a column-oriented fashion storage for tantivy. It is
     ///         designed for the fast random access of some document fields
     ///         given a document id.
@@ -386,7 +386,7 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the bytes options as a fast field. A fast
+    ///     fast (bool, optional): Set the bytes options as a fast field. A fast
     ///         field is a column-oriented fashion storage for tantivy. It is
     ///         designed for the fast random access of some document fields
     ///         given a document id.
@@ -433,7 +433,7 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-    ///     fast (str, optional): Set the IP address options as a fast field. A
+    ///     fast (bool, optional): Set the IP address options as a fast field. A
     ///         fast field is a column-oriented fashion storage for tantivy. It
     ///         is designed for the fast random access of some document fields
     ///         given a document id.
