@@ -1,6 +1,4 @@
-# Reference
-
-## Valid Query Formats
+# Valid Query Formats
 
 tantivy-py supports the [query language](https://docs.rs/tantivy/latest/tantivy/query/struct.QueryParser.html#method.parse_query) used in tantivy.
 Below a few basic query formats are shown:
