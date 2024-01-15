@@ -77,6 +77,6 @@ jobs:
         with:
           toolchain: 1.73.0
 
-      - uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8  # 2.7.1
+      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84  # 2.7.3
       - run: python3 -m pip install nox
       - run: nox -s test-${{ matrix.python-version }}
