@@ -7,7 +7,7 @@ use tantivy as tv;
 ///
 /// The schema is very strict. To build the schema the `SchemaBuilder` class is
 /// provided.
-#[pyclass(frozen, module = "tantivy")]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 #[derive(Deserialize, PartialEq, Serialize)]
 pub(crate) struct Schema {
     pub(crate) inner: tv::schema::Schema,

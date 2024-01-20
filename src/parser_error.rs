@@ -82,7 +82,7 @@ impl QueryParserErrorIntoPy for tv::query::QueryParserError {
 }
 
 /// Error in the query syntax.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct SyntaxError {
     message: String,
 }
@@ -131,7 +131,7 @@ impl TryFrom<tv::query::QueryParserError> for SyntaxError {
 }
 
 /// This query is unsupported.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct UnsupportedQueryError {
     message: String,
 }
@@ -180,7 +180,7 @@ impl TryFrom<tv::query::QueryParserError> for UnsupportedQueryError {
 }
 
 /// The query references a field that is not in the schema.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub struct FieldDoesNotExistError {
     field: String,
 }
@@ -230,7 +230,7 @@ impl TryFrom<tv::query::QueryParserError> for FieldDoesNotExistError {
 }
 
 /// The query contains a term for a `u64` or `i64`-field, but the value is neither.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct ExpectedIntError {
     parse_int_error: ParseIntError,
 }
@@ -294,7 +294,7 @@ impl TryFrom<tv::query::QueryParserError> for ExpectedIntError {
 }
 
 /// The query contains a term for a bytes field, but the value is not valid base64.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct ExpectedBase64Error {
     decode_error: base64::DecodeError,
 }
@@ -393,7 +393,7 @@ impl TryFrom<tv::query::QueryParserError> for ExpectedBase64Error {
 }
 
 /// The query contains a term for a `f64`-field, but the value is not a f64.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct ExpectedFloatError {
     parse_float_error: ParseFloatError,
 }
@@ -437,7 +437,7 @@ impl TryFrom<tv::query::QueryParserError> for ExpectedFloatError {
 }
 
 /// The query contains a term for a `bool`-field, but the value is not a bool.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct ExpectedBoolError {
     parse_bool_error: ParseBoolError,
 }
@@ -481,7 +481,7 @@ impl TryFrom<tv::query::QueryParserError> for ExpectedBoolError {
 }
 
 /// It is forbidden queries that are only "excluding". (e.g. -title:pop)
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct AllButQueryForbiddenError;
 
 #[pymethods]
@@ -521,7 +521,7 @@ impl TryFrom<tv::query::QueryParserError> for AllButQueryForbiddenError {
 }
 
 /// If no default field is declared, running a query without any field specified is forbbidden.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct NoDefaultFieldDeclaredError;
 
 #[pymethods]
@@ -561,7 +561,7 @@ impl TryFrom<tv::query::QueryParserError> for NoDefaultFieldDeclaredError {
 }
 
 /// The field searched for is not declared as indexed in the schema.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct FieldNotIndexedError {
     field: String,
 }
@@ -609,7 +609,7 @@ impl TryFrom<tv::query::QueryParserError> for FieldNotIndexedError {
 }
 
 /// A phrase query was requested for a field that does not have any positions indexed.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct FieldDoesNotHavePositionsIndexedError {
     field: String,
 }
@@ -668,7 +668,7 @@ impl TryFrom<tv::query::QueryParserError>
 }
 
 /// A phrase-prefix query requires at least two terms
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct PhrasePrefixRequiresAtLeastTwoTermsError {
     /// The phrase which triggered the issue.
     phrase: String,
@@ -736,7 +736,7 @@ impl TryFrom<tv::query::QueryParserError>
 }
 
 /// The tokenizer for the given field is unknown.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct UnknownTokenizerError {
     /// The name of the tokenizer.
     tokenizer: String,
@@ -799,7 +799,7 @@ impl TryFrom<tv::query::QueryParserError> for UnknownTokenizerError {
 
 /// The query contains a range query with a phrase as one of the bounds. Only terms can be used as
 /// bounds.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct RangeMustNotHavePhraseError;
 
 #[pymethods]
@@ -839,7 +839,7 @@ impl TryFrom<tv::query::QueryParserError> for RangeMustNotHavePhraseError {
 }
 
 /// The format for the date field is not RFC 3339 compliant.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct DateFormatError {
     // Keep around the entire `QueryParserError` to avoid importing the `time` crate.
     inner: tv::query::QueryParserError,
@@ -884,7 +884,7 @@ impl TryFrom<tv::query::QueryParserError> for DateFormatError {
 }
 
 /// The format for the facet field is invalid.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct FacetFormatError {
     facet_parse_error: FacetParseError,
 }
@@ -928,7 +928,7 @@ impl TryFrom<tv::query::QueryParserError> for FacetFormatError {
 }
 
 /// The format for the ip field is invalid.
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct IpFormatError {
     addr_parse_error: AddrParseError,
 }

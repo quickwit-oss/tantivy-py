@@ -27,7 +27,7 @@ const RELOAD_POLICY: &str = "commit";
 ///
 /// To create an IndexWriter first create an Index and call the writer() method
 /// on the index object.
-#[pyclass]
+#[pyclass(module = "tantivy.tantivy")]
 pub(crate) struct IndexWriter {
     inner_index_writer: Option<tv::IndexWriter>,
     schema: tv::schema::Schema,
@@ -200,7 +200,7 @@ impl IndexWriter {
 ///
 /// If an index already exists it will be opened and reused. Raises OSError
 /// if there was a problem during the opening or creation of the index.
-#[pyclass]
+#[pyclass(module = "tantivy.tantivy")]
 pub(crate) struct Index {
     pub(crate) index: tv::Index,
     reader: tv::IndexReader,
