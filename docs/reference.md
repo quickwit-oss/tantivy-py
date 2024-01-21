@@ -36,3 +36,28 @@ best_doc = searcher.doc(best_doc_address)
 Note: for integer search, the integer field should be indexed.
 
 For more possible query formats and possible query options, see [Tantivy Query Parser Docs.](https://docs.rs/tantivy/latest/tantivy/query/struct.QueryParser.html)
+
+## Escape quotes inside a query string
+
+The tantivy docs for the query parser say that special characters like quotes can be 
+escaped inside query values. However, it will also be necessary to surround
+the search query in additional quotes, as if a phrase query were being used.
+
+The following will NOT work:
+
+```python
+# Raises ValueError
+index.parse_query(r'sea\"', ["title", "body"])
+```
+
+However, the following will succeed:
+
+```python
+# Works!
+index.parse_query(r'"sea\""', ["title", "body"])
+```
+
+Note that whether the included (and escaped) quote actually gets used
+to match documents depends on the tokenizer used for the field. For example,
+the default tokenizer will not match the document "sea\"s" with the query
+"sea\"", because this tokenizer discards punctuation. 
