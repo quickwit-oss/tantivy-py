@@ -16,7 +16,7 @@ use tantivy::schema;
 /// implicitely imply that a document belonging to a facet also belongs to the
 /// ancestor of its facet. In the example above, /electronics/tv_and_video/
 /// and /electronics.
-#[pyclass(frozen, module = "tantivy")]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub(crate) struct Facet {
     pub(crate) inner: schema::Facet,

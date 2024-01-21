@@ -3,7 +3,7 @@ use pyo3::{exceptions, prelude::*, types::PyAny};
 use tantivy as tv;
 
 /// Tantivy's Query
-#[pyclass(frozen)]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct Query {
     pub(crate) inner: Box<dyn tv::query::Query>,
 }
