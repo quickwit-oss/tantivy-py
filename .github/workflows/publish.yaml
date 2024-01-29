@@ -54,7 +54,7 @@ jobs:
           args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11 3.12
 
       - name: Upload wheels
-        uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6  # 4.2.0
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8  # 4.3.0
         with:
           name: wheels
           path: dist
@@ -84,7 +84,7 @@ jobs:
           args: --release -o dist
 
       - name: Upload wheels
-        uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6  # 4.2.0
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8  # 4.3.0
         with:
           name: wheels
           path: dist
@@ -116,7 +116,7 @@ jobs:
           args: --release -o dist
 
       - name: Upload wheels
-        uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6  # 4.2.0
+        uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8  # 4.3.0
         with:
           name: wheels
           path: dist
