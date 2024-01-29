@@ -11,6 +11,8 @@ mod schema;
 mod schemabuilder;
 mod searcher;
 mod snippet;
+#[cfg(feature = "lindera")]
+mod lindera_tokenizer;
 
 use document::Document;
 use facet::Facet;

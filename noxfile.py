@@ -5,7 +5,7 @@ import nox
 def test(session):
     session.install("-rrequirements-dev.txt")
     session.install("-e", ".", "--no-build-isolation")
-    session.run("pytest", *session.posargs)
+    session.run("pytest", "-m", "not lindera", *session.posargs)
 
 
 @nox.session(python=["3.8", "3.9", "3.10", "3.11", "3.12"])

@@ -244,6 +244,18 @@ impl Index {
         Ok(Index { index, reader })
     }
 
+    /// Register the lindera tokenizer
+    ///
+    /// This will only be available if tantivy-py was built with the "lindera"
+    /// feature.
+    #[cfg(feature = "lindera")]
+    fn register_lindera_tokenizer(
+        &self,
+    ) {
+        let tokenizer = crate::lindera_tokenizer::create_tokenizer(lindera_core::mode::Mode::Normal);
+        self.index.tokenizers().register("lang_ja", tokenizer);
+    }
+
     /// Create a `IndexWriter` for the index.
     ///
     /// The writer will be multithreaded and the provided heap size will be
