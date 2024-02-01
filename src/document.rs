@@ -125,7 +125,7 @@ pub(crate) fn extract_value_for_type(
 
             Value::JsonObject(
                 any.downcast::<PyDict>()
-                    .map(|dict| pythonize::depythonize(&dict))
+                    .map(|dict| pythonize::depythonize(dict))
                     .map_err(to_pyerr_for_type("Json", field_name, any))?
                     .map_err(to_pyerr_for_type("Json", field_name, any))?,
             )
