@@ -69,7 +69,7 @@ import tantivy
 schema_builder = tantivy.SchemaBuilder()
 schema_builder.add_text_field("title", stored=True)
 schema_builder.add_text_field("body", stored=True)
-schema_builder.add_integer_field("doc_id",stored=True)
+schema_builder.add_integer_field("doc_id", stored=True, indexed=True)
 schema = schema_builder.build()
 
 # Creating our index (in memory)
@@ -80,7 +80,11 @@ To have a persistent index, use the path
 parameter to store the index on the disk, e.g:
 
 ```python
-index = tantivy.Index(schema, path=os.getcwd() + '/index')
+import os
+
+index_path = os.path.abspath("index")
+os.makedirs(index_path)
+index = tantivy.Index(schema, path=index_path)
 ```
 
 By default, tantivy  offers the following tokenizers
@@ -152,13 +156,14 @@ Some basic query Formats.
 query = index.parse_query('(Old AND Man) OR Stream', ["title", "body"])
 (best_score, best_doc_address) = searcher.search(query, 3).hits[0]
 best_doc = searcher.doc(best_doc_address)
+print(best_doc)
 ```
 
  - +(includes) and -(excludes) operators.
 ```python
 query = index.parse_query('+Old +Man chef -fished', ["title", "body"])
-(best_score, best_doc_address) = searcher.search(query, 3).hits[0]
-best_doc = searcher.doc(best_doc_address)
+hits = searcher.search(query, 3).hits
+print(len(hits))
 ```
 Note: in a query like above, a word with no +/- acts like an OR.
 
@@ -167,13 +172,15 @@ Note: in a query like above, a word with no +/- acts like an OR.
 query = index.parse_query('"eighty-four days"', ["title", "body"])
 (best_score, best_doc_address) = searcher.search(query, 3).hits[0]
 best_doc = searcher.doc(best_doc_address)
+print(best_doc)
 ```
 
 - integer search
 ```python
-query = index.parse_query('"eighty-four days"', ["doc_id"])
+query = index.parse_query("1", ["doc_id"])
 (best_score, best_doc_address) = searcher.search(query, 3).hits[0]
 best_doc = searcher.doc(best_doc_address)
+print(best_doc)
 ```
 Note: for integer search, the integer field should be indexed.
 
