@@ -62,10 +62,10 @@ impl SnippetGenerator {
             tv::SnippetGenerator::create(&searcher.inner, query.get(), field)
                 .map_err(to_pyerr)?;
 
-        return Ok(SnippetGenerator {
+        Ok(SnippetGenerator {
             field_name: field_name.to_string(),
             inner: generator,
-        });
+        })
     }
 
     pub fn snippet_from_doc(&self, doc: &crate::Document) -> crate::Snippet {
