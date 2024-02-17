@@ -304,10 +304,7 @@ impl ExpectedBase64Error {
     /// If `true`, an invalid byte was found in the query. Padding characters (`=`) interspersed in
     /// the encoded form will be treated as invalid bytes.
     fn caused_by_invalid_byte(&self) -> bool {
-        match self.decode_error {
-            base64::DecodeError::InvalidByte { .. } => true,
-            _ => false,
-        }
+        matches!(self.decode_error, base64::DecodeError::InvalidByte { .. })
     }
 
     /// If the error was caused by an invalid byte, returns the offset and offending byte.
@@ -322,19 +319,16 @@ impl ExpectedBase64Error {
 
     /// If `true`, the length of the base64 string was invalid.
     fn caused_by_invalid_length(&self) -> bool {
-        match self.decode_error {
-            base64::DecodeError::InvalidLength => true,
-            _ => false,
-        }
+        matches!(self.decode_error, base64::DecodeError::InvalidLength)
     }
 
     /// The last non-padding input symbol's encoded 6 bits have nonzero bits that will be discarded.
     /// If `true`, this is indicative of corrupted or truncated Base64.
     fn caused_by_invalid_last_symbol(&self) -> bool {
-        match self.decode_error {
-            base64::DecodeError::InvalidLastSymbol { .. } => true,
-            _ => false,
-        }
+        matches!(
+            self.decode_error,
+            base64::DecodeError::InvalidLastSymbol { .. }
+        )
     }
 
     /// If the error was caused by an invalid last symbol, returns the offset and offending byte.
@@ -350,10 +344,7 @@ impl ExpectedBase64Error {
     /// The nature of the padding was not as configured: absent or incorrect when it must be
     /// canonical, or present when it must be absent, etc.
     fn caused_by_invalid_padding(&self) -> bool {
-        match self.decode_error {
-            base64::DecodeError::InvalidPadding => true,
-            _ => false,
-        }
+        matches!(self.decode_error, base64::DecodeError::InvalidPadding)
     }
 
     fn __repr__(&self) -> String {

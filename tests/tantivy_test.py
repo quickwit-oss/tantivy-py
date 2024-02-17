@@ -94,6 +94,20 @@ class TestClass(object):
             == """Query(BooleanQuery { subqueries: [(Should, TermQuery(Term(field=0, type=Str, "winter"))), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
         )
 
+    def test_parse_query_field_boosts(self, ram_index):
+        query = ram_index.parse_query("winter", field_boosts={"title": 2.3})
+        assert (
+            repr(query)
+            == """Query(BooleanQuery { subqueries: [(Should, Boost(query=TermQuery(Term(field=0, type=Str, "winter")), boost=2.3)), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
+        )
+
+    def test_parse_query_field_boosts(self, ram_index):
+        query = ram_index.parse_query("winter", fuzzy_fields={"title": (True, 1, False)})
+        assert (
+            repr(query)
+            == """Query(BooleanQuery { subqueries: [(Should, FuzzyTermQuery { term: Term(field=0, type=Str, "winter"), distance: 1, transposition_cost_one: false, prefix: true }), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
+        )
+
     def test_query_errors(self, ram_index):
         index = ram_index
         # no "bod" field
