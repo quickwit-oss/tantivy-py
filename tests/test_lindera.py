@@ -1,15 +1,23 @@
 import pytest
 pytestmark = pytest.mark.lindera
 
-from tantivy import SchemaBuilder, Index, Document, lindera
+from tantivy import SchemaBuilder, Index, Document
 
 
 @pytest.mark.parametrize("mode", [
-    lindera.LNormal(),
-    lindera.LDecompose(),
+    "normal",
+    "decompose",
 ])
 def test_basic(mode):
-    # breakpoint()
+    # The import is here so that the non-lindera tests
+    # can run without lindera installed.
+    from tantivy import lindera
+
+    if mode == "normal":
+        mode = lindera.LNormal()
+    else:
+        mode = lindera.LDecompose()
+
     sb = SchemaBuilder()
     sb.add_text_field("title", stored=True, tokenizer_name="lang_ja")
     schema = sb.build()
