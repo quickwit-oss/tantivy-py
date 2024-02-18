@@ -286,22 +286,25 @@ impl Index {
         mode: Option<&PyAny>,
         dictionary_kind: crate::lindera_tokenizer::LinderaDictionaryKind,
     ) -> PyResult<()> {
-        use crate::lindera_tokenizer::{LNormal, LDecompose};
+        use crate::lindera_tokenizer::{LDecompose, LNormal};
 
         let mode = match mode {
             None => lindera_core::mode::Mode::Normal,
-            Some(mode) => if let Ok(obj) = mode.extract::<LNormal>() {
-                obj.into()
-            } else if let Ok(obj) = mode.extract::<LDecompose>() {
-                obj.into()
-            } else {
-                return Err(exceptions::PyTypeError::new_err(
+            Some(mode) => {
+                if let Ok(obj) = mode.extract::<LNormal>() {
+                    obj.into()
+                } else if let Ok(obj) = mode.extract::<LDecompose>() {
+                    obj.into()
+                } else {
+                    return Err(exceptions::PyTypeError::new_err(
                     "Invalid mode, valid choices are: 'normal' and 'decompose'"
                 ));
+                }
             }
         };
         let tokenizer = crate::lindera_tokenizer::create_tokenizer(
-            mode, dictionary_kind.into(),
+            mode,
+            dictionary_kind.into(),
         );
         self.index.tokenizers().register(&tokenizer_name, tokenizer);
         Ok(())

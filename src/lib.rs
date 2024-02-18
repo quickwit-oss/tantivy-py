@@ -5,14 +5,14 @@ use pyo3::{exceptions, prelude::*, wrap_pymodule};
 mod document;
 mod facet;
 mod index;
+#[cfg(feature = "lindera")]
+mod lindera_tokenizer;
 mod parser_error;
 mod query;
 mod schema;
 mod schemabuilder;
 mod searcher;
 mod snippet;
-#[cfg(feature = "lindera")]
-mod lindera_tokenizer;
 
 use document::Document;
 use facet::Facet;
