@@ -92,6 +92,19 @@ fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
 
     m.add_wrapped(wrap_pymodule!(query_parser_error))?;
 
+    #[cfg(feature = "lindera")]
+    m.add_wrapped(wrap_pymodule!(lindera))?;
+
+    Ok(())
+}
+
+#[cfg(feature = "lindera")]
+#[pymodule]
+fn lindera(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<crate::lindera_tokenizer::LinderaDictionaryKind>()?;
+    m.add_class::<crate::lindera_tokenizer::LNormal>()?;
+    m.add_class::<crate::lindera_tokenizer::LDecompose>()?;
+    m.add_class::<crate::lindera_tokenizer::LinderaModeDecomposePenalty>()?;
     Ok(())
 }
 

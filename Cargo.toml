@@ -25,7 +25,7 @@ serde_json = "1.0.91"
 # Lindera
 lindera-core = { version = "0.27.2", optional = true }
 lindera-dictionary = { version = "0.27.2", optional = true }
-lindera-tantivy = { version = "0.27.1", optional = true, features = ["ipadic"] }
+lindera-tantivy = { version = "0.27.1", optional = true, features = ["unidic-compress", "unidic", "ko-dic-compress", "cc-cedict-compress", "ko-dic", "cc-cedict", "ipadic", "ipadic-compress"] }
 
 [dependencies.pyo3]
 version = "0.20.0"
@@ -33,4 +33,3 @@ features = ["chrono", "extension-module"]
 
 [features]
 lindera = ["lindera-core", "lindera-dictionary", "lindera-tantivy"]
-

@@ -163,20 +163,20 @@ impl IndexWriter {
             Value::Bytes(_) => {
                 return Err(exceptions::PyValueError::new_err(format!(
                     "Field `{field_name}` is bytes type not deletable."
-                )))
+                )));
             }
             Value::PreTokStr(_pretok) => {
                 return Err(exceptions::PyValueError::new_err(format!(
                     "Field `{field_name}` is pretokenized. This is not authorized for delete."
-                )))
+                )));
             }
             Value::JsonObject(_) => {
                 return Err(exceptions::PyValueError::new_err(format!(
                     "Field `{field_name}` is json object type not deletable."
-                )))
-            },
+                )));
+            }
             Value::Bool(b) => Term::from_field_bool(field, b),
-            Value::IpAddr(i) => Term::from_field_ip_addr(field, i)
+            Value::IpAddr(i) => Term::from_field_ip_addr(field, i),
         };
         Ok(self.inner()?.delete_term(term))
     }
@@ -249,13 +249,61 @@ impl Index {
     /// Register the lindera tokenizer
     ///
     /// This will only be available if tantivy-py was built with the "lindera"
-    /// feature.
+    /// feature. Please see the documentation for how to do this.
+    /// Args:
+    ///    tokenizer_name (str): The name of the tokenizer. Example: "lang_ja"
+    ///    mode (Optional[LNormal, LDecompose]): The mode of the tokenizer.
+    ///        If not provided, the mode will be `Normal`. These modes are
+    ///        documented [in the lindera documentation](https://docs.rs/lindera-core/latest/lindera_core/mode/enum.Mode.html#).
+    ///        To provide these from Python code, please provide an instance of
+    ///        either the
+    ///        `tantivy.tantivy.LNormal` or `tantivy.tantivy.LDecompose` classes.
+    ///        Example:
+    ///        ```python
+    ///        from tantivy import Index, LNormal, LDecompose, LinderaDictionaryKind
+    ///        ...
+    ///        index = Index(schema)
+    ///        index.register_lindera_tokenizer(
+    ///            "lang_ja",
+    ///            LNormal(),
+    ///            LinderaDictionaryKind.IPADIC,
+    ///        )
+    ///        ```
+    ///    dictionary_kind (LinderaDictionaryKind): The dictionary kind of the
+    ///        tokenizer. This is an enum with the following possible values:
+    ///       - `LinderaDictionaryKind.IPADIC`
+    ///       - `LinderaDictionaryKind.IPADIC`,
+    ///       - `LinderaDictionaryKind.IPADICNEologd`,
+    ///       - `LinderaDictionaryKind.UniDic`,
+    ///       - `LinderaDictionaryKind.KoDic`,
+    ///       - `LinderaDictionaryKind.CcCedict`,
     #[cfg(feature = "lindera")]
+    #[pyo3(signature = (tokenizer_name, mode, dictionary_kind))]
     fn register_lindera_tokenizer(
         &self,
-    ) {
-        let tokenizer = crate::lindera_tokenizer::create_tokenizer(lindera_core::mode::Mode::Normal);
-        self.index.tokenizers().register("lang_ja", tokenizer);
+        tokenizer_name: String,
+        mode: Option<&PyAny>,
+        dictionary_kind: crate::lindera_tokenizer::LinderaDictionaryKind,
+    ) -> PyResult<()> {
+        use crate::lindera_tokenizer::{LNormal, LDecompose};
+
+        let mode = match mode {
+            None => lindera_core::mode::Mode::Normal,
+            Some(mode) => if let Ok(obj) = mode.extract::<LNormal>() {
+                obj.into()
+            } else if let Ok(obj) = mode.extract::<LDecompose>() {
+                obj.into()
+            } else {
+                return Err(exceptions::PyTypeError::new_err(
+                    "Invalid mode, valid choices are: 'normal' and 'decompose'"
+                ));
+            }
+        };
+        let tokenizer = crate::lindera_tokenizer::create_tokenizer(
+            mode, dictionary_kind.into(),
+        );
+        self.index.tokenizers().register(&tokenizer_name, tokenizer);
+        Ok(())
     }
 
     /// Create a `IndexWriter` for the index.
