@@ -41,7 +41,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         lindera: ["", "_lindera"]
-        python-version: [3.9]
+        python-version: [3.10]
         include:
           - os: ubuntu-latest
             python-version: "3.12"
@@ -49,8 +49,6 @@ jobs:
             python-version: "3.11"
           - os: ubuntu-latest
             python-version: "3.10"
-          - os: ubuntu-latest
-            python-version: 3.8
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Harden Runner
@@ -68,6 +66,7 @@ jobs:
             index.crates.io:443
             static.rust-lang.org:443
             objects.githubusercontent.com:443
+            download.johtani.info:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c  # 5.0.0
