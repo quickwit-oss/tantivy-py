@@ -260,7 +260,8 @@ impl Index {
     ///        `tantivy.tantivy.LNormal` or `tantivy.tantivy.LDecompose` classes.
     ///        Example:
     ///        ```python
-    ///        from tantivy import Index, LNormal, LDecompose, LinderaDictionaryKind
+    ///        from tantivy import Index
+    ///        from tantivy.lindera import LNormal, LDecompose, LinderaDictionaryKind
     ///        ...
     ///        index = Index(schema)
     ///        index.register_lindera_tokenizer(
