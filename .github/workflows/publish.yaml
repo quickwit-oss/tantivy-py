@@ -46,7 +46,7 @@ jobs:
           python-version: 3.8
           architecture: x64
 
-      - uses: PyO3/maturin-action@a3013db91b2ef2e51420cfe99ee619c8e72a17e6
+      - uses: PyO3/maturin-action@60d11847b29f81ca5375519a8eb33cc336ba4bfa
         with:
           manylinux: auto
           target: ${{ matrix.platform }}
@@ -76,7 +76,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: PyO3/maturin-action@a3013db91b2ef2e51420cfe99ee619c8e72a17e6
+      - uses: PyO3/maturin-action@60d11847b29f81ca5375519a8eb33cc336ba4bfa
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -107,7 +107,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Build wheels - ${{ matrix.target }}
-        uses: PyO3/maturin-action@a3013db91b2ef2e51420cfe99ee619c8e72a17e6
+        uses: PyO3/maturin-action@60d11847b29f81ca5375519a8eb33cc336ba4bfa
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
