@@ -302,6 +302,7 @@ pub(crate) struct Index {
 // and a PossessiveContractionFilter.
 fn get_kapiche_tokenizer() -> TextAnalyzer {
     TextAnalyzer::builder(WhitespaceTokenizer::default())
+        .filter(LowerCaser)
         .filter(OuterPunctuationFilter::new(vec!['#', '@']))
         .filter(PossessiveContractionFilter)
         .build()

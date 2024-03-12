@@ -154,5 +154,5 @@ def test_stat_searcher_memory():
 
     result = index.stat_searcher().search(query)
     items = sorted(result.unique_docs_frames)
-    assert len(items) == 439
-    assert items[:4] == [(0, 0), (2, 2), (11, 11), (18, 18)]
+    assert len(items) == 441
+    assert items[:4] == [(0, 0), (2, 2), (8, 8), (11, 11)]
