@@ -123,8 +123,9 @@ jobs:
 
       - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427 # v4.1.4
         with:
-          name: wheels
           path: wheels
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Upload release binaries
         uses: alexellis/upload-assets@259de5111cb56966d046ced998941e93f91d2c93
