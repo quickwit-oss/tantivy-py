@@ -302,6 +302,16 @@ pub(crate) struct Index {
 // and a PossessiveContractionFilter.
 fn get_kapiche_tokenizer() -> TextAnalyzer {
     TextAnalyzer::builder(WhitespaceTokenizer::default())
+        .filter(OuterPunctuationFilter::new(vec!['#', '@']))
+        .filter(PossessiveContractionFilter)
+        .build()
+}
+
+// Creates a custom Tokenizer in line with the requirements of Kapiche.
+// It combines a WhiteSpaceTokenizer with a StopWordFilter, LowerCaser, OuterPunctuationFilter,
+// and a PossessiveContractionFilter.
+fn get_kapiche_tokenizer_lower() -> TextAnalyzer {
+    TextAnalyzer::builder(WhitespaceTokenizer::default())
         .filter(LowerCaser)
         .filter(OuterPunctuationFilter::new(vec!['#', '@']))
         .filter(PossessiveContractionFilter)
@@ -321,6 +331,10 @@ impl Index {
         index
             .tokenizers()
             .register("kapiche_tokenizer", kapiche_tokenizer);
+        let kapiche_tokenizer_lower = get_kapiche_tokenizer_lower();
+        index
+            .tokenizers()
+            .register("kapiche_tokenizer_lower", kapiche_tokenizer_lower);
 
         let reader = index.reader().map_err(to_pyerr)?;
         Ok(Index { index, reader })
@@ -353,6 +367,10 @@ impl Index {
         index
             .tokenizers()
             .register("kapiche_tokenizer", kapiche_tokenizer);
+        let kapiche_tokenizer_lower = get_kapiche_tokenizer_lower();
+        index
+            .tokenizers()
+            .register("kapiche_tokenizer_lower", kapiche_tokenizer_lower);
 
         let reader = index.reader().map_err(to_pyerr)?;
         Ok(Index { index, reader })

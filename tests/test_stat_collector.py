@@ -104,6 +104,7 @@ def test_stat_searcher_memory():
         SchemaBuilder()
         .add_text_field("title", stored=True)
         .add_text_field("body", tokenizer_name='kapiche_tokenizer')
+        .add_text_field("body_lower", tokenizer_name='kapiche_tokenizer_lower')
         .add_unsigned_field("document_id__", stored=True, indexed=True, fast=True)
         .add_unsigned_field("frame_id__", stored=True, indexed=True, fast=True)
         .add_unsigned_field("sentence_id__", stored=True, indexed=True, fast=True)
@@ -120,6 +121,7 @@ def test_stat_searcher_memory():
         doc = Document()
         doc.add_text("title", f"Paragraph {i}")
         doc.add_text("body", paragraph)
+        doc.add_text("body_lower", paragraph)
         doc.add_unsigned("document_id__", i)
         doc.add_unsigned("frame_id__", i)
         doc.add_unsigned("sentence_id__", i)
@@ -152,6 +154,13 @@ def test_stat_searcher_memory():
 
     assert total_mem_growth < 500_000
 
+    result = index.stat_searcher().search(query)
+    items = sorted(result.unique_docs_frames)
+    assert len(items) == 439
+    assert items[:4] == [(0, 0), (2, 2), (11, 11), (18, 18)]
+
+    # Test kapiche_tokenizer_lower
+    query = index.parse_query("Holmes", ["body_lower"])
     result = index.stat_searcher().search(query)
     items = sorted(result.unique_docs_frames)
     assert len(items) == 441
