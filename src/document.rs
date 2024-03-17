@@ -425,6 +425,7 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
 /// (field_name, value). In this list, one field may appear more than once.
 ///
 /// Example:
+///
 ///     >>> doc = tantivy.Document()
 ///     >>> doc.add_text("title", "The Old Man and the Sea")
 ///     >>> doc.add_text("body", ("He was an old man who fished alone in a "
@@ -437,12 +438,14 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
 /// values directly as constructor arguments.
 ///
 /// Example:
+///
 ///     >>> doc = tantivy.Document(title=["The Old Man and the Sea"], body=["..."])
 ///
 /// As syntactic sugar, tantivy also allows the user to pass a single values
 /// if there is only one. In other words, the following is also legal.
 ///
 /// Example:
+///
 ///     >>> doc = tantivy.Document(title="The Old Man and the Sea", body="...")
 ///
 /// For numeric fields, the [`Document`] constructor does not have any
@@ -452,6 +455,7 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
 /// explicit type information.
 ///
 /// Example:
+///
 ///     >>> schema = (
 ///     ...     SchemaBuilder()
 ///     ...         .add_unsigned_field("unsigned")

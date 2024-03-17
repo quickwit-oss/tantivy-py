@@ -5,7 +5,9 @@ nav:
   - Tutorials: tutorials.md
   - How-to Guides: howto.md
   - Explanation: explanation.md
-  - Reference: reference.md
+  - Reference:
+      - Query Language: reference.md
+      - API: api/tantivy.md
   - About: about.md
 theme: readthedocs
 
@@ -13,3 +15,10 @@ theme: readthedocs
 # - 'User Guide':
 #     - 'Writing your docs': 'writing-your-docs.md'
 #     - 'Styling your docs': 'styling-your-docs.md'
+#
+plugins:
+- search
+
+# Hook to run pdoc
+hooks:
+- docs/pdoc-template/pdoc_hook.py
