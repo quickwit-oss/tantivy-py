@@ -157,7 +157,7 @@ jobs:
           path: wheels
 
       - name: Upload release binaries
-        uses: alexellis/upload-assets@259de5111cb56966d046ced998941e93f91d2c93
+        uses: alexellis/upload-assets@13926a61cdb2cb35f5fdef1c06b8b591523236d3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
