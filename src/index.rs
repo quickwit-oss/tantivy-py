@@ -25,6 +25,7 @@ use chrono::{offset::TimeZone, Utc};
 use tantivy as tv;
 use tantivy::{
     directory::MmapDirectory,
+    merge_policy::LogMergePolicy,
     schema::{NamedFieldDocument, Term, Type, Value},
     tokenizer::{
         Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer,
@@ -126,6 +127,45 @@ impl IndexWriter {
     fn garbage_collect_files(&mut self) -> PyResult<()> {
         use futures::executor::block_on;
         block_on(self.inner()?.garbage_collect_files()).map_err(to_pyerr)?;
+        Ok(())
+    }
+
+    /// Set the log merge policy
+    /// These are the defaults:
+    ///
+    /// const DEFAULT_LEVEL_LOG_SIZE: f64 = 0.75;
+    /// const DEFAULT_MIN_LAYER_SIZE: u32 = 10_000;
+    /// const DEFAULT_MIN_NUM_SEGMENTS_IN_MERGE: usize = 8;
+    /// const DEFAULT_MAX_DOCS_BEFORE_MERGE: usize = 10_000_000;
+    /// The default value of 1 means that deletes are not taken in account when
+    /// identifying merge candidates. This is not a very sensible default: it was
+    /// set like that for backward compatibility and might change in the near future.
+    /// const DEFAULT_DEL_DOCS_RATIO_BEFORE_MERGE: f32 = 1.0f32;
+    fn set_log_merge_policy(
+        &mut self,
+        level_log_size: Option<f64>,
+        min_layer_size: Option<u32>,
+        min_num_segments_in_merge: Option<usize>,
+        max_docs_before_merge: Option<usize>,
+        del_docs_ratio_before_merge: Option<f32>,
+    ) -> PyResult<()> {
+        let mut lmp = LogMergePolicy::default();
+        if let Some(level_log_size) = level_log_size {
+            lmp.set_level_log_size(level_log_size);
+        }
+        if let Some(min_layer_size) = min_layer_size {
+            lmp.set_min_layer_size(min_layer_size);
+        }
+        if let Some(min_num_segments_in_merge) = min_num_segments_in_merge {
+            lmp.set_min_num_segments(min_num_segments_in_merge);
+        }
+        if let Some(max_docs_before_merge) = max_docs_before_merge {
+            lmp.set_max_docs_before_merge(max_docs_before_merge);
+        }
+        if let Some(del_docs_ratio_before_merge) = del_docs_ratio_before_merge {
+            lmp.set_del_docs_ratio_before_merge(del_docs_ratio_before_merge);
+        }
+        self.inner_mut()?.set_merge_policy(Box::new(lmp));
         Ok(())
     }
 
