@@ -64,7 +64,11 @@ writer.add_document(tantivy.Document(
 ))
 # ... and committing
 writer.commit()
+writer.wait_merging_threads()
 ```
+
+Note that `wait_merging_threads()` must come at the end, because
+the `writer` object will not be usable after this call.
 
 ## Building and Executing Queries
 

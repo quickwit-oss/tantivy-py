@@ -73,6 +73,7 @@ def create_index(dir=None):
         }"""
     )
     writer.commit()
+    writer.wait_merging_threads()
     index.reload()
     return index
 
@@ -117,6 +118,7 @@ def create_index_with_numeric_fields(dir=None):
     )
     writer.add_document(doc)
     writer.commit()
+    writer.wait_merging_threads()
     index.reload()
     return index
 
@@ -167,6 +169,7 @@ def create_spanish_index():
         }"""
     )
     writer.commit()
+    writer.wait_merging_threads()
     index.reload()
     return index
 
