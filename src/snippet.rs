@@ -2,10 +2,10 @@ use crate::to_pyerr;
 use pyo3::prelude::*;
 use tantivy as tv;
 
-/// Tantivy schema.
+/// Tantivy Snippet
 ///
-/// The schema is very strict. To build the schema the `SchemaBuilder` class is
-/// provided.
+/// Snippet contains a fragment of a document, and some highlighted
+/// parts inside it.
 #[pyclass(module = "tantivy.tantivy")]
 pub(crate) struct Snippet {
     pub(crate) inner: tv::Snippet,
