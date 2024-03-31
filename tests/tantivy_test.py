@@ -764,3 +764,10 @@ class TestQuery(object):
         _, doc_address = result.hits[0]
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+    def test_all_query(self, ram_index):
+        index = ram_index
+        query = Query.all_query()
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 3
