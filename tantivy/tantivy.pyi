@@ -193,6 +193,10 @@ class Query:
     def term_query(schema: Schema, field_name: str, field_value: Any, index_option: str = "position") -> Query:
         pass
 
+    @staticmethod
+    def all_query() -> Query:
+        pass
+
 
 class Order(Enum):
     Asc = 1
