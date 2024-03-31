@@ -47,7 +47,9 @@ impl Query {
     /// Construct a Tantivy's AllQuery
     #[staticmethod]
     pub(crate) fn all_query() -> PyResult<Query> {
-        let inner = tv::query::AllQuery{};
-        Ok(Query { inner: Box::new(inner)})
+        let inner = tv::query::AllQuery {};
+        Ok(Query {
+            inner: Box::new(inner),
+        })
     }
 }
