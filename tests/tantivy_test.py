@@ -771,3 +771,27 @@ class TestQuery(object):
 
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 3
+
+    def test_fuzzy_term_query(self, ram_index):
+        index = ram_index
+        query = Query.fuzzy_term_query(index.schema, "title", "ice")
+
+        # the query "ice" should match "mice"
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Of Mice and Men"]
+    
+    def test_fuzzy_term_query_prefix(self, ram_index):
+        index = ram_index
+        query = Query.fuzzy_term_query_prefix(index.schema, "title", "man")
+
+        # the query "man" should match both "man" and "men"
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+        titles = set()
+        for _, doc_address in result.hits:
+            titles.update(index.searcher().doc(doc_address)["title"])
+        assert titles == {"The Old Man and the Sea", "Of Mice and Men"}
+

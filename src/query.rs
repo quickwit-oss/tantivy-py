@@ -1,5 +1,5 @@
 use crate::{make_term, Schema};
-use pyo3::{exceptions, prelude::*, types::PyAny};
+use pyo3::{exceptions, prelude::*, types::PyAny, types::PyString};
 use tantivy as tv;
 
 /// Tantivy's Query
@@ -48,6 +48,48 @@ impl Query {
     #[staticmethod]
     pub(crate) fn all_query() -> PyResult<Query> {
         let inner = tv::query::AllQuery {};
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    /// Construct a Tantivy's FuzzyTermQuery
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, text, distance = 1, transposition_cost_one = true))]
+    pub(crate) fn fuzzy_term_query(
+        schema: &Schema,
+        field_name: &str,
+        text: &PyString,
+        distance: u8,
+        transposition_cost_one: bool,
+    ) -> PyResult<Query> {
+        let term = make_term(&schema.inner, field_name, &text)?;
+        let inner = tv::query::FuzzyTermQuery::new(
+            term,
+            distance,
+            transposition_cost_one,
+        );
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    /// Construct a Tantivy's FuzzyTermQuery of the term prefix
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, text, distance = 1, transposition_cost_one = true))]
+    pub(crate) fn fuzzy_term_query_prefix(
+        schema: &Schema,
+        field_name: &str,
+        text: &PyString,
+        distance: u8,
+        transposition_cost_one: bool,
+    ) -> PyResult<Query> {
+        let term = make_term(&schema.inner, field_name, &text)?;
+        let inner = tv::query::FuzzyTermQuery::new_prefix(
+            term,
+            distance,
+            transposition_cost_one,
+        );
         Ok(Query {
             inner: Box::new(inner),
         })
