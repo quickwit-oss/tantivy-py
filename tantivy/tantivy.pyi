@@ -197,6 +197,14 @@ class Query:
     def all_query() -> Query:
         pass
 
+    @staticmethod
+    def phrase_query(schema: Schema, field_name: str, words: list[str]) -> Query:
+        pass
+
+    @staticmethod
+    def phrase_query_offset_slop(schema: Schema, field_name: str, words: list[str], offsets: list[int], slop: int = 0) -> Query:
+        pass
+
 
 class Order(Enum):
     Asc = 1

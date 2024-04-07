@@ -771,3 +771,35 @@ class TestQuery(object):
 
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 3
+
+    def test_phrase_query(self, ram_index):
+        index = ram_index
+        searcher = index.searcher()
+
+        query = Query.phrase_query(index.schema, "title", ["old", "man"])
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.phrase_query(index.schema, "title", ["man", "old"])
+        # sholdn't match any document
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.phrase_query(index.schema, "title", ["man", "sea"])
+        # sholdn't match any document
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
+    def test_phrase_query_offset_slop(self, ram_index):
+        index = ram_index
+        searcher = index.searcher()
+
+        query = Query.phrase_query_offset_slop(index.schema, "title", ["man", "old"], [1, 0])
+        # should match "old man" with custom offsets
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.phrase_query_offset_slop(index.schema, "title", ["man", "sea"], [0, 1], 2)
+        # should match "man and the sea" with slop = 2
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1

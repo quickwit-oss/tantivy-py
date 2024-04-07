@@ -1,5 +1,5 @@
 use crate::{make_term, Schema};
-use pyo3::{exceptions, prelude::*, types::PyAny};
+use pyo3::{exceptions, prelude::*, types::PyAny, types::PyList};
 use tantivy as tv;
 
 /// Tantivy's Query
@@ -48,6 +48,52 @@ impl Query {
     #[staticmethod]
     pub(crate) fn all_query() -> PyResult<Query> {
         let inner = tv::query::AllQuery {};
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    /// Construct a Tantivy's PhraseQuery
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, words))]
+    pub(crate) fn phrase_query(
+        schema: &Schema,
+        field_name: &str,
+        words: &PyList,
+    ) -> PyResult<Query> {
+        let mut terms = Vec::<tv::Term>::new();
+        for w in words.iter() {
+            let term = make_term(&schema.inner, field_name, w)?;
+            terms.push(term);
+        }
+        let inner = tv::query::PhraseQuery::new(terms);
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    /// Construct a Tantivy's PhraseQuery with custom offsets and slop
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, words, offsets, slop = 0))]
+    pub(crate) fn phrase_query_offset_slop(
+        schema: &Schema,
+        field_name: &str,
+        words: &PyList,
+        offsets: &PyList,
+        slop: u32,
+    ) -> PyResult<Query> {
+        assert!(
+            words.len() == offsets.len(),
+            "'words' and 'offsets' must be the same size."
+        );
+        let mut terms = Vec::<(usize, tv::Term)>::new();
+        for (o, w) in offsets.iter().zip(words.iter()) {
+            let offset = o.extract::<usize>()?;
+            let term = make_term(&schema.inner, field_name, w)?;
+            terms.push((offset, term));
+        }
+        let inner =
+            tv::query::PhraseQuery::new_with_offset_and_slop(terms, slop);
         Ok(Query {
             inner: Box::new(inner),
         })
