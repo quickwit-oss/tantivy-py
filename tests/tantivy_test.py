@@ -785,7 +785,7 @@ class TestQuery(object):
     
     def test_fuzzy_term_query_prefix(self, ram_index):
         index = ram_index
-        query = Query.fuzzy_term_query_prefix(index.schema, "title", "man")
+        query = Query.fuzzy_term_query(index.schema, "title", "man", prefix=True)
 
         # the query "man" should match both "man" and "men"
         result = index.searcher().search(query, 10)
@@ -794,4 +794,5 @@ class TestQuery(object):
         for _, doc_address in result.hits:
             titles.update(index.searcher().doc(doc_address)["title"])
         assert titles == {"The Old Man and the Sea", "Of Mice and Men"}
+
 

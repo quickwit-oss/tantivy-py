@@ -198,11 +198,7 @@ class Query:
         pass
 
     @staticmethod
-    def fuzzy_term_query(schema: Schema, field_name: str, text: str, distance: int = 1, transposition_cost_one: bool = True) -> Query:
-        pass
-
-    @staticmethod
-    def fuzzy_term_query_prefix(schema: Schema, field_name: str, text: str, distance: int = 1, transposition_cost_one: bool = True) -> Query:
+    def fuzzy_term_query(schema: Schema, field_name: str, text: str, distance: int = 1, transposition_cost_one: bool = True, prefix = False) -> Query:
         pass
 
 

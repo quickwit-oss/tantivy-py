@@ -54,42 +54,39 @@ impl Query {
     }
 
     /// Construct a Tantivy's FuzzyTermQuery
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - Schema of the target index.
+    /// * `field_name` - Field name to be searched.
+    /// * `text` - String representation of the query term.
+    /// * `distance` - (Optional) Edit distance you are going to alow. When not specified, the default is 1.
+    /// * `transposition_cost_one` - (Optional) If true, a transposition cost will be 1; otherwise it will be 2. When not specified, the default is true.
+    /// * `prefix` - (Optional) If true, only prefix matched results are returned. When not specified, the default is false.
     #[staticmethod]
-    #[pyo3(signature = (schema, field_name, text, distance = 1, transposition_cost_one = true))]
+    #[pyo3(signature = (schema, field_name, text, distance = 1, transposition_cost_one = true, prefix = false))]
     pub(crate) fn fuzzy_term_query(
         schema: &Schema,
         field_name: &str,
         text: &PyString,
         distance: u8,
         transposition_cost_one: bool,
+        prefix: bool,
     ) -> PyResult<Query> {
         let term = make_term(&schema.inner, field_name, &text)?;
-        let inner = tv::query::FuzzyTermQuery::new(
-            term,
-            distance,
-            transposition_cost_one,
-        );
-        Ok(Query {
-            inner: Box::new(inner),
-        })
-    }
-
-    /// Construct a Tantivy's FuzzyTermQuery of the term prefix
-    #[staticmethod]
-    #[pyo3(signature = (schema, field_name, text, distance = 1, transposition_cost_one = true))]
-    pub(crate) fn fuzzy_term_query_prefix(
-        schema: &Schema,
-        field_name: &str,
-        text: &PyString,
-        distance: u8,
-        transposition_cost_one: bool,
-    ) -> PyResult<Query> {
-        let term = make_term(&schema.inner, field_name, &text)?;
-        let inner = tv::query::FuzzyTermQuery::new_prefix(
-            term,
-            distance,
-            transposition_cost_one,
-        );
+        let inner = if prefix {
+            tv::query::FuzzyTermQuery::new_prefix(
+                term,
+                distance,
+                transposition_cost_one,
+            )
+        } else {
+            tv::query::FuzzyTermQuery::new(
+                term,
+                distance,
+                transposition_cost_one,
+            )
+        };
         Ok(Query {
             inner: Box::new(inner),
         })
