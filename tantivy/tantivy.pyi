@@ -197,6 +197,10 @@ class Query:
     def all_query() -> Query:
         pass
 
+    @staticmethod
+    def fuzzy_term_query(schema: Schema, field_name: str, text: str, distance: int = 1, transposition_cost_one: bool = True, prefix = False) -> Query:
+        pass
+
 
 class Order(Enum):
     Asc = 1
