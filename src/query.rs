@@ -61,8 +61,8 @@ impl Query {
     /// * `field_name` - Field name to be searched.
     /// * `text` - String representation of the query term.
     /// * `distance` - (Optional) Edit distance you are going to alow. When not specified, the default is 1.
-    /// * `transposition_cost_one` - (Optional) If true, a transposition cost will be 1; otherwise it will be 2. When not specified, the default is true.
-    /// * `prefix` - (Optional) If true, only prefix matched results are returned. When not specified, the default is false.
+    /// * `transposition_cost_one` - (Optional) If true, a transposition (swapping) cost will be 1; otherwise it will be 2. When not specified, the default is true.
+    /// * `prefix` - (Optional) If true, prefix levenshtein distance is applied. When not specified, the default is false.
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, text, distance = 1, transposition_cost_one = true, prefix = false))]
     pub(crate) fn fuzzy_term_query(

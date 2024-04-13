@@ -775,24 +775,48 @@ class TestQuery(object):
     def test_fuzzy_term_query(self, ram_index):
         index = ram_index
         query = Query.fuzzy_term_query(index.schema, "title", "ice")
-
         # the query "ice" should match "mice"
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
         _, doc_address = result.hits[0]
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["Of Mice and Men"]
-    
-    def test_fuzzy_term_query_prefix(self, ram_index):
-        index = ram_index
-        query = Query.fuzzy_term_query(index.schema, "title", "man", prefix=True)
 
-        # the query "man" should match both "man" and "men"
+        query = Query.fuzzy_term_query(index.schema, "title", "mna")
+        # the query "mna" should match "man" since the default transposition cost is 1.
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        titles = set()
+        for _, doc_address in result.hits:
+            titles.update(index.searcher().doc(doc_address)["title"])
+        assert titles == {"The Old Man and the Sea"}
+
+        query = Query.fuzzy_term_query(index.schema, "title", "mna", transposition_cost_one=False)
+        # the query "mna" should not match any doc since the default distance is 1 and transposition cost is set to 2.
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.fuzzy_term_query(index.schema, "title", "mna", distance=2, transposition_cost_one=False)
+        # the query "mna" should match both "man" and "men" since distance is set to 2.
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
         titles = set()
         for _, doc_address in result.hits:
             titles.update(index.searcher().doc(doc_address)["title"])
         assert titles == {"The Old Man and the Sea", "Of Mice and Men"}
+
+        query = Query.fuzzy_term_query(index.schema, "title", "fraken")
+        # the query "fraken" should not match any doc.
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.fuzzy_term_query(index.schema, "title", "fraken", prefix=True)
+        # the query "fraken" should match "franken", the prefix of "frankenstein", with edit distance 1.
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        titles = set()
+        for _, doc_address in result.hits:
+            titles.update(index.searcher().doc(doc_address)["title"])
+        assert titles == {"Frankenstein", "The Modern Prometheus"}
 
 
