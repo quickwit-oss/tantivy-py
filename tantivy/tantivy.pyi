@@ -200,7 +200,10 @@ class Query:
     @staticmethod
     def fuzzy_term_query(schema: Schema, field_name: str, text: str, distance: int = 1, transposition_cost_one: bool = True, prefix = False) -> Query:
         pass
-
+    
+    @staticmethod
+    def regex_query(schema: Schema, field_name: str, regex_pattern: str) -> Query:
+        pass
 
 class Order(Enum):
     Asc = 1

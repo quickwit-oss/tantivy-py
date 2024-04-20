@@ -1,4 +1,4 @@
-use crate::{make_term, Schema};
+use crate::{get_field, make_term, to_pyerr, Schema};
 use pyo3::{exceptions, prelude::*, types::PyAny, types::PyString};
 use tantivy as tv;
 
@@ -90,5 +90,24 @@ impl Query {
         Ok(Query {
             inner: Box::new(inner),
         })
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, regex_pattern))]
+    pub(crate) fn regex_query(
+        schema: &Schema,
+        field_name: &str,
+        regex_pattern: &str,
+    ) -> PyResult<Query> {
+        let field = get_field(&schema.inner, field_name)?;
+
+        let inner_result =
+            tv::query::RegexQuery::from_pattern(regex_pattern, field);
+        match inner_result {
+            Ok(inner) => Ok(Query {
+                inner: Box::new(inner),
+            }),
+            Err(e) => Err(to_pyerr(e)),
+        }
     }
 }
