@@ -118,7 +118,7 @@ impl Query {
         transposition_cost_one: bool,
         prefix: bool,
     ) -> PyResult<Query> {
-        let term = make_term(&schema.inner, field_name, &text)?;
+        let term = make_term(&schema.inner, field_name, text)?;
         let inner = if prefix {
             tv::query::FuzzyTermQuery::new_prefix(
                 term,

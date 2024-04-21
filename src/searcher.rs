@@ -5,6 +5,7 @@ use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use serde::{Deserialize, Serialize};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
+use tantivy::TantivyDocument;
 
 /// Tantivy's Searcher class
 ///
@@ -247,9 +248,12 @@ impl Searcher {
     ///
     /// Returns the Document, raises ValueError if the document can't be found.
     fn doc(&self, doc_address: &DocAddress) -> PyResult<Document> {
-        let doc = self.inner.doc(doc_address.into()).map_err(to_pyerr)?;
-        let named_doc = self.inner.schema().to_named_doc(&doc);
-        Ok(Document {
+        // Bring the trait into scope
+        use tantivy::Document;
+        let doc: TantivyDocument = self.inner.doc(doc_address.into()).map_err(to_pyerr)?;
+        let named_doc = doc.to_named_doc(self.inner.schema());
+        // let named_doc = self.inner.schema().to_named_doc(&doc);
+        Ok(crate::document::Document {
             field_values: named_doc.0,
         })
     }

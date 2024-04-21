@@ -1,5 +1,5 @@
 use ::tantivy as tv;
-use ::tantivy::schema::{Term, Value};
+use ::tantivy::schema::{Term, OwnedValue as Value};
 use pyo3::{exceptions, prelude::*, wrap_pymodule};
 
 mod document;

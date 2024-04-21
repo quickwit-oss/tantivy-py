@@ -319,7 +319,7 @@ impl ExpectedBase64Error {
 
     /// If `true`, the length of the base64 string was invalid.
     fn caused_by_invalid_length(&self) -> bool {
-        matches!(self.decode_error, base64::DecodeError::InvalidLength)
+        matches!(self.decode_error, base64::DecodeError::InvalidLength(_))
     }
 
     /// The last non-padding input symbol's encoded 6 bits have nonzero bits that will be discarded.

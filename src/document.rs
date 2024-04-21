@@ -14,15 +14,14 @@ use pyo3::{
 
 use chrono::{offset::TimeZone, NaiveDateTime, Utc};
 
-use tantivy::{self as tv, schema::Value};
+use tantivy::{self as tv, schema::document::OwnedValue as Value};
 
 use crate::{facet::Facet, schema::Schema, to_pyerr};
 use serde::{
     ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer,
 };
-use serde_json::Value as JsonValue;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     fmt,
     net::{IpAddr, Ipv6Addr},
     str::FromStr,
@@ -54,7 +53,7 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     }
     if let Ok(dict) = any.downcast::<PyDict>() {
         if let Ok(json) = pythonize::depythonize(dict) {
-            return Ok(Value::JsonObject(json));
+            return Ok(Value::Object(json));
         }
     }
     Err(to_pyerr(format!("Value unsupported {any:?}")))
@@ -119,11 +118,11 @@ pub(crate) fn extract_value_for_type(
         tv::schema::Type::Json => {
             if let Ok(json_str) = any.extract::<&str>() {
                 return serde_json::from_str(json_str)
-                    .map(Value::JsonObject)
+                    .map(Value::Object)
                     .map_err(to_pyerr_for_type("Json", field_name, any));
             }
 
-            Value::JsonObject(
+            Value::Object(
                 any.downcast::<PyDict>()
                     .map(|dict| pythonize::depythonize(dict))
                     .map_err(to_pyerr_for_type("Json", field_name, any))?
@@ -192,32 +191,17 @@ fn extract_value_single_or_list_for_type(
     }
 }
 
-fn value_to_object(val: &JsonValue, py: Python<'_>) -> PyObject {
-    match val {
-        JsonValue::Null => py.None(),
-        JsonValue::Bool(b) => b.to_object(py),
-        JsonValue::Number(n) => match n {
-            n if n.is_i64() => n.as_i64().to_object(py),
-            n if n.is_u64() => n.as_u64().to_object(py),
-            n if n.is_f64() => n.as_f64().to_object(py),
-            _ => panic!("number too large"),
-        },
-        JsonValue::String(s) => s.to_object(py),
-        JsonValue::Array(v) => {
-            let inner: Vec<_> =
-                v.iter().map(|x| value_to_object(x, py)).collect();
-            inner.to_object(py)
-        }
-        JsonValue::Object(m) => {
-            let inner: HashMap<_, _> =
-                m.iter().map(|(k, v)| (k, value_to_object(v, py))).collect();
-            inner.to_object(py)
-        }
+fn object_to_py(py: Python, obj: &BTreeMap<String, Value>) -> PyResult<PyObject> {
+    let dict = PyDict::new(py);
+    for (k, v) in obj.iter() {
+        dict.set_item(k, value_to_py(py, v)?)?;
     }
+    Ok(dict.into())
 }
 
 fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
     Ok(match value {
+        Value::Null => py.None(),
         Value::Str(text) => text.into_py(py),
         Value::U64(num) => (*num).into_py(py),
         Value::I64(num) => (*num).into_py(py),
@@ -243,13 +227,12 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             .into_py(py)
         }
         Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
-        Value::JsonObject(json_object) => {
-            let inner: HashMap<_, _> = json_object
-                .iter()
-                .map(|(k, v)| (k, value_to_object(v, py)))
-                .collect();
+        Value::Array(arr) => {
+            let inner: Vec<_> =
+                arr.iter().map(|x| value_to_py(py, x)).collect::<PyResult<_>>()?;
             inner.to_object(py)
-        }
+        },
+        Value::Object(obj) => object_to_py(py, obj)?,
         Value::Bool(b) => b.into_py(py),
         Value::IpAddr(i) => (*i).to_string().into_py(py),
     })
@@ -257,6 +240,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
 
 fn value_to_string(value: &Value) -> String {
     match value {
+        Value::Null => "null".to_string(),
         Value::Str(text) => text.clone(),
         Value::U64(num) => format!("{num}"),
         Value::I64(num) => format!("{num}"),
@@ -267,10 +251,14 @@ fn value_to_string(value: &Value) -> String {
         Value::PreTokStr(_pretok) => {
             // TODO implement me
             unimplemented!();
-        }
-        Value::JsonObject(json_object) => {
+        },
+        Value::Array(arr) => {
+            let inner: Vec<_> = arr.iter().map(value_to_string).collect();
+            format!("{inner:?}")
+        },
+        Value::Object(json_object) => {
             serde_json::to_string(&json_object).unwrap()
-        }
+        },
         Value::Bool(b) => format!("{b}"),
         Value::IpAddr(i) => format!("{}", *i),
     }
@@ -330,8 +318,10 @@ enum SerdeValue {
     Facet(tv::schema::Facet),
     /// Arbitrarily sized byte array
     Bytes(Vec<u8>),
-    /// Json object value.
-    JsonObject(serde_json::Map<String, serde_json::Value>),
+    /// Array
+    Array(Vec<Value>),
+    /// Object value.
+    Object(BTreeMap<String, Value>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(Ipv6Addr),
 }
@@ -347,7 +337,8 @@ impl From<SerdeValue> for Value {
             SerdeValue::Date(v) => Self::Date(v),
             SerdeValue::Facet(v) => Self::Facet(v),
             SerdeValue::Bytes(v) => Self::Bytes(v),
-            SerdeValue::JsonObject(v) => Self::JsonObject(v),
+            SerdeValue::Array(v) => Self::Array(v),
+            SerdeValue::Object(v) => Self::Object(v),
             SerdeValue::Bool(v) => Self::Bool(v),
             SerdeValue::IpAddr(v) => Self::IpAddr(v),
         }
@@ -357,6 +348,7 @@ impl From<SerdeValue> for Value {
 impl From<Value> for SerdeValue {
     fn from(value: Value) -> Self {
         match value {
+            Value::Null => Self::Null,
             Value::Str(v) => Self::Str(v),
             Value::PreTokStr(v) => Self::PreTokStr(v),
             Value::U64(v) => Self::U64(v),
@@ -365,7 +357,8 @@ impl From<Value> for SerdeValue {
             Value::Date(v) => Self::Date(v),
             Value::Facet(v) => Self::Facet(v),
             Value::Bytes(v) => Self::Bytes(v),
-            Value::JsonObject(v) => Self::JsonObject(v),
+            Value::Array(v) => Self::Array(v),
+            Value::Object(v) => Self::Object(v),
             Value::Bool(v) => Self::Bool(v),
             Value::IpAddr(v) => Self::IpAddr(v),
         }
@@ -376,6 +369,8 @@ impl From<Value> for SerdeValue {
 /// cloning.
 #[derive(Serialize)]
 enum BorrowedSerdeValue<'a> {
+    /// Null
+    Null,
     /// The str type is used for any text information.
     Str(&'a str),
     /// Pre-tokenized str type,
@@ -395,8 +390,10 @@ enum BorrowedSerdeValue<'a> {
     Facet(&'a tv::schema::Facet),
     /// Arbitrarily sized byte array
     Bytes(&'a [u8]),
+    /// Array
+    Array(&'a Vec<Value>),
     /// Json object value.
-    JsonObject(&'a serde_json::Map<String, serde_json::Value>),
+    Object(&'a BTreeMap<String, Value>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(&'a Ipv6Addr),
 }
@@ -404,6 +401,7 @@ enum BorrowedSerdeValue<'a> {
 impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
     fn from(value: &'a Value) -> Self {
         match value {
+            Value::Null => Self::Null,
             Value::Str(v) => Self::Str(v),
             Value::PreTokStr(v) => Self::PreTokStr(v),
             Value::U64(v) => Self::U64(v),
@@ -412,7 +410,8 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
             Value::Date(v) => Self::Date(v),
             Value::Facet(v) => Self::Facet(v),
             Value::Bytes(v) => Self::Bytes(v),
-            Value::JsonObject(v) => Self::JsonObject(v),
+            Value::Array(v) => Self::Array(v),
+            Value::Object(v) => Self::Object(v),
             Value::Bool(v) => Self::Bool(v),
             Value::IpAddr(v) => Self::IpAddr(v),
         }
@@ -559,7 +558,7 @@ impl Document {
         py_dict: &PyDict,
         schema: Option<&Schema>,
     ) -> PyResult<Document> {
-        let mut field_values: BTreeMap<String, Vec<tv::schema::Value>> =
+        let mut field_values: BTreeMap<String, Vec<Value>> =
             BTreeMap::new();
         Document::extract_py_values_from_dict(
             py_dict,
@@ -809,7 +808,7 @@ impl Document {
     fn extract_py_values_from_dict(
         py_dict: &PyDict,
         schema: Option<&Schema>,
-        out_field_values: &mut BTreeMap<String, Vec<tv::schema::Value>>,
+        out_field_values: &mut BTreeMap<String, Vec<Value>>,
     ) -> PyResult<()> {
         // TODO: Reserve when https://github.com/rust-lang/rust/issues/72631 is stable.
         // out_field_values.reserve(py_dict.len());
