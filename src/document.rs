@@ -296,6 +296,8 @@ where
 /// necessary for serialization.
 #[derive(Deserialize, Serialize)]
 enum SerdeValue {
+    /// Null
+    Null,
     /// The str type is used for any text information.
     Str(String),
     /// Pre-tokenized str type,
@@ -329,6 +331,7 @@ enum SerdeValue {
 impl From<SerdeValue> for Value {
     fn from(value: SerdeValue) -> Self {
         match value {
+            SerdeValue::Null => Self::Null,
             SerdeValue::Str(v) => Self::Str(v),
             SerdeValue::PreTokStr(v) => Self::PreTokStr(v),
             SerdeValue::U64(v) => Self::U64(v),
