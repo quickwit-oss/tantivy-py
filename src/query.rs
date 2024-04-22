@@ -1,12 +1,14 @@
 use crate::{make_term, Schema};
-use pyo3::{exceptions, prelude::*, types::PyAny, types::PyString, types::PyTuple};
+use pyo3::{
+    exceptions, prelude::*, types::PyAny, types::PyString, types::PyTuple,
+};
 use tantivy as tv;
 
 /// Custom Tuple struct to represent a pair of Occur and Query
 /// for the BooleanQuery
 struct OccurQueryPair(Occur, Query);
 
-impl <'source> FromPyObject<'source> for OccurQueryPair {
+impl<'source> FromPyObject<'source> for OccurQueryPair {
     fn extract(ob: &'source PyAny) -> PyResult<Self> {
         let tuple = ob.downcast::<PyTuple>()?;
         let occur = tuple.get_item(0)?.extract()?;
@@ -15,7 +17,6 @@ impl <'source> FromPyObject<'source> for OccurQueryPair {
         Ok(OccurQueryPair(occur, query))
     }
 }
-
 
 /// Tantivy's Occur
 #[pyclass(frozen, module = "tantivy.tantivy")]
@@ -137,13 +138,13 @@ impl Query {
     #[staticmethod]
     #[pyo3(signature = (subqueries))]
     pub(crate) fn boolean_query(
-        subqueries: Vec<(Occur, Query)>
+        subqueries: Vec<(Occur, Query)>,
     ) -> PyResult<Query> {
         let dyn_subqueries = subqueries
             .into_iter()
             .map(|(occur, query)| (occur.into(), query.inner.box_clone()))
             .collect::<Vec<_>>();
-        
+
         let inner = tv::query::BooleanQuery::from(dyn_subqueries);
 
         Ok(Query {
