@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 
 class Schema:
@@ -187,6 +187,10 @@ class Document:
     def get_all(self, field_name: str) -> list[Any]:
         pass
 
+class Occur(Enum):
+    Must = 1
+    Should = 2
+    MustNot = 3
 
 class Query:
     @staticmethod
@@ -200,7 +204,10 @@ class Query:
     @staticmethod
     def fuzzy_term_query(schema: Schema, field_name: str, text: str, distance: int = 1, transposition_cost_one: bool = True, prefix = False) -> Query:
         pass
-
+    
+    @staticmethod
+    def boolean_query(subqueries: Sequence[tuple[Occur, Query]]) -> Query:
+        pass
 
 class Order(Enum):
     Asc = 1

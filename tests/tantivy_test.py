@@ -8,7 +8,7 @@ import pytest
 
 import tantivy
 from conftest import schema, schema_numeric_fields
-from tantivy import Document, Index, SchemaBuilder, SnippetGenerator, Query
+from tantivy import Document, Index, SchemaBuilder, SnippetGenerator, Query, Occur
 
 
 class TestClass(object):
@@ -819,4 +819,62 @@ class TestQuery(object):
             titles.update(index.searcher().doc(doc_address)["title"])
         assert titles == {"Frankenstein", "The Modern Prometheus"}
 
-
+    def test_boolean_query(self, ram_index):
+        index = ram_index
+        query1 = Query.fuzzy_term_query(index.schema, "title", "ice")
+        query2 = Query.fuzzy_term_query(index.schema, "title", "mna")
+        query = Query.boolean_query([
+            (Occur.Must, query1), 
+            (Occur.Must, query2)
+        ])
+        
+        # no document should match both queries
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+        
+        query = Query.boolean_query([
+            (Occur.Should, query1), 
+            (Occur.Should, query2)
+        ])
+        
+        # two documents should match, one for each query
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+        
+        titles = set()
+        for _, doc_address in result.hits:
+            titles.update(index.searcher().doc(doc_address)["title"])
+        assert (
+            "The Old Man and the Sea" in titles and  
+            "Of Mice and Men" in titles
+        )
+        
+        query = Query.boolean_query([
+            (Occur.MustNot, query1), 
+            (Occur.Must, query1)
+        ])
+        
+        # must not should take precedence over must
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+        
+        query = Query.boolean_query((
+            (Occur.Should, query1), 
+            (Occur.Should, query2)
+        ))
+        
+        # the Vec signature should fit the tuple signature
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+        
+        # test invalid queries
+        with pytest.raises(ValueError, match = "expected tuple of length 2, but got tuple of length 3"):
+            Query.boolean_query([
+                (Occur.Must, Occur.Must, query1),
+            ])
+        
+        # test swapping the order of the tuple
+        with pytest.raises(TypeError, match = r"'Query' object cannot be converted to 'Occur'"):
+            Query.boolean_query([
+                (query1, Occur.Must),
+            ])
