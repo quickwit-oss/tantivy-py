@@ -15,7 +15,7 @@ mod snippet;
 use document::Document;
 use facet::Facet;
 use index::Index;
-use query::Query;
+use query::{Occur, Query};
 use schema::Schema;
 use schemabuilder::SchemaBuilder;
 use searcher::{DocAddress, Order, SearchResult, Searcher};
@@ -87,6 +87,7 @@ fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Query>()?;
     m.add_class::<Snippet>()?;
     m.add_class::<SnippetGenerator>()?;
+    m.add_class::<Occur>()?;
 
     m.add_wrapped(wrap_pymodule!(query_parser_error))?;
 
