@@ -209,6 +209,11 @@ class Query:
     def boolean_query(subqueries: Sequence[tuple[Occur, Query]]) -> Query:
         pass
 
+    @staticmethod
+    def disjunction_max_query(subqueries: Sequence[Query], tie_breaker: Optional[float] = None) -> Query:
+        pass
+
+
 class Order(Enum):
     Asc = 1
     Desc = 2
