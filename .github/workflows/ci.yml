@@ -40,16 +40,13 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.9]
+        lindera: ["", "_lindera"]
+        python-version: ["3.10"]
         include:
           - os: ubuntu-latest
             python-version: "3.12"
           - os: ubuntu-latest
             python-version: "3.11"
-          - os: ubuntu-latest
-            python-version: "3.10"
-          - os: ubuntu-latest
-            python-version: 3.8
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Harden Runner
@@ -67,6 +64,7 @@ jobs:
             index.crates.io:443
             static.rust-lang.org:443
             objects.githubusercontent.com:443
+            download.johtani.info:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d  # 5.1.0
@@ -79,4 +77,4 @@ jobs:
 
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84  # 2.7.3
       - run: python3 -m pip install nox
-      - run: nox -s test-${{ matrix.python-version }}
+      - run: nox -s test${{matrix.lindera}}-${{ matrix.python-version }}
