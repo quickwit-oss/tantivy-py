@@ -208,6 +208,10 @@ class Query:
     @staticmethod
     def boolean_query(subqueries: Sequence[tuple[Occur, Query]]) -> Query:
         pass
+    
+    @staticmethod
+    def boost_query(query: Query, boost: float) -> Query:
+        pass
 
 class Order(Enum):
     Asc = 1

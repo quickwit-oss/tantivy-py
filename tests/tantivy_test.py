@@ -878,3 +878,65 @@ class TestQuery(object):
             Query.boolean_query([
                 (query1, Occur.Must),
             ])
+
+    def test_boost_query(self, ram_index):
+        index = ram_index
+        query1 = Query.term_query(index.schema, "title", "sea")
+        boosted_query = Query.boost_query(query1, 2.0)
+
+        # Normal boost query
+        assert (
+            repr(boosted_query)
+            == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=2))"""
+        )
+
+        query2 = Query.fuzzy_term_query(index.schema, "title", "ice")
+        combined_query = Query.boolean_query([
+            (Occur.Should, boosted_query), 
+            (Occur.Should, query2)
+        ])
+        boosted_query = Query.boost_query(combined_query, 2.0)
+
+        # Boosted boolean query
+        assert (
+            repr(boosted_query)
+            == """Query(Boost(query=BooleanQuery { subqueries: [(Should, Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=2)), (Should, FuzzyTermQuery { term: Term(field=0, type=Str, "ice"), distance: 1, transposition_cost_one: true, prefix: false })] }, boost=2))"""
+        )
+
+        boosted_query = Query.boost_query(query1, 0.1)
+
+        # Check for decimal boost values
+        assert(
+            repr(boosted_query)
+            == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0.1))"""
+        )
+
+        boosted_query = Query.boost_query(
+            Query.boost_query(
+                query1, 0.1
+            ), 0.1
+        )
+
+        # Check for nested boost queries
+        assert(
+            repr(boosted_query)
+            == """Query(Boost(query=Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0.1), boost=0.1))"""
+        )
+
+        boosted_query = Query.boost_query(
+            query1, -0.1
+        )
+
+        # Check for negative boost values
+        assert(
+            repr(boosted_query)
+            == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=-0.1))"""
+        )
+
+        # wrong query type
+        with pytest.raises(TypeError, match = r"'int' object cannot be converted to 'Query'"):
+            Query.boost_query(1, 0.1)
+        
+        # wrong boost type
+        with pytest.raises(TypeError, match = r"argument 'boost': must be real number, not str"):
+            Query.boost_query(query1, "0.1")
