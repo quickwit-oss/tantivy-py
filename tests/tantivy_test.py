@@ -765,6 +765,35 @@ class TestQuery(object):
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["The Old Man and the Sea"]
 
+    def test_term_set_query(self, ram_index):
+        index = ram_index
+
+        # Should match 1 document that contains both terms
+        terms = ["old", "man"]
+        query = Query.term_set_query(index.schema, "title", terms)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        # Should not match any document since the term does not exist in the index
+        terms = ["a long term that does not exist in the index"]
+        query = Query.term_set_query(index.schema, "title", terms)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        # Should not match any document when the terms list is empty
+        terms = []
+        query = Query.term_set_query(index.schema, "title", terms)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        # Should fail to create the query due to the invalid list object in the terms list
+        with pytest.raises(ValueError, match = r"Can't create a term for Field `title` with value `\[\]`"):
+            terms = ["old", [], "man"]
+            query = Query.term_set_query(index.schema, "title", terms)
+
     def test_all_query(self, ram_index):
         index = ram_index
         query = Query.all_query()

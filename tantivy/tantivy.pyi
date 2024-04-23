@@ -198,6 +198,10 @@ class Query:
         pass
 
     @staticmethod
+    def term_set_query(schema: Schema, field_name: str, field_values: Sequence[Any]) -> Query:
+        pass
+
+    @staticmethod
     def all_query() -> Query:
         pass
 
