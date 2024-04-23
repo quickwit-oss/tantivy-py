@@ -1,11 +1,54 @@
 use crate::{get_field, make_term, to_pyerr, Schema};
-use pyo3::{exceptions, prelude::*, types::PyAny, types::PyString};
+use pyo3::{
+    exceptions, prelude::*, types::PyAny, types::PyString, types::PyTuple,
+};
 use tantivy as tv;
+
+/// Custom Tuple struct to represent a pair of Occur and Query
+/// for the BooleanQuery
+struct OccurQueryPair(Occur, Query);
+
+impl<'source> FromPyObject<'source> for OccurQueryPair {
+    fn extract(ob: &'source PyAny) -> PyResult<Self> {
+        let tuple = ob.downcast::<PyTuple>()?;
+        let occur = tuple.get_item(0)?.extract()?;
+        let query = tuple.get_item(1)?.extract()?;
+
+        Ok(OccurQueryPair(occur, query))
+    }
+}
+
+/// Tantivy's Occur
+#[pyclass(frozen, module = "tantivy.tantivy")]
+#[derive(Clone)]
+pub enum Occur {
+    Must,
+    Should,
+    MustNot,
+}
+
+impl From<Occur> for tv::query::Occur {
+    fn from(occur: Occur) -> tv::query::Occur {
+        match occur {
+            Occur::Must => tv::query::Occur::Must,
+            Occur::Should => tv::query::Occur::Should,
+            Occur::MustNot => tv::query::Occur::MustNot,
+        }
+    }
+}
 
 /// Tantivy's Query
 #[pyclass(frozen, module = "tantivy.tantivy")]
 pub(crate) struct Query {
     pub(crate) inner: Box<dyn tv::query::Query>,
+}
+
+impl Clone for Query {
+    fn clone(&self) -> Self {
+        Query {
+            inner: self.inner.box_clone(),
+        }
+    }
 }
 
 impl Query {
@@ -109,5 +152,22 @@ impl Query {
             }),
             Err(e) => Err(to_pyerr(e)),
         }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (subqueries))]
+    pub(crate) fn boolean_query(
+        subqueries: Vec<(Occur, Query)>,
+    ) -> PyResult<Query> {
+        let dyn_subqueries = subqueries
+            .into_iter()
+            .map(|(occur, query)| (occur.into(), query.inner.box_clone()))
+            .collect::<Vec<_>>();
+
+        let inner = tv::query::BooleanQuery::from(dyn_subqueries);
+
+        Ok(Query {
+            inner: Box::new(inner),
+        })
     }
 }
