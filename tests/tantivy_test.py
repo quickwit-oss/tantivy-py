@@ -878,3 +878,24 @@ class TestQuery(object):
             Query.boolean_query([
                 (query1, Occur.Must),
             ])
+
+    def test_disjunction_max_query(self, ram_index):
+        index = ram_index
+
+        # query1 should match the doc: "The Old Man and the Sea"
+        query1 = Query.term_query(index.schema, "title", "sea")
+        # query2 should matches the doc: "Of Mice and Men"
+        query2 = Query.term_query(index.schema, "title", "mice")
+        # the disjunction max query should match both docs.
+        query = Query.disjunction_max_query([query1, query2])
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        # the disjunction max query should also take a tie_breaker parameter
+        query = Query.disjunction_max_query([query1, query2], tie_breaker=0.5)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        with pytest.raises(TypeError, match = r"'str' object cannot be converted to 'Query'"):
+            query = Query.disjunction_max_query([query1, "not a query"], tie_breaker=0.5)
