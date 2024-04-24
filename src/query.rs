@@ -1,6 +1,8 @@
 use crate::{get_field, make_term, to_pyerr, Schema};
 use pyo3::{
-    exceptions, prelude::*, types::PyAny, types::PyString, types::PyTuple,
+    exceptions,
+    prelude::*,
+    types::{PyAny, PyFloat, PyString, PyTuple},
 };
 use tantivy as tv;
 
@@ -136,6 +138,57 @@ impl Query {
     }
 
     #[staticmethod]
+    #[pyo3(signature = (subqueries))]
+    pub(crate) fn boolean_query(
+        subqueries: Vec<(Occur, Query)>,
+    ) -> PyResult<Query> {
+        let dyn_subqueries = subqueries
+            .into_iter()
+            .map(|(occur, query)| (occur.into(), query.inner.box_clone()))
+            .collect::<Vec<_>>();
+
+        let inner = tv::query::BooleanQuery::from(dyn_subqueries);
+
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    /// Construct a Tantivy's DisjunctionMaxQuery
+    #[staticmethod]
+    pub(crate) fn disjunction_max_query(
+        subqueries: Vec<Query>,
+        tie_breaker: Option<&PyFloat>,
+    ) -> PyResult<Query> {
+        let inner_queries: Vec<Box<dyn tv::query::Query>> = subqueries
+            .iter()
+            .map(|query| query.inner.box_clone())
+            .collect();
+
+        let dismax_query = if let Some(tie_breaker) = tie_breaker {
+            tv::query::DisjunctionMaxQuery::with_tie_breaker(
+                inner_queries,
+                tie_breaker.extract::<f32>()?,
+            )
+        } else {
+            tv::query::DisjunctionMaxQuery::new(inner_queries)
+        };
+
+        Ok(Query {
+            inner: Box::new(dismax_query),
+        })
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (query, boost))]
+    pub(crate) fn boost_query(query: Query, boost: f32) -> PyResult<Query> {
+        let inner = tv::query::BoostQuery::new(query.inner, boost);
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    #[staticmethod]
     #[pyo3(signature = (schema, field_name, regex_pattern))]
     pub(crate) fn regex_query(
         schema: &Schema,
@@ -152,22 +205,5 @@ impl Query {
             }),
             Err(e) => Err(to_pyerr(e)),
         }
-    }
-
-    #[staticmethod]
-    #[pyo3(signature = (subqueries))]
-    pub(crate) fn boolean_query(
-        subqueries: Vec<(Occur, Query)>,
-    ) -> PyResult<Query> {
-        let dyn_subqueries = subqueries
-            .into_iter()
-            .map(|(occur, query)| (occur.into(), query.inner.box_clone()))
-            .collect::<Vec<_>>();
-
-        let inner = tv::query::BooleanQuery::from(dyn_subqueries);
-
-        Ok(Query {
-            inner: Box::new(inner),
-        })
     }
 }
