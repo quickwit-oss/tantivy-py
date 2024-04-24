@@ -930,6 +930,12 @@ class TestQuery(object):
             repr(boosted_query)
             == """Query(Boost(query=Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0.1), boost=0.1))"""
         )
+        result = index.searcher().search(boosted_query, 10)
+        for _score, _ in result.hits:
+            # the score should be very small, due to 
+            # the unknown score of BM25, we can only check for the relative difference
+            assert _score == pytest.approx(0.01, rel = 1)  
+
 
         boosted_query = Query.boost_query(
             query1, -0.1
@@ -945,7 +951,10 @@ class TestQuery(object):
         # Even with a negative boost, the query should still match the document
         assert len(result.hits) == 1
         titles = set()
-        for _, doc_address in result.hits:
+        for _score, doc_address in result.hits:
+
+            # the score should be negative
+            assert _score < 0
             titles.update(index.searcher().doc(doc_address)["title"])
         assert titles == {"The Old Man and the Sea"}
 
