@@ -40,16 +40,21 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.9]
+        python-version: ["3.12"]
+        allow-prereleases: [false]
         include:
           - os: ubuntu-latest
-            python-version: "3.12"
+            python-version: "3.13"
+            allow-prereleases: true
           - os: ubuntu-latest
             python-version: "3.11"
+            allow-prereleases: false
           - os: ubuntu-latest
             python-version: "3.10"
+            allow-prereleases: false
           - os: ubuntu-latest
             python-version: 3.8
+            allow-prereleases: false
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Harden Runner
@@ -72,6 +77,7 @@ jobs:
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d  # 5.1.0
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: ${{ matrix.allow-prereleases }}
 
       - uses: dtolnay/rust-toolchain@bb45937a053e097f8591208d8e74c90db1873d07
         with:
