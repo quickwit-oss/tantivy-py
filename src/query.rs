@@ -1,6 +1,8 @@
 use crate::{make_term, Schema};
 use pyo3::{
-    exceptions, prelude::*, types::PyAny, types::PyString, types::PyTuple,
+    exceptions,
+    prelude::*,
+    types::{PyAny, PyString, PyTuple},
 };
 use tantivy as tv;
 
@@ -153,7 +155,7 @@ impl Query {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (query, boost))]
+    #[pyo3(signature = (query, boost = 1.0))]
     pub(crate) fn boost_query(query: Query, boost: f32) -> PyResult<Query> {
         let inner = tv::query::BoostQuery::new(query.inner, boost);
         Ok(Query {

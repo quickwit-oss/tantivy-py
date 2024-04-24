@@ -210,7 +210,7 @@ class Query:
         pass
     
     @staticmethod
-    def boost_query(query: Query, boost: float) -> Query:
+    def boost_query(query: Query, boost: float = 1.0) -> Query:
         pass
 
 class Order(Enum):

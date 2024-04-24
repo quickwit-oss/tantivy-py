@@ -827,20 +827,20 @@ class TestQuery(object):
             (Occur.Must, query1), 
             (Occur.Must, query2)
         ])
-        
+
         # no document should match both queries
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
         query = Query.boolean_query([
             (Occur.Should, query1), 
             (Occur.Should, query2)
         ])
-        
+
         # two documents should match, one for each query
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
-        
+
         titles = set()
         for _, doc_address in result.hits:
             titles.update(index.searcher().doc(doc_address)["title"])
@@ -848,31 +848,31 @@ class TestQuery(object):
             "The Old Man and the Sea" in titles and  
             "Of Mice and Men" in titles
         )
-        
+
         query = Query.boolean_query([
             (Occur.MustNot, query1), 
             (Occur.Must, query1)
         ])
-        
+
         # must not should take precedence over must
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
         query = Query.boolean_query((
             (Occur.Should, query1), 
             (Occur.Should, query2)
         ))
-        
+
         # the Vec signature should fit the tuple signature
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
-        
+
         # test invalid queries
         with pytest.raises(ValueError, match = "expected tuple of length 2, but got tuple of length 3"):
             Query.boolean_query([
                 (Occur.Must, Occur.Must, query1),
             ])
-        
+
         # test swapping the order of the tuple
         with pytest.raises(TypeError, match = r"'Query' object cannot be converted to 'Occur'"):
             Query.boolean_query([
@@ -911,6 +911,14 @@ class TestQuery(object):
             == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0.1))"""
         )
 
+        boosted_query = Query.boost_query(query1)
+
+        # Check for default boost values
+        assert(
+            repr(boosted_query)
+            == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=1))"""
+        )
+
         boosted_query = Query.boost_query(
             Query.boost_query(
                 query1, 0.1
@@ -933,10 +941,18 @@ class TestQuery(object):
             == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=-0.1))"""
         )
 
+        result = index.searcher().search(boosted_query, 10)
+        # Even with a negative boost, the query should still match the document
+        assert len(result.hits) == 1
+        titles = set()
+        for _, doc_address in result.hits:
+            titles.update(index.searcher().doc(doc_address)["title"])
+        assert titles == {"The Old Man and the Sea"}
+
         # wrong query type
         with pytest.raises(TypeError, match = r"'int' object cannot be converted to 'Query'"):
             Query.boost_query(1, 0.1)
-        
+
         # wrong boost type
         with pytest.raises(TypeError, match = r"argument 'boost': must be real number, not str"):
             Query.boost_query(query1, "0.1")
