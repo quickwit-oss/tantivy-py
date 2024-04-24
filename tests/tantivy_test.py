@@ -101,7 +101,7 @@ class TestClass(object):
             == """Query(BooleanQuery { subqueries: [(Should, Boost(query=TermQuery(Term(field=0, type=Str, "winter")), boost=2.3)), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
         )
 
-    def test_parse_query_field_boosts(self, ram_index):
+    def test_parse_query_fuzzy_fields(self, ram_index):
         query = ram_index.parse_query("winter", fuzzy_fields={"title": (True, 1, False)})
         assert (
             repr(query)
@@ -879,6 +879,28 @@ class TestQuery(object):
                 (query1, Occur.Must),
             ])
 
+    def test_disjunction_max_query(self, ram_index):
+        index = ram_index
+
+        # query1 should match the doc: "The Old Man and the Sea"
+        query1 = Query.term_query(index.schema, "title", "sea")
+        # query2 should matches the doc: "Of Mice and Men"
+        query2 = Query.term_query(index.schema, "title", "mice")
+        # the disjunction max query should match both docs.
+        query = Query.disjunction_max_query([query1, query2])
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        # the disjunction max query should also take a tie_breaker parameter
+        query = Query.disjunction_max_query([query1, query2], tie_breaker=0.5)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        with pytest.raises(TypeError, match = r"'str' object cannot be converted to 'Query'"):
+            query = Query.disjunction_max_query([query1, "not a query"], tie_breaker=0.5)
+
+
     def test_boost_query(self, ram_index):
         index = ram_index
         query1 = Query.term_query(index.schema, "title", "sea")
@@ -911,13 +933,17 @@ class TestQuery(object):
             == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0.1))"""
         )
 
-        boosted_query = Query.boost_query(query1)
+        boosted_query = Query.boost_query(query1, 0.0)
 
-        # Check for default boost values
+        # Check for zero boost values
         assert(
             repr(boosted_query)
-            == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=1))"""
+            == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0))"""
         )
+        result = index.searcher().search(boosted_query, 10)
+        for _score, _ in result.hits:
+            # the score should be 0.0
+            assert _score == pytest.approx(0.0)  
 
         boosted_query = Query.boost_query(
             Query.boost_query(
@@ -965,3 +991,7 @@ class TestQuery(object):
         # wrong boost type
         with pytest.raises(TypeError, match = r"argument 'boost': must be real number, not str"):
             Query.boost_query(query1, "0.1")
+        
+        # no boost type error
+        with pytest.raises(TypeError, match = r"Query.boost_query\(\) missing 1 required positional argument: 'boost'"):
+            Query.boost_query(query1)
