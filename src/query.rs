@@ -178,4 +178,13 @@ impl Query {
             inner: Box::new(dismax_query),
         })
     }
+
+    #[staticmethod]
+    #[pyo3(signature = (query, boost))]
+    pub(crate) fn boost_query(query: Query, boost: f32) -> PyResult<Query> {
+        let inner = tv::query::BoostQuery::new(query.inner, boost);
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
 }

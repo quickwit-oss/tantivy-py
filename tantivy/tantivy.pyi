@@ -212,6 +212,10 @@ class Query:
     @staticmethod
     def disjunction_max_query(subqueries: Sequence[Query], tie_breaker: Optional[float] = None) -> Query:
         pass
+    
+    @staticmethod
+    def boost_query(query: Query, boost: float) -> Query:
+        pass
 
 
 class Order(Enum):
