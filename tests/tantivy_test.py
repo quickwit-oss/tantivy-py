@@ -101,7 +101,7 @@ class TestClass(object):
             == """Query(BooleanQuery { subqueries: [(Should, Boost(query=TermQuery(Term(field=0, type=Str, "winter")), boost=2.3)), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
         )
 
-    def test_parse_query_field_boosts(self, ram_index):
+    def test_parse_query_fuzzy_fields(self, ram_index):
         query = ram_index.parse_query("winter", fuzzy_fields={"title": (True, 1, False)})
         assert (
             repr(query)
