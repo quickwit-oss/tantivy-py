@@ -995,3 +995,36 @@ class TestQuery(object):
         # no boost type error
         with pytest.raises(TypeError, match = r"Query.boost_query\(\) missing 1 required positional argument: 'boost'"):
             Query.boost_query(query1)
+
+
+    def test_regex_query(self, ram_index):
+        index = ram_index
+
+        query = Query.regex_query(index.schema, "body", "fish")
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        query = Query.regex_query(index.schema, "title", "(?:man|men)")
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+        _, doc_address = result.hits[1]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Of Mice and Men"]
+
+        # unknown field in the schema
+        with pytest.raises(
+            ValueError, match="Field `unknown_field` is not defined in the schema."
+        ):
+            Query.regex_query(index.schema, "unknown_field", "fish")
+
+        # invalid regex pattern
+        with pytest.raises(
+            ValueError, match=r"An invalid argument was passed: 'fish\('"
+        ):
+            Query.regex_query(index.schema, "body", "fish(")
