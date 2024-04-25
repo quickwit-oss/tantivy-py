@@ -250,7 +250,8 @@ impl Searcher {
     fn doc(&self, doc_address: &DocAddress) -> PyResult<Document> {
         // Bring the trait into scope
         use tantivy::Document;
-        let doc: TantivyDocument = self.inner.doc(doc_address.into()).map_err(to_pyerr)?;
+        let doc: TantivyDocument =
+            self.inner.doc(doc_address.into()).map_err(to_pyerr)?;
         let named_doc = doc.to_named_doc(self.inner.schema());
         Ok(crate::document::Document {
             field_values: named_doc.0,

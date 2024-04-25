@@ -16,7 +16,10 @@ use crate::{
 use tantivy as tv;
 use tantivy::{
     directory::MmapDirectory,
-    schema::{NamedFieldDocument, document::TantivyDocument, Term, OwnedValue as Value},
+    schema::{
+        document::TantivyDocument, NamedFieldDocument, OwnedValue as Value,
+        Term,
+    },
     tokenizer::{
         Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer,
         TextAnalyzer,
@@ -87,9 +90,8 @@ impl IndexWriter {
     /// The `opstamp` represents the number of documents that have been added
     /// since the creation of the index.
     pub fn add_json(&mut self, json: &str) -> PyResult<u64> {
-        let doc = TantivyDocument::parse_json(
-            &self.schema, json
-        ).map_err(to_pyerr)?;
+        let doc = TantivyDocument::parse_json(&self.schema, json)
+            .map_err(to_pyerr)?;
         let opstamp = self.inner()?.add_document(doc);
         opstamp.map_err(to_pyerr)
     }

@@ -191,7 +191,10 @@ fn extract_value_single_or_list_for_type(
     }
 }
 
-fn object_to_py(py: Python, obj: &BTreeMap<String, Value>) -> PyResult<PyObject> {
+fn object_to_py(
+    py: Python,
+    obj: &BTreeMap<String, Value>,
+) -> PyResult<PyObject> {
     let dict = PyDict::new(py);
     for (k, v) in obj.iter() {
         dict.set_item(k, value_to_py(py, v)?)?;
@@ -228,10 +231,12 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
         }
         Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
         Value::Array(arr) => {
-            let inner: Vec<_> =
-                arr.iter().map(|x| value_to_py(py, x)).collect::<PyResult<_>>()?;
+            let inner: Vec<_> = arr
+                .iter()
+                .map(|x| value_to_py(py, x))
+                .collect::<PyResult<_>>()?;
             inner.to_object(py)
-        },
+        }
         Value::Object(obj) => object_to_py(py, obj)?,
         Value::Bool(b) => b.into_py(py),
         Value::IpAddr(i) => (*i).to_string().into_py(py),
@@ -251,14 +256,14 @@ fn value_to_string(value: &Value) -> String {
         Value::PreTokStr(_pretok) => {
             // TODO implement me
             unimplemented!();
-        },
+        }
         Value::Array(arr) => {
             let inner: Vec<_> = arr.iter().map(value_to_string).collect();
             format!("{inner:?}")
-        },
+        }
         Value::Object(json_object) => {
             serde_json::to_string(&json_object).unwrap()
-        },
+        }
         Value::Bool(b) => format!("{b}"),
         Value::IpAddr(i) => format!("{}", *i),
     }
@@ -561,8 +566,7 @@ impl Document {
         py_dict: &PyDict,
         schema: Option<&Schema>,
     ) -> PyResult<Document> {
-        let mut field_values: BTreeMap<String, Vec<Value>> =
-            BTreeMap::new();
+        let mut field_values: BTreeMap<String, Vec<Value>> = BTreeMap::new();
         Document::extract_py_values_from_dict(
             py_dict,
             schema,
