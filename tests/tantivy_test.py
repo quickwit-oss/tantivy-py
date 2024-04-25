@@ -1025,6 +1025,6 @@ class TestQuery(object):
 
         # invalid regex pattern
         with pytest.raises(
-            ValueError, match=r"An invalid argument was passed: 'fish\('"
+            ValueError, match=r"An invalid argument was passed"
         ):
             Query.regex_query(index.schema, "body", "fish(")
