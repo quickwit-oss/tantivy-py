@@ -70,7 +70,9 @@ writer.wait_merging_threads()
 Note that `wait_merging_threads()` must come at the end, because
 the `writer` object will not be usable after this call.
 
-## Building and Executing Queries
+## Building and Executing Queries with the Query Parser
+
+With the Query Parser, you can easily build simple queries for your index.
 
 First you need to get a searcher for the index
 
@@ -89,7 +91,89 @@ best_doc = searcher.doc(best_doc_address)
 assert best_doc["title"] == ["The Old Man and the Sea"]
 ```
 
+The `parse_query` method takes in a query string (visit [reference](reference.md#valid-query-formats) for more details on the syntax) and create a `Query` object that can be used to search the index.
+
+In Tantivy, hit documents during search will return a `DocAddress` object that can be used to retrieve the document from the searcher, rather than returning the document directly.
+
+## Building and Executing Queries with Query Objects
+
+> *This is an advanced topic. Only consider this if you need very fine-grained control over your queries, or existing query parsers do not meet your needs.*
+
+If you have a Lucene / ElasticSearch background, you might be more comfortable building nested queries programmatically. Also, some queries (e.g. ConstQuery, DisjunctionMaxQuery) are not supported by the query parser due to their complexity in expression.
+
+Consider the following query in ElasticSearch:
+
+```json
+{
+    "query": {
+        "bool": {
+            "must": [
+                {
+                    "dis_max": {
+                        "queries": [
+                            {
+                                "match": {
+                                    "title": {
+                                        "query": "fish",
+                                        "boost": 2
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "body": {
+                                        "query": "eighty-four days",
+                                        "boost": 1.5
+                                    }
+                                }
+                            }
+                        ],
+                        "tie_breaker": 0.3
+                    }
+                }
+            ]
+        }
+    }
+}
+```
+
+It is impossible to express this query using the query parser. Instead, you can build the query programmatically mixing with the query parser:
+
+```python
+from tantivy import Query, Occur, Index
+
+...
+
+complex_query = Query.boolean_query(
+    [
+        (
+            Occur.Must,
+            Query.disjunction_max_query(
+                [
+                    Query.boost_query(
+                        # by default, only the query parser will analyze
+                        # your query string
+                        index.parse_query("fish", ["title"]), 
+                        2.0
+                    ),
+                    Query.boost_query(
+                        index.parse_query("eighty-four days", ["body"]), 
+                        1.5
+                    ),
+                ],
+                0.3,
+            ),
+        )
+    ]
+)
+
+```
+
+<!--TODO: Update the reference link to the query parser docs when available.-->
+
 ## Using the snippet generator
+
+Let's revisit the query `"fish days"` in our [example](#building-and-executing-queries-with-the-query-parser):
 
 ```python
 hit_text = best_doc["body"][0]
