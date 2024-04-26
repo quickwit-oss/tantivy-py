@@ -89,6 +89,26 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's TermSetQuery
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, field_values))]
+    pub(crate) fn term_set_query(
+        schema: &Schema,
+        field_name: &str,
+        field_values: Vec<&PyAny>,
+    ) -> PyResult<Query> {
+        let terms = field_values
+            .into_iter()
+            .map(|field_value| {
+                make_term(&schema.inner, field_name, &field_value)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let inner = tv::query::TermSetQuery::new(terms);
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
     /// Construct a Tantivy's AllQuery
     #[staticmethod]
     pub(crate) fn all_query() -> PyResult<Query> {
