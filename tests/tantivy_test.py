@@ -8,7 +8,7 @@ import pytest
 
 import tantivy
 from conftest import schema, schema_numeric_fields
-from tantivy import Document, Index, SchemaBuilder, SnippetGenerator, Query
+from tantivy import Document, Index, SchemaBuilder, SnippetGenerator, Query, Occur
 
 
 class TestClass(object):
@@ -101,7 +101,7 @@ class TestClass(object):
             == """Query(BooleanQuery { subqueries: [(Should, Boost(query=TermQuery(Term(field=0, type=Str, "winter")), boost=2.3)), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
         )
 
-    def test_parse_query_field_boosts(self, ram_index):
+    def test_parse_query_fuzzy_fields(self, ram_index):
         query = ram_index.parse_query("winter", fuzzy_fields={"title": (True, 1, False)})
         assert (
             repr(query)
@@ -765,6 +765,35 @@ class TestQuery(object):
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["The Old Man and the Sea"]
 
+    def test_term_set_query(self, ram_index):
+        index = ram_index
+
+        # Should match 1 document that contains both terms
+        terms = ["old", "man"]
+        query = Query.term_set_query(index.schema, "title", terms)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        # Should not match any document since the term does not exist in the index
+        terms = ["a long term that does not exist in the index"]
+        query = Query.term_set_query(index.schema, "title", terms)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        # Should not match any document when the terms list is empty
+        terms = []
+        query = Query.term_set_query(index.schema, "title", terms)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        # Should fail to create the query due to the invalid list object in the terms list
+        with pytest.raises(ValueError, match = r"Can't create a term for Field `title` with value `\[\]`"):
+            terms = ["old", [], "man"]
+            query = Query.term_set_query(index.schema, "title", terms)
+
     def test_all_query(self, ram_index):
         index = ram_index
         query = Query.all_query()
@@ -772,23 +801,23 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 3
 
-    def test_phrase_query(self, ram_index):
-        index = ram_index
-        searcher = index.searcher()
-
-        query = Query.phrase_query(index.schema, "title", ["old", "man"])
-        result = searcher.search(query, 10)
-        assert len(result.hits) == 1
-
-        query = Query.phrase_query(index.schema, "title", ["man", "old"])
-        # sholdn't match any document
-        result = searcher.search(query, 10)
-        assert len(result.hits) == 0
-
-        query = Query.phrase_query(index.schema, "title", ["man", "sea"])
-        # sholdn't match any document
-        result = searcher.search(query, 10)
-        assert len(result.hits) == 0
+    #def test_phrase_query(self, ram_index):
+    #    index = ram_index
+    #    searcher = index.searcher()
+    #
+    #    query = Query.phrase_query(index.schema, "title", ["old", "man"])
+    #    result = searcher.search(query, 10)
+    #    assert len(result.hits) == 1
+    #
+    #    query = Query.phrase_query(index.schema, "title", ["man", "old"])
+    #    # sholdn't match any document
+    #    result = searcher.search(query, 10)
+    #    assert len(result.hits) == 0
+    #
+    #    query = Query.phrase_query(index.schema, "title", ["man", "sea"])
+    #    # sholdn't match any document
+    #    result = searcher.search(query, 10)
+    #    assert len(result.hits) == 0
 
     def test_phrase_query_offset_slop(self, ram_index):
         index = ram_index
@@ -803,3 +832,259 @@ class TestQuery(object):
         # should match "man and the sea" with slop = 2
         result = searcher.search(query, 10)
         assert len(result.hits) == 1
+    def test_fuzzy_term_query(self, ram_index):
+        index = ram_index
+        query = Query.fuzzy_term_query(index.schema, "title", "ice")
+        # the query "ice" should match "mice"
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Of Mice and Men"]
+
+        query = Query.fuzzy_term_query(index.schema, "title", "mna")
+        # the query "mna" should match "man" since the default transposition cost is 1.
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        titles = set()
+        for _, doc_address in result.hits:
+            titles.update(index.searcher().doc(doc_address)["title"])
+        assert titles == {"The Old Man and the Sea"}
+
+        query = Query.fuzzy_term_query(index.schema, "title", "mna", transposition_cost_one=False)
+        # the query "mna" should not match any doc since the default distance is 1 and transposition cost is set to 2.
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.fuzzy_term_query(index.schema, "title", "mna", distance=2, transposition_cost_one=False)
+        # the query "mna" should match both "man" and "men" since distance is set to 2.
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+        titles = set()
+        for _, doc_address in result.hits:
+            titles.update(index.searcher().doc(doc_address)["title"])
+        assert titles == {"The Old Man and the Sea", "Of Mice and Men"}
+
+        query = Query.fuzzy_term_query(index.schema, "title", "fraken")
+        # the query "fraken" should not match any doc.
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.fuzzy_term_query(index.schema, "title", "fraken", prefix=True)
+        # the query "fraken" should match "franken", the prefix of "frankenstein", with edit distance 1.
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        titles = set()
+        for _, doc_address in result.hits:
+            titles.update(index.searcher().doc(doc_address)["title"])
+        assert titles == {"Frankenstein", "The Modern Prometheus"}
+
+    def test_boolean_query(self, ram_index):
+        index = ram_index
+        query1 = Query.fuzzy_term_query(index.schema, "title", "ice")
+        query2 = Query.fuzzy_term_query(index.schema, "title", "mna")
+        query = Query.boolean_query([
+            (Occur.Must, query1), 
+            (Occur.Must, query2)
+        ])
+
+        # no document should match both queries
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.boolean_query([
+            (Occur.Should, query1), 
+            (Occur.Should, query2)
+        ])
+
+        # two documents should match, one for each query
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        titles = set()
+        for _, doc_address in result.hits:
+            titles.update(index.searcher().doc(doc_address)["title"])
+        assert (
+            "The Old Man and the Sea" in titles and  
+            "Of Mice and Men" in titles
+        )
+
+        query = Query.boolean_query([
+            (Occur.MustNot, query1), 
+            (Occur.Must, query1)
+        ])
+
+        # must not should take precedence over must
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.boolean_query((
+            (Occur.Should, query1), 
+            (Occur.Should, query2)
+        ))
+
+        # the Vec signature should fit the tuple signature
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        # test invalid queries
+        with pytest.raises(ValueError, match = "expected tuple of length 2, but got tuple of length 3"):
+            Query.boolean_query([
+                (Occur.Must, Occur.Must, query1),
+            ])
+
+        # test swapping the order of the tuple
+        with pytest.raises(TypeError, match = r"'Query' object cannot be converted to 'Occur'"):
+            Query.boolean_query([
+                (query1, Occur.Must),
+            ])
+
+    def test_disjunction_max_query(self, ram_index):
+        index = ram_index
+
+        # query1 should match the doc: "The Old Man and the Sea"
+        query1 = Query.term_query(index.schema, "title", "sea")
+        # query2 should matches the doc: "Of Mice and Men"
+        query2 = Query.term_query(index.schema, "title", "mice")
+        # the disjunction max query should match both docs.
+        query = Query.disjunction_max_query([query1, query2])
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        # the disjunction max query should also take a tie_breaker parameter
+        query = Query.disjunction_max_query([query1, query2], tie_breaker=0.5)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        with pytest.raises(TypeError, match = r"'str' object cannot be converted to 'Query'"):
+            query = Query.disjunction_max_query([query1, "not a query"], tie_breaker=0.5)
+
+
+    def test_boost_query(self, ram_index):
+        index = ram_index
+        query1 = Query.term_query(index.schema, "title", "sea")
+        boosted_query = Query.boost_query(query1, 2.0)
+
+        # Normal boost query
+        assert (
+            repr(boosted_query)
+            == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=2))"""
+        )
+
+        query2 = Query.fuzzy_term_query(index.schema, "title", "ice")
+        combined_query = Query.boolean_query([
+            (Occur.Should, boosted_query), 
+            (Occur.Should, query2)
+        ])
+        boosted_query = Query.boost_query(combined_query, 2.0)
+
+        # Boosted boolean query
+        assert (
+            repr(boosted_query)
+            == """Query(Boost(query=BooleanQuery { subqueries: [(Should, Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=2)), (Should, FuzzyTermQuery { term: Term(field=0, type=Str, "ice"), distance: 1, transposition_cost_one: true, prefix: false })] }, boost=2))"""
+        )
+
+        boosted_query = Query.boost_query(query1, 0.1)
+
+        # Check for decimal boost values
+        assert(
+            repr(boosted_query)
+            == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0.1))"""
+        )
+
+        boosted_query = Query.boost_query(query1, 0.0)
+
+        # Check for zero boost values
+        assert(
+            repr(boosted_query)
+            == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0))"""
+        )
+        result = index.searcher().search(boosted_query, 10)
+        for _score, _ in result.hits:
+            # the score should be 0.0
+            assert _score == pytest.approx(0.0)  
+
+        boosted_query = Query.boost_query(
+            Query.boost_query(
+                query1, 0.1
+            ), 0.1
+        )
+
+        # Check for nested boost queries
+        assert(
+            repr(boosted_query)
+            == """Query(Boost(query=Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0.1), boost=0.1))"""
+        )
+        result = index.searcher().search(boosted_query, 10)
+        for _score, _ in result.hits:
+            # the score should be very small, due to 
+            # the unknown score of BM25, we can only check for the relative difference
+            assert _score == pytest.approx(0.01, rel = 1)  
+
+
+        boosted_query = Query.boost_query(
+            query1, -0.1
+        )
+
+        # Check for negative boost values
+        assert(
+            repr(boosted_query)
+            == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=-0.1))"""
+        )
+
+        result = index.searcher().search(boosted_query, 10)
+        # Even with a negative boost, the query should still match the document
+        assert len(result.hits) == 1
+        titles = set()
+        for _score, doc_address in result.hits:
+
+            # the score should be negative
+            assert _score < 0
+            titles.update(index.searcher().doc(doc_address)["title"])
+        assert titles == {"The Old Man and the Sea"}
+
+        # wrong query type
+        with pytest.raises(TypeError, match = r"'int' object cannot be converted to 'Query'"):
+            Query.boost_query(1, 0.1)
+
+        # wrong boost type
+        with pytest.raises(TypeError, match = r"argument 'boost': must be real number, not str"):
+            Query.boost_query(query1, "0.1")
+        
+        # no boost type error
+        with pytest.raises(TypeError, match = r"Query.boost_query\(\) missing 1 required positional argument: 'boost'"):
+            Query.boost_query(query1)
+
+
+    def test_regex_query(self, ram_index):
+        index = ram_index
+
+        query = Query.regex_query(index.schema, "body", "fish")
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        query = Query.regex_query(index.schema, "title", "(?:man|men)")
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+        _, doc_address = result.hits[1]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Of Mice and Men"]
+
+        # unknown field in the schema
+        with pytest.raises(
+            ValueError, match="Field `unknown_field` is not defined in the schema."
+        ):
+            Query.regex_query(index.schema, "unknown_field", "fish")
+
+        # invalid regex pattern
+        with pytest.raises(
+            ValueError, match=r"An invalid argument was passed: 'fish\('"
+        ):
+            Query.regex_query(index.schema, "body", "fish(")

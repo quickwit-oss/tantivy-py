@@ -1,108 +1,105 @@
 import datetime
 from enum import Enum
-from typing import Any, Optional
-
+from typing import Any, Optional, Sequence
 
 class Schema:
     pass
 
 class SchemaBuilder:
-
     @staticmethod
     def is_valid_field_name(name: str) -> bool:
         pass
 
     def add_text_field(
-            self,
-            name: str,
-            stored: bool = False,
-            tokenizer_name: str = "default",
-            index_option: str = "position",
+        self,
+        name: str,
+        stored: bool = False,
+        tokenizer_name: str = "default",
+        index_option: str = "position",
     ) -> SchemaBuilder:
         pass
 
     def add_integer_field(
-            self,
-            name: str,
-            stored: bool = False,
-            indexed: bool = False,
-            fast: bool = False,
+        self,
+        name: str,
+        stored: bool = False,
+        indexed: bool = False,
+        fast: bool = False,
     ) -> SchemaBuilder:
         pass
 
     def add_float_field(
-            self,
-            name: str,
-            stored: bool = False,
-            indexed: bool = False,
-            fast: bool = False,
+        self,
+        name: str,
+        stored: bool = False,
+        indexed: bool = False,
+        fast: bool = False,
     ) -> SchemaBuilder:
         pass
 
     def add_unsigned_field(
-            self,
-            name: str,
-            stored: bool = False,
-            indexed: bool = False,
-            fast: bool = False,
+        self,
+        name: str,
+        stored: bool = False,
+        indexed: bool = False,
+        fast: bool = False,
     ) -> SchemaBuilder:
         pass
 
     def add_boolean_field(
-            self,
-            name: str,
-            stored: bool = False,
-            indexed: bool = False,
-            fast: bool = False,
+        self,
+        name: str,
+        stored: bool = False,
+        indexed: bool = False,
+        fast: bool = False,
     ) -> SchemaBuilder:
         pass
 
     def add_date_field(
-            self,
-            name: str,
-            stored: bool = False,
-            indexed: bool = False,
-            fast: bool = False,
+        self,
+        name: str,
+        stored: bool = False,
+        indexed: bool = False,
+        fast: bool = False,
     ) -> SchemaBuilder:
         pass
 
     def add_json_field(
-            self,
-            name: str,
-            stored: bool = False,
-            tokenizer_name: str = "default",
-            index_option: str = "position",
+        self,
+        name: str,
+        stored: bool = False,
+        tokenizer_name: str = "default",
+        index_option: str = "position",
     ) -> SchemaBuilder:
         pass
 
     def add_facet_field(
-            self,
-            name: str,
+        self,
+        name: str,
     ) -> SchemaBuilder:
         pass
 
     def add_bytes_field(
-            self,
-            name: str,
-            stored: bool = False,
-            indexed: bool = False,
-            fast: bool = False,
-            index_option: str = "position",
+        self,
+        name: str,
+        stored: bool = False,
+        indexed: bool = False,
+        fast: bool = False,
+        index_option: str = "position",
     ) -> SchemaBuilder:
         pass
 
     def add_ip_addr_field(
-            self,
-            name: str,
-            stored: bool = False,
-            indexed: bool = False,
-            fast: bool = False,
+        self,
+        name: str,
+        stored: bool = False,
+        indexed: bool = False,
+        fast: bool = False,
     ) -> SchemaBuilder:
         pass
 
     def build(self) -> Schema:
         pass
-
 
 class Facet:
     @staticmethod
@@ -130,9 +127,7 @@ class Facet:
     def to_path_str(self) -> str:
         pass
 
-
 class Document:
-
     def __new__(cls, **kwargs) -> Document:
         pass
 
@@ -187,10 +182,23 @@ class Document:
     def get_all(self, field_name: str) -> list[Any]:
         pass
 
+class Occur(Enum):
+    Must = 1
+    Should = 2
+    MustNot = 3
 
 class Query:
     @staticmethod
-    def term_query(schema: Schema, field_name: str, field_value: Any, index_option: str = "position") -> Query:
+    def term_query(
+        schema: Schema,
+        field_name: str,
+        field_value: Any,
+        index_option: str = "position",
+    ) -> Query:
+        pass
+
+    @staticmethod
+    def term_set_query(schema: Schema, field_name: str, field_values: Sequence[Any]) -> Query:
         pass
 
     @staticmethod
@@ -205,14 +213,38 @@ class Query:
     def phrase_query_offset_slop(schema: Schema, field_name: str, words: list[str], offsets: list[int], slop: int = 0) -> Query:
         pass
 
+    def fuzzy_term_query(
+        schema: Schema,
+        field_name: str,
+        text: str,
+        distance: int = 1,
+        transposition_cost_one: bool = True,
+        prefix=False,
+    ) -> Query:
+        pass
+
+    @staticmethod
+    def boolean_query(subqueries: Sequence[tuple[Occur, Query]]) -> Query:
+        pass
+
+    @staticmethod
+    def disjunction_max_query(subqueries: Sequence[Query], tie_breaker: Optional[float] = None) -> Query:
+        pass
+    
+    @staticmethod
+    def boost_query(query: Query, boost: float) -> Query:
+        pass
+
+
+    @staticmethod
+    def regex_query(schema: Schema, field_name: str, regex_pattern: str) -> Query:
+        pass
 
 class Order(Enum):
     Asc = 1
     Desc = 2
 
-
 class DocAddress:
-
     def __new__(cls, segment_ord: int, doc: int) -> DocAddress:
         pass
 
@@ -225,22 +257,19 @@ class DocAddress:
         pass
 
 class SearchResult:
-
     @property
     def hits(self) -> list[tuple[Any, DocAddress]]:
         pass
 
-
 class Searcher:
-
     def search(
-            self,
-            query: Query,
-            limit: int = 10,
-            count: bool = True,
-            order_by_field: Optional[str] = None,
-            offset: int = 0,
-            order: Order = Order.Desc,
+        self,
+        query: Query,
+        limit: int = 10,
+        count: bool = True,
+        order_by_field: Optional[str] = None,
+        offset: int = 0,
+        order: Order = Order.Desc,
     ) -> SearchResult:
         pass
 
@@ -255,9 +284,7 @@ class Searcher:
     def doc(self, doc_address: DocAddress) -> Document:
         pass
 
-
 class IndexWriter:
-
     def add_document(self, doc: Document) -> int:
         pass
 
@@ -286,10 +313,10 @@ class IndexWriter:
     def wait_merging_threads(self) -> None:
         pass
 
-
 class Index:
-
-    def __new__(cls, schema: Schema, path: Optional[str] = None, reuse: bool = True) -> Index:
+    def __new__(
+        cls, schema: Schema, path: Optional[str] = None, reuse: bool = True
+    ) -> Index:
         pass
 
     @staticmethod
@@ -299,7 +326,9 @@ class Index:
     def writer(self, heap_size: int = 128_000_000, num_threads: int = 0) -> IndexWriter:
         pass
 
-    def config_reader(self, reload_policy: str = "commit", num_warmers: int = 0) -> None:
+    def config_reader(
+        self, reload_policy: str = "commit", num_warmers: int = 0
+    ) -> None:
         pass
 
     def searcher(self) -> Searcher:
@@ -316,15 +345,17 @@ class Index:
     def reload(self) -> None:
         pass
 
-    def parse_query(self, query: str, default_field_names: Optional[list[str]] = None) -> Query:
+    def parse_query(
+        self, query: str, default_field_names: Optional[list[str]] = None
+    ) -> Query:
         pass
 
-    def parse_query_lenient(self, query: str, default_field_names: Optional[list[str]] = None) -> Query:
+    def parse_query_lenient(
+        self, query: str, default_field_names: Optional[list[str]] = None
+    ) -> Query:
         pass
-
 
 class Range:
-
     @property
     def start(self) -> int:
         pass
@@ -333,24 +364,17 @@ class Range:
     def end(self) -> int:
         pass
 
-
 class Snippet:
-
     def to_html(self) -> str:
         pass
 
     def highlighted(self) -> list[Range]:
         pass
 
-
 class SnippetGenerator:
-
     @staticmethod
     def create(
-        searcher: Searcher,
-        query: Query,
-        schema: Schema,
-        field_name: str
+        searcher: Searcher, query: Query, schema: Schema, field_name: str
     ) -> SnippetGenerator:
         pass
 
