@@ -2,7 +2,7 @@ use crate::{get_field, make_term, to_pyerr, Schema};
 use pyo3::{
     exceptions,
     prelude::*,
-    types::{PyAny, PyFloat, PyList, PyString, PyTuple},
+    types::{PyAny, PyFloat, PyString, PyTuple},
 };
 use tantivy as tv;
 
@@ -158,27 +158,42 @@ impl Query {
     }
 
     /// Construct a Tantivy's PhraseQuery with custom offsets and slop
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - Schema of the target index.
+    /// * `field_name` - Field name to be searched.
+    /// * `words` - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.
+    /// * `slop` - (Optional) The number of gaps permitted between the words in the query phrase. Default is 0.
     #[staticmethod]
-    #[pyo3(signature = (schema, field_name, words, offsets, slop = 0))]
-    pub(crate) fn phrase_query_offset_slop(
+    #[pyo3(signature = (schema, field_name, words, slop = 0))]
+    pub(crate) fn phrase_query(
         schema: &Schema,
         field_name: &str,
-        words: &PyList,
-        offsets: &PyList,
+        words: Vec<&PyAny>,
         slop: u32,
     ) -> PyResult<Query> {
-        assert!(
-            words.len() == offsets.len(),
-            "'words' and 'offsets' must be the same size."
-        );
-        let mut terms = Vec::<(usize, tv::Term)>::new();
-        for (o, w) in offsets.iter().zip(words.iter()) {
-            let offset = o.extract::<usize>()?;
-            let term = make_term(&schema.inner, field_name, w)?;
-            terms.push((offset, term));
+        let mut terms_with_offset = Vec::with_capacity(words.len());
+        for (idx, word) in words.into_iter().enumerate() {
+            if let Ok((offset, value)) = word.extract() {
+                // Custom offset is provided.
+                let term = make_term(&schema.inner, field_name, value)?;
+                terms_with_offset.push((offset, term));
+            } else {
+                // Custom offset is not provided. Use the list index as the offset.
+                let term = make_term(&schema.inner, field_name, word)?;
+                terms_with_offset.push((idx, term));
+            };
         }
-        let inner =
-            tv::query::PhraseQuery::new_with_offset_and_slop(terms, slop);
+        if terms_with_offset.is_empty() {
+            return Err(exceptions::PyValueError::new_err(
+                "words must not be empty.",
+            ));
+        }
+        let inner = tv::query::PhraseQuery::new_with_offset_and_slop(
+            terms_with_offset,
+            slop,
+        );
         Ok(Query {
             inner: Box::new(inner),
         })
