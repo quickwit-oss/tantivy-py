@@ -1,4 +1,4 @@
-use crate::{get_field, make_term, to_pyerr, Schema};
+use crate::{get_field, make_term, to_pyerr, DocAddress, Schema};
 use pyo3::{
     exceptions,
     prelude::*,
@@ -100,7 +100,7 @@ impl Query {
         let terms = field_values
             .into_iter()
             .map(|field_value| {
-                make_term(&schema.inner, field_name, &field_value)
+                make_term(&schema.inner, field_name, field_value)
             })
             .collect::<Result<Vec<_>, _>>()?;
         let inner = tv::query::TermSetQuery::new(terms);
@@ -138,7 +138,7 @@ impl Query {
         transposition_cost_one: bool,
         prefix: bool,
     ) -> PyResult<Query> {
-        let term = make_term(&schema.inner, field_name, &text)?;
+        let term = make_term(&schema.inner, field_name, text)?;
         let inner = if prefix {
             tv::query::FuzzyTermQuery::new_prefix(
                 term,
@@ -225,5 +225,49 @@ impl Query {
             }),
             Err(e) => Err(to_pyerr(e)),
         }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (doc_address, min_doc_frequency = Some(5), max_doc_frequency = None, min_term_frequency = Some(2), max_query_terms = Some(25), min_word_length = None, max_word_length = None, boost_factor = Some(1.0), stop_words = vec![]))]
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn more_like_this_query(
+        doc_address: &DocAddress,
+        min_doc_frequency: Option<u64>,
+        max_doc_frequency: Option<u64>,
+        min_term_frequency: Option<usize>,
+        max_query_terms: Option<usize>,
+        min_word_length: Option<usize>,
+        max_word_length: Option<usize>,
+        boost_factor: Option<f32>,
+        stop_words: Vec<String>,
+    ) -> PyResult<Query> {
+        let mut builder = tv::query::MoreLikeThisQuery::builder();
+        if let Some(value) = min_doc_frequency {
+            builder = builder.with_min_doc_frequency(value);
+        }
+        if let Some(value) = max_doc_frequency {
+            builder = builder.with_max_doc_frequency(value);
+        }
+        if let Some(value) = min_term_frequency {
+            builder = builder.with_min_term_frequency(value);
+        }
+        if let Some(value) = max_query_terms {
+            builder = builder.with_max_query_terms(value);
+        }
+        if let Some(value) = min_word_length {
+            builder = builder.with_min_word_length(value);
+        }
+        if let Some(value) = max_word_length {
+            builder = builder.with_max_word_length(value);
+        }
+        if let Some(value) = boost_factor {
+            builder = builder.with_boost_factor(value);
+        }
+        builder = builder.with_stop_words(stop_words);
+
+        let inner = builder.with_document(tv::DocAddress::from(doc_address));
+        Ok(Query {
+            inner: Box::new(inner),
+        })
     }
 }
