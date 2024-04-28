@@ -1057,3 +1057,34 @@ class TestQuery(object):
             ValueError, match=r"An invalid argument was passed: 'fish\('"
         ):
             Query.regex_query(index.schema, "body", "fish(")
+
+    def test_const_score_query(self, ram_index):
+        index = ram_index
+
+        query = Query.regex_query(index.schema, "body", "fish")
+        const_score_query = Query.const_score_query(
+            query, score = 1.0
+        )
+        result = index.searcher().search(const_score_query, 10)
+        assert len(result.hits) == 1
+        score, _ = result.hits[0]
+        # the score should be 1.0
+        assert score == pytest.approx(1.0)
+        
+        const_score_query = Query.const_score_query(
+            Query.const_score_query(
+                query, score = 1.0
+            ), score = 0.5
+        )
+        
+        result = index.searcher().search(const_score_query, 10)
+        assert len(result.hits) == 1
+        score, _ = result.hits[0]
+        # nested const score queries should retain the 
+        # score of the outer query
+        assert score == pytest.approx(0.5)
+        
+        # wrong score type
+        with pytest.raises(TypeError, match = r"argument 'score': must be real number, not str"):
+            Query.const_score_query(query, "0.1")
+        
