@@ -233,7 +233,10 @@ impl Query {
     /// Construct a Tantivy's ConstScoreQuery
     #[staticmethod]
     #[pyo3(signature = (query, score))]
-    pub(crate) fn const_score_query(query: Query, score: f32) -> PyResult<Query> {
+    pub(crate) fn const_score_query(
+        query: Query,
+        score: f32,
+    ) -> PyResult<Query> {
         let inner = tv::query::ConstScoreQuery::new(query.inner, score);
         Ok(Query {
             inner: Box::new(inner),
