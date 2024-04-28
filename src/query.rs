@@ -199,6 +199,7 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's BooleanQuery
     #[staticmethod]
     #[pyo3(signature = (subqueries))]
     pub(crate) fn boolean_query(
@@ -241,6 +242,7 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's BoostQuery
     #[staticmethod]
     #[pyo3(signature = (query, boost))]
     pub(crate) fn boost_query(query: Query, boost: f32) -> PyResult<Query> {
@@ -250,6 +252,7 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's RegexQuery
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, regex_pattern))]
     pub(crate) fn regex_query(
@@ -267,5 +270,18 @@ impl Query {
             }),
             Err(e) => Err(to_pyerr(e)),
         }
+    }
+
+    /// Construct a Tantivy's ConstScoreQuery
+    #[staticmethod]
+    #[pyo3(signature = (query, score))]
+    pub(crate) fn const_score_query(
+        query: Query,
+        score: f32,
+    ) -> PyResult<Query> {
+        let inner = tv::query::ConstScoreQuery::new(query.inner, score);
+        Ok(Query {
+            inner: Box::new(inner),
+        })
     }
 }

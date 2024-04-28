@@ -227,6 +227,10 @@ class Query:
     def regex_query(schema: Schema, field_name: str, regex_pattern: str) -> Query:
         pass
 
+    @staticmethod
+    def const_score_query(query: Query, score: float) -> Query:
+        pass
+    
 class Order(Enum):
     Asc = 1
     Desc = 2
