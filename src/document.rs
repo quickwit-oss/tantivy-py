@@ -231,11 +231,8 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
         }
         Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
         Value::Array(arr) => {
-            let inner: Vec<_> = arr
-                .iter()
-                .map(|x| value_to_py(py, x))
-                .collect::<PyResult<_>>()?;
-            inner.to_object(py)
+            // TODO implement me
+            unimplemented!();
         }
         Value::Object(obj) => object_to_py(py, obj)?,
         Value::Bool(b) => b.into_py(py),
@@ -245,7 +242,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
 
 fn value_to_string(value: &Value) -> String {
     match value {
-        Value::Null => "null".to_string(),
+        Value::Null => format!("{:?}", value),
         Value::Str(text) => text.clone(),
         Value::U64(num) => format!("{num}"),
         Value::I64(num) => format!("{num}"),
