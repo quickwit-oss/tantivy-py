@@ -1,6 +1,8 @@
 use crate::to_pyerr;
 use pyo3::prelude::*;
 use tantivy as tv;
+// Bring the trait into scope to use methods like `as_str()` on `OwnedValue`.
+use tantivy::schema::Value;
 
 /// Tantivy Snippet
 ///
@@ -71,7 +73,7 @@ impl SnippetGenerator {
     pub fn snippet_from_doc(&self, doc: &crate::Document) -> crate::Snippet {
         let text: String = doc
             .iter_values_for_field(&self.field_name)
-            .flat_map(tv::schema::Value::as_text)
+            .flat_map(|ov| ov.as_str())
             .collect::<Vec<&str>>()
             .join(" ");
 

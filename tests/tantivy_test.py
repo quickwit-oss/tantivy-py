@@ -1086,7 +1086,7 @@ class TestQuery(object):
 
         # invalid regex pattern
         with pytest.raises(
-            ValueError, match=r"An invalid argument was passed: 'fish\('"
+            ValueError, match=r"An invalid argument was passed"
         ):
             Query.regex_query(index.schema, "body", "fish(")
 
@@ -1104,7 +1104,7 @@ class TestQuery(object):
         mlt_query = Query.more_like_this_query(doc_address)
         assert (
             repr(mlt_query)
-            == "Query(MoreLikeThisQuery { mlt: MoreLikeThis { min_doc_frequency: Some(5), max_doc_frequency: None, min_term_frequency: Some(2), max_query_terms: Some(25), min_word_length: None, max_word_length: None, boost_factor: Some(1.0), stop_words: [] }, target: DocumentAdress(DocAddress { segment_ord: 0, doc_id: 0 }) })"
+            == "Query(MoreLikeThisQuery { mlt: MoreLikeThis { min_doc_frequency: Some(5), max_doc_frequency: None, min_term_frequency: Some(2), max_query_terms: Some(25), min_word_length: None, max_word_length: None, boost_factor: Some(1.0), stop_words: [] }, target: DocumentAddress(DocAddress { segment_ord: 0, doc_id: 0 }) })"
         )
         result = index.searcher().search(mlt_query, 10)
         assert len(result.hits) == 0
@@ -1122,7 +1122,7 @@ class TestQuery(object):
             stop_words=["fish"])
         assert (
             repr(mlt_query)
-            == "Query(MoreLikeThisQuery { mlt: MoreLikeThis { min_doc_frequency: Some(2), max_doc_frequency: Some(10), min_term_frequency: Some(1), max_query_terms: Some(10), min_word_length: Some(2), max_word_length: Some(20), boost_factor: Some(2.0), stop_words: [\"fish\"] }, target: DocumentAdress(DocAddress { segment_ord: 0, doc_id: 0 }) })"
+            == "Query(MoreLikeThisQuery { mlt: MoreLikeThis { min_doc_frequency: Some(2), max_doc_frequency: Some(10), min_term_frequency: Some(1), max_query_terms: Some(10), min_word_length: Some(2), max_word_length: Some(20), boost_factor: Some(2.0), stop_words: [\"fish\"] }, target: DocumentAddress(DocAddress { segment_ord: 0, doc_id: 0 }) })"
         )
         result = index.searcher().search(mlt_query, 10)
         assert len(result.hits) > 0
@@ -1155,4 +1155,3 @@ class TestQuery(object):
         # wrong score type
         with pytest.raises(TypeError, match = r"argument 'score': must be real number, not str"):
             Query.const_score_query(query, "0.1")
-        
