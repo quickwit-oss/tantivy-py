@@ -1090,6 +1090,42 @@ class TestQuery(object):
         ):
             Query.regex_query(index.schema, "body", "fish(")
 
+    def test_more_like_this_query(self, ram_index):
+        index = ram_index
+
+        # first, search the target doc
+        query = Query.term_query(index.schema, "title", "man")
+        result = index.searcher().search(query, 1)
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        # construct the default MLT Query
+        mlt_query = Query.more_like_this_query(doc_address)
+        assert (
+            repr(mlt_query)
+            == "Query(MoreLikeThisQuery { mlt: MoreLikeThis { min_doc_frequency: Some(5), max_doc_frequency: None, min_term_frequency: Some(2), max_query_terms: Some(25), min_word_length: None, max_word_length: None, boost_factor: Some(1.0), stop_words: [] }, target: DocumentAdress(DocAddress { segment_ord: 0, doc_id: 0 }) })"
+        )
+        result = index.searcher().search(mlt_query, 10)
+        assert len(result.hits) == 0
+
+        # construct a fine-tuned MLT Query
+        mlt_query = Query.more_like_this_query(
+            doc_address,
+            min_doc_frequency=2,
+            max_doc_frequency=10,
+            min_term_frequency=1,
+            max_query_terms=10,
+            min_word_length=2,
+            max_word_length=20,
+            boost_factor=2.0,
+            stop_words=["fish"])
+        assert (
+            repr(mlt_query)
+            == "Query(MoreLikeThisQuery { mlt: MoreLikeThis { min_doc_frequency: Some(2), max_doc_frequency: Some(10), min_term_frequency: Some(1), max_query_terms: Some(10), min_word_length: Some(2), max_word_length: Some(20), boost_factor: Some(2.0), stop_words: [\"fish\"] }, target: DocumentAdress(DocAddress { segment_ord: 0, doc_id: 0 }) })"
+        )
+        result = index.searcher().search(mlt_query, 10)
+        assert len(result.hits) > 0
     def test_const_score_query(self, ram_index):
         index = ram_index
 
