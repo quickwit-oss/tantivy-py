@@ -765,12 +765,73 @@ class TestQuery(object):
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["title"] == ["The Old Man and the Sea"]
 
+    def test_term_set_query(self, ram_index):
+        index = ram_index
+
+        # Should match 1 document that contains both terms
+        terms = ["old", "man"]
+        query = Query.term_set_query(index.schema, "title", terms)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        # Should not match any document since the term does not exist in the index
+        terms = ["a long term that does not exist in the index"]
+        query = Query.term_set_query(index.schema, "title", terms)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        # Should not match any document when the terms list is empty
+        terms = []
+        query = Query.term_set_query(index.schema, "title", terms)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        # Should fail to create the query due to the invalid list object in the terms list
+        with pytest.raises(ValueError, match = r"Can't create a term for Field `title` with value `\[\]`"):
+            terms = ["old", [], "man"]
+            query = Query.term_set_query(index.schema, "title", terms)
+
     def test_all_query(self, ram_index):
         index = ram_index
         query = Query.all_query()
 
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 3
+
+    def test_phrase_query(self, ram_index):
+        index = ram_index
+        searcher = index.searcher()
+
+        query = Query.phrase_query(index.schema, "title", ["old", "man"])
+        # should match the title "The Old Man and the Sea"
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.phrase_query(index.schema, "title", ["man", "old"])
+        # sholdn't match any document
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.phrase_query(index.schema, "title", [(1, "man"), (0, "old")])
+        # should match "The Old Man and the Sea" with the given offsets
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.phrase_query(index.schema, "title", ["man", "sea"])
+        # sholdn't match any document with default slop 0.
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.phrase_query(index.schema, "title", ["man", "sea"], slop=2)
+        # should match the title "The Old Man and the Sea" with slop 2.
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        with pytest.raises(ValueError, match = "words must not be empty."):
+            Query.phrase_query(index.schema, "title", [])
 
     def test_fuzzy_term_query(self, ram_index):
         index = ram_index
@@ -1028,3 +1089,70 @@ class TestQuery(object):
             ValueError, match=r"An invalid argument was passed"
         ):
             Query.regex_query(index.schema, "body", "fish(")
+
+    def test_more_like_this_query(self, ram_index):
+        index = ram_index
+
+        # first, search the target doc
+        query = Query.term_query(index.schema, "title", "man")
+        result = index.searcher().search(query, 1)
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        # construct the default MLT Query
+        mlt_query = Query.more_like_this_query(doc_address)
+        assert (
+            repr(mlt_query)
+            == "Query(MoreLikeThisQuery { mlt: MoreLikeThis { min_doc_frequency: Some(5), max_doc_frequency: None, min_term_frequency: Some(2), max_query_terms: Some(25), min_word_length: None, max_word_length: None, boost_factor: Some(1.0), stop_words: [] }, target: DocumentAdress(DocAddress { segment_ord: 0, doc_id: 0 }) })"
+        )
+        result = index.searcher().search(mlt_query, 10)
+        assert len(result.hits) == 0
+
+        # construct a fine-tuned MLT Query
+        mlt_query = Query.more_like_this_query(
+            doc_address,
+            min_doc_frequency=2,
+            max_doc_frequency=10,
+            min_term_frequency=1,
+            max_query_terms=10,
+            min_word_length=2,
+            max_word_length=20,
+            boost_factor=2.0,
+            stop_words=["fish"])
+        assert (
+            repr(mlt_query)
+            == "Query(MoreLikeThisQuery { mlt: MoreLikeThis { min_doc_frequency: Some(2), max_doc_frequency: Some(10), min_term_frequency: Some(1), max_query_terms: Some(10), min_word_length: Some(2), max_word_length: Some(20), boost_factor: Some(2.0), stop_words: [\"fish\"] }, target: DocumentAdress(DocAddress { segment_ord: 0, doc_id: 0 }) })"
+        )
+        result = index.searcher().search(mlt_query, 10)
+        assert len(result.hits) > 0
+    def test_const_score_query(self, ram_index):
+        index = ram_index
+
+        query = Query.regex_query(index.schema, "body", "fish")
+        const_score_query = Query.const_score_query(
+            query, score = 1.0
+        )
+        result = index.searcher().search(const_score_query, 10)
+        assert len(result.hits) == 1
+        score, _ = result.hits[0]
+        # the score should be 1.0
+        assert score == pytest.approx(1.0)
+        
+        const_score_query = Query.const_score_query(
+            Query.const_score_query(
+                query, score = 1.0
+            ), score = 0.5
+        )
+        
+        result = index.searcher().search(const_score_query, 10)
+        assert len(result.hits) == 1
+        score, _ = result.hits[0]
+        # nested const score queries should retain the 
+        # score of the outer query
+        assert score == pytest.approx(0.5)
+        
+        # wrong score type
+        with pytest.raises(TypeError, match = r"argument 'score': must be real number, not str"):
+            Query.const_score_query(query, "0.1")
+        

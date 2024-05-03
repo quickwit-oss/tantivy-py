@@ -158,6 +158,7 @@ impl Searcher {
     ///
     /// Raises a ValueError if there was an error with the search.
     #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0, order = Order::Desc))]
+    #[allow(clippy::too_many_arguments)]
     fn search(
         &self,
         py: Python,

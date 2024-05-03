@@ -1,4 +1,4 @@
-use crate::{get_field, make_term, to_pyerr, Schema};
+use crate::{get_field, make_term, to_pyerr, DocAddress, Schema};
 use pyo3::{
     exceptions,
     prelude::*,
@@ -89,6 +89,26 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's TermSetQuery
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, field_values))]
+    pub(crate) fn term_set_query(
+        schema: &Schema,
+        field_name: &str,
+        field_values: Vec<&PyAny>,
+    ) -> PyResult<Query> {
+        let terms = field_values
+            .into_iter()
+            .map(|field_value| {
+                make_term(&schema.inner, field_name, field_value)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let inner = tv::query::TermSetQuery::new(terms);
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
     /// Construct a Tantivy's AllQuery
     #[staticmethod]
     pub(crate) fn all_query() -> PyResult<Query> {
@@ -137,6 +157,49 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's PhraseQuery with custom offsets and slop
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - Schema of the target index.
+    /// * `field_name` - Field name to be searched.
+    /// * `words` - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.
+    /// * `slop` - (Optional) The number of gaps permitted between the words in the query phrase. Default is 0.
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, words, slop = 0))]
+    pub(crate) fn phrase_query(
+        schema: &Schema,
+        field_name: &str,
+        words: Vec<&PyAny>,
+        slop: u32,
+    ) -> PyResult<Query> {
+        let mut terms_with_offset = Vec::with_capacity(words.len());
+        for (idx, word) in words.into_iter().enumerate() {
+            if let Ok((offset, value)) = word.extract() {
+                // Custom offset is provided.
+                let term = make_term(&schema.inner, field_name, value)?;
+                terms_with_offset.push((offset, term));
+            } else {
+                // Custom offset is not provided. Use the list index as the offset.
+                let term = make_term(&schema.inner, field_name, word)?;
+                terms_with_offset.push((idx, term));
+            };
+        }
+        if terms_with_offset.is_empty() {
+            return Err(exceptions::PyValueError::new_err(
+                "words must not be empty.",
+            ));
+        }
+        let inner = tv::query::PhraseQuery::new_with_offset_and_slop(
+            terms_with_offset,
+            slop,
+        );
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    /// Construct a Tantivy's BooleanQuery
     #[staticmethod]
     #[pyo3(signature = (subqueries))]
     pub(crate) fn boolean_query(
@@ -179,6 +242,7 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's BoostQuery
     #[staticmethod]
     #[pyo3(signature = (query, boost))]
     pub(crate) fn boost_query(query: Query, boost: f32) -> PyResult<Query> {
@@ -188,6 +252,7 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's RegexQuery
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, regex_pattern))]
     pub(crate) fn regex_query(
@@ -205,5 +270,62 @@ impl Query {
             }),
             Err(e) => Err(to_pyerr(e)),
         }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (doc_address, min_doc_frequency = Some(5), max_doc_frequency = None, min_term_frequency = Some(2), max_query_terms = Some(25), min_word_length = None, max_word_length = None, boost_factor = Some(1.0), stop_words = vec![]))]
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn more_like_this_query(
+        doc_address: &DocAddress,
+        min_doc_frequency: Option<u64>,
+        max_doc_frequency: Option<u64>,
+        min_term_frequency: Option<usize>,
+        max_query_terms: Option<usize>,
+        min_word_length: Option<usize>,
+        max_word_length: Option<usize>,
+        boost_factor: Option<f32>,
+        stop_words: Vec<String>,
+    ) -> PyResult<Query> {
+        let mut builder = tv::query::MoreLikeThisQuery::builder();
+        if let Some(value) = min_doc_frequency {
+            builder = builder.with_min_doc_frequency(value);
+        }
+        if let Some(value) = max_doc_frequency {
+            builder = builder.with_max_doc_frequency(value);
+        }
+        if let Some(value) = min_term_frequency {
+            builder = builder.with_min_term_frequency(value);
+        }
+        if let Some(value) = max_query_terms {
+            builder = builder.with_max_query_terms(value);
+        }
+        if let Some(value) = min_word_length {
+            builder = builder.with_min_word_length(value);
+        }
+        if let Some(value) = max_word_length {
+            builder = builder.with_max_word_length(value);
+        }
+        if let Some(value) = boost_factor {
+            builder = builder.with_boost_factor(value);
+        }
+        builder = builder.with_stop_words(stop_words);
+
+        let inner = builder.with_document(tv::DocAddress::from(doc_address));
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    /// Construct a Tantivy's ConstScoreQuery
+    #[staticmethod]
+    #[pyo3(signature = (query, score))]
+    pub(crate) fn const_score_query(
+        query: Query,
+        score: f32,
+    ) -> PyResult<Query> {
+        let inner = tv::query::ConstScoreQuery::new(query.inner, score);
+        Ok(Query {
+            inner: Box::new(inner),
+        })
     }
 }
