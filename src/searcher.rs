@@ -182,7 +182,7 @@ impl Searcher {
                 if let Some(order_by) = order_by_field {
                     let collector = TopDocs::with_limit(limit)
                         .and_offset(offset)
-                        .order_by_fast_field(order_by, order.into());
+                        .order_by_u64_field(order_by, order.into());
                     let top_docs_handle =
                         multicollector.add_collector(collector);
                     let ret = self.inner.search(query.get(), &multicollector);
