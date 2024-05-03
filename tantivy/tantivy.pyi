@@ -206,6 +206,17 @@ class Query:
         pass
 
     @staticmethod
+    def fuzzy_term_query(
+            schema: Schema,
+            field_name: str,
+            text: str,
+            distance: int = 1,
+            transposition_cost_one: bool = True,
+            prefix=False,
+    ) -> Query:
+        pass
+
+    @staticmethod
     def phrase_query(schema: Schema, field_name: str, words: list[Union[str, tuple[int, str]]], slop: int = 0) -> Query:
         pass
 
