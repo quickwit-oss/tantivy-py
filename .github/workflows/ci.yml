@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
 
       - name: Rust toolchain
-        uses: dtolnay/rust-toolchain@bb45937a053e097f8591208d8e74c90db1873d07
+        uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
           toolchain: 1.73.0
           components: rustfmt
@@ -79,7 +79,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: ${{ matrix.allow-prereleases }}
 
-      - uses: dtolnay/rust-toolchain@bb45937a053e097f8591208d8e74c90db1873d07
+      - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
           toolchain: 1.73.0
 
