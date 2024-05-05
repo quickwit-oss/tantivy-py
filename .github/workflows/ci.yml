@@ -45,7 +45,6 @@ jobs:
     continue-on-error: ${{ matrix.python-version == '3.13' }}
     env:
       UNSAFE_PYO3_SKIP_VERSION_CHECK: ${{ matrix.unsafe-pyo3-skip-version-check }}
-      PYO3_USE_ABI3_FORWARD_COMPATIBILITY: ${{ matrix.unsafe-pyo3-skip-version-check }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
