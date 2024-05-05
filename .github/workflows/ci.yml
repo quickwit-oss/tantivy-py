@@ -43,17 +43,20 @@ jobs:
 
   Test:
     continue-on-error: ${{ matrix.python-version == '3.13' }}
+    env:
+      UNSAFE_PYO3_SKIP_VERSION_CHECK=${{ matrix.unsafe-pyo3-skip-version-check }}
+      PYO3_USE_ABI3_FORWARD_COMPATIBILITY=${{ matrix.unsafe-pyo3-skip-version-check }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12"]
         allow-prereleases: [false]
+        unsafe-pyo3-skip-version-check: [0]
         include:
           - os: ubuntu-latest
             python-version: "3.13"
             allow-prereleases: true
-            env:
-              UNSAFE_PYO3_SKIP_VERSION_CHECK=1
+            unsafe-pyo3-skip-version-check: 1
           - os: ubuntu-latest
             python-version: "3.11"
             allow-prereleases: false
