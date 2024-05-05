@@ -51,6 +51,8 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.13"
             allow-prereleases: true
+            # Allow errors for prerelease versions
+            continue-on-error: true
           - os: ubuntu-latest
             python-version: "3.11"
             allow-prereleases: false
