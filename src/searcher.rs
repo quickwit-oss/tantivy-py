@@ -115,10 +115,11 @@ impl SearchResult {
         }
     }
 
+    type ResultData = (Vec<(PyObject, DocAddress)>, Option<usize>);
     fn __getnewargs__(
         &self,
         py: Python,
-    ) -> PyResult<(Vec<(PyObject, DocAddress)>, Option<usize>)> {
+    ) -> PyResult<ResultData> {
         Ok((self.hits(py)?, self.count))
     }
 

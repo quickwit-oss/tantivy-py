@@ -230,7 +230,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             .into_py(py)
         }
         Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
-        Value::Array(arr) => {
+        Value::Array(_arr) => {
             // TODO implement me
             unimplemented!();
         }
