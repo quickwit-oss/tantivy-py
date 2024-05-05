@@ -96,7 +96,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels-${{ matrix.python-version }}
+          ame: wheels-${{ matrix.python-version }}-${{ matrix.platform }}
           path: dist
 
   macos:
@@ -134,6 +134,7 @@ jobs:
         with:
           name: wheels-${{ matrix.python-version }}-${{ matrix.platform }}
           path: dist
+          overwrite: true
 
   python-release-github:
     runs-on: ubuntu-latest
