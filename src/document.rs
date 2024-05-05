@@ -27,7 +27,7 @@ use std::{
     str::FromStr,
 };
 
-pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
+pub(crate) fn extract_value(any: Bound<PyAny>) -> PyResult<Value> {
     if let Ok(s) = any.extract::<String>() {
         return Ok(Value::Str(s));
     }
@@ -42,7 +42,7 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     }
     if let Ok(datetime) = any.extract::<NaiveDateTime>() {
         return Ok(Value::Date(tv::DateTime::from_timestamp_secs(
-            datetime.timestamp(),
+            datetime.and_utc().timestamp(),
         )));
     }
     if let Ok(facet) = any.extract::<Facet>() {
@@ -51,16 +51,14 @@ pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     if let Ok(b) = any.extract::<Vec<u8>>() {
         return Ok(Value::Bytes(b));
     }
-    if let Ok(dict) = any.downcast::<PyDict>() {
-        if let Ok(json) = pythonize::depythonize(dict) {
-            return Ok(Value::Object(json));
-        }
+    if let Ok(json) = pythonize::depythonize_bound(any.clone()) {
+        return Ok(Value::Object(json));
     }
     Err(to_pyerr(format!("Value unsupported {any:?}")))
 }
 
 pub(crate) fn extract_value_for_type(
-    any: &PyAny,
+    any: Bound<PyAny>,
     tv_type: tv::schema::Type,
     field_name: &str,
 ) -> PyResult<Value> {
@@ -68,7 +66,7 @@ pub(crate) fn extract_value_for_type(
     fn to_pyerr_for_type<'a, E: std::error::Error>(
         type_name: &'a str,
         field_name: &'a str,
-        any: &'a PyAny,
+        any: Bound<'a, PyAny>,
     ) -> impl Fn(E) -> PyErr + 'a {
         move |_| {
             to_pyerr(format!(
@@ -104,7 +102,7 @@ pub(crate) fn extract_value_for_type(
                 .extract::<NaiveDateTime>()
                 .map_err(to_pyerr_for_type("DateTime", field_name, any))?;
 
-            Value::Date(tv::DateTime::from_timestamp_secs(datetime.timestamp()))
+            Value::Date(tv::DateTime::from_timestamp_secs(datetime.and_utc().timestamp()))
         }
         tv::schema::Type::Facet => Value::Facet(
             any.extract::<Facet>()
@@ -123,16 +121,16 @@ pub(crate) fn extract_value_for_type(
             }
 
             Value::Object(
-                any.downcast::<PyDict>()
-                    .map(|dict| pythonize::depythonize(dict))
-                    .map_err(to_pyerr_for_type("Json", field_name, any))?
+                any.clone().downcast_into::<PyDict>()
+                    .map(|dict| pythonize::depythonize_bound(dict.clone().into_any()))
+                    .map_err(to_pyerr_for_type("Json", field_name, any.clone()))?
                     .map_err(to_pyerr_for_type("Json", field_name, any))?,
             )
         }
         tv::schema::Type::IpAddr => {
             let val = any
                 .extract::<&str>()
-                .map_err(to_pyerr_for_type("IpAddr", field_name, any))?;
+                .map_err(to_pyerr_for_type("IpAddr", field_name, any.clone()))?;
 
             IpAddr::from_str(val)
                 .map(|addr| match addr {
@@ -147,7 +145,7 @@ pub(crate) fn extract_value_for_type(
     Ok(value)
 }
 
-fn extract_value_single_or_list(any: &PyAny) -> PyResult<Vec<Value>> {
+fn extract_value_single_or_list(any: Bound<PyAny>) -> PyResult<Vec<Value>> {
     if let Ok(values) = any.downcast::<PyList>() {
         values.iter().map(extract_value).collect()
     } else {
@@ -156,12 +154,12 @@ fn extract_value_single_or_list(any: &PyAny) -> PyResult<Vec<Value>> {
 }
 
 fn extract_value_single_or_list_for_type(
-    any: &PyAny,
+    any: Bound<PyAny>,
     field_type: &tv::schema::FieldType,
     field_name: &str,
 ) -> PyResult<Vec<Value>> {
     // Check if a numeric fast field supports multivalues.
-    if let Ok(values) = any.downcast::<PyList>() {
+    if let Ok(values) = any.clone().downcast_into::<PyList>() {
         // Process an array of integers as a single entry if it is a bytes field.
         if field_type.value_type() == tv::schema::Type::Bytes
             && values
@@ -170,7 +168,7 @@ fn extract_value_single_or_list_for_type(
                 .unwrap_or(false)
         {
             return Ok(vec![extract_value_for_type(
-                values,
+                values.into_any(),
                 field_type.value_type(),
                 field_name,
             )?]);
@@ -195,7 +193,7 @@ fn object_to_py(
     py: Python,
     obj: &BTreeMap<String, Value>,
 ) -> PyResult<PyObject> {
-    let dict = PyDict::new(py);
+    let dict = PyDict::new_bound(py);
     for (k, v) in obj.iter() {
         dict.set_item(k, value_to_py(py, v)?)?;
     }
@@ -216,7 +214,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
         }
         Value::Date(d) => {
             let utc = d.into_utc();
-            PyDateTime::new(
+            PyDateTime::new_bound(
                 py,
                 utc.year(),
                 utc.month() as u8,
@@ -538,7 +536,7 @@ impl Document {
     /// [`extend()`], or `add_<type>()` functions.
     #[new]
     #[pyo3(signature = (**kwargs))]
-    fn new(kwargs: Option<&PyDict>) -> PyResult<Self> {
+    fn new(kwargs: Option<&Bound<PyDict>>) -> PyResult<Self> {
         let mut document = Document::default();
         if let Some(field_dict) = kwargs {
             document.extend(field_dict, None)?;
@@ -548,7 +546,7 @@ impl Document {
 
     fn extend(
         &mut self,
-        py_dict: &PyDict,
+        py_dict: &Bound<PyDict>,
         schema: Option<&Schema>,
     ) -> PyResult<()> {
         Document::extract_py_values_from_dict(
@@ -560,7 +558,7 @@ impl Document {
 
     #[staticmethod]
     fn from_dict(
-        py_dict: &PyDict,
+        py_dict: &Bound<PyDict>,
         schema: Option<&Schema>,
     ) -> PyResult<Document> {
         let mut field_values: BTreeMap<String, Vec<Value>> = BTreeMap::new();
@@ -581,7 +579,7 @@ impl Document {
     /// For this reason, the dictionary, will associate
     /// a list of value for every field.
     fn to_dict(&self, py: Python) -> PyResult<PyObject> {
-        let dict = PyDict::new(py);
+        let dict = PyDict::new_bound(py);
         for (key, values) in &self.field_values {
             let values_py: Vec<PyObject> = values
                 .iter()
@@ -642,7 +640,7 @@ impl Document {
     /// Args:
     ///     field_name (str): The field name for which we are adding the date.
     ///     value (datetime): The date that will be added to the document.
-    fn add_date(&mut self, field_name: String, value: &PyDateTime) {
+    fn add_date(&mut self, field_name: String, value: Bound<PyDateTime>) {
         let datetime = Utc
             .with_ymd_and_hms(
                 value.get_year(),
@@ -685,7 +683,7 @@ impl Document {
     ///         to the document.
     ///
     /// Raises a ValueError if the JSON is invalid.
-    fn add_json(&mut self, field_name: String, value: &PyAny) -> PyResult<()> {
+    fn add_json(&mut self, field_name: String, value: Bound<PyAny>) -> PyResult<()> {
         type JsonMap = serde_json::Map<String, serde_json::Value>;
 
         if let Ok(json_str) = value.extract::<&str>() {
@@ -693,7 +691,7 @@ impl Document {
                 serde_json::from_str(json_str).map_err(to_pyerr)?;
             self.add_value(field_name, json_map);
             Ok(())
-        } else if let Ok(json_map) = pythonize::depythonize::<JsonMap>(value) {
+        } else if let Ok(json_map) = pythonize::depythonize_bound::<JsonMap>(value) {
             self.add_value(field_name, json_map);
             Ok(())
         } else {
@@ -760,7 +758,7 @@ impl Document {
         self.clone()
     }
 
-    fn __deepcopy__(&self, _memo: &PyDict) -> Self {
+    fn __deepcopy__(&self, _memo: Bound<PyDict>) -> Self {
         self.clone()
     }
 
@@ -778,21 +776,21 @@ impl Document {
     }
 
     #[staticmethod]
-    fn _internal_from_pythonized(serialized: &PyAny) -> PyResult<Self> {
-        pythonize::depythonize(serialized).map_err(to_pyerr)
+    fn _internal_from_pythonized(serialized: Bound<PyAny>) -> PyResult<Self> {
+        pythonize::depythonize_bound(serialized).map_err(to_pyerr)
     }
 
     fn __reduce__<'a>(
         slf: PyRef<'a, Self>,
         py: Python<'a>,
-    ) -> PyResult<&'a PyTuple> {
+    ) -> PyResult<Bound<'a, PyTuple>> {
         let serialized = pythonize::pythonize(py, &*slf).map_err(to_pyerr)?;
 
-        Ok(PyTuple::new(
+        Ok(PyTuple::new_bound(
             py,
             [
                 slf.into_py(py).getattr(py, "_internal_from_pythonized")?,
-                PyTuple::new(py, [serialized]).to_object(py),
+                PyTuple::new_bound(py, [serialized]).to_object(py),
             ],
         ))
     }
@@ -810,7 +808,7 @@ impl Document {
     }
 
     fn extract_py_values_from_dict(
-        py_dict: &PyDict,
+        py_dict: &Bound<PyDict>,
         schema: Option<&Schema>,
         out_field_values: &mut BTreeMap<String, Vec<Value>>,
     ) -> PyResult<()> {
