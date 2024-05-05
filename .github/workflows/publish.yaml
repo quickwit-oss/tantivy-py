@@ -4,10 +4,9 @@ on:
   release:
     types: [published]
 
-# on:
-#   pull_request:
-#     branches:
-#       - master
+  # pull_request:
+  #   branches:
+  #     - master
 
 permissions:
   contents: read
@@ -60,15 +59,10 @@ jobs:
           command: build
           args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11 3.12
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@897ed5eab6ed058a474202017ada7f40bfa52940 # v1.0.0
-        with:
-          subject-path: 'dist/*'
-
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels-${{ matrix.platform }}
+          name: wheels-linux-${{ matrix.platform }}
           path: dist
 
   windows:
@@ -99,15 +93,10 @@ jobs:
           command: build
           args: --release -o dist
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@897ed5eab6ed058a474202017ada7f40bfa52940 # v1.0.0
-        with:
-          subject-path: 'dist/*'
-
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels
+          name: wheels-windows-${{ matrix.python-version }}-${{ matrix.target }}
           path: dist
 
   macos:
@@ -140,15 +129,10 @@ jobs:
           command: build
           args: --release -o dist
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@897ed5eab6ed058a474202017ada7f40bfa52940 # v1.0.0
-        with:
-          subject-path: 'dist/*'
-
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels-${{ matrix.platform }}
+          name: wheels-macos-${{ matrix.python-version }}-${{ matrix.target }}
           path: dist
 
   python-release-github:
@@ -156,6 +140,8 @@ jobs:
     needs: [ macos, windows, linux ]
     permissions:
       contents: write # To add assets to a release.
+      checks: write
+      packages: write
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.1.0
@@ -188,7 +174,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload release binaries
-        uses: alexellis/upload-assets@13926a61cdb2cb35f5fdef1c06b8b591523236d3
+        uses: alexellis/upload-assets@13926a61cdb2cb35f5fdef1c06b8b591523236d3 # 0.4.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
