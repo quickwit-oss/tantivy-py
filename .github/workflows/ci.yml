@@ -24,17 +24,52 @@ jobs:
             github.com:443
             static.rust-lang.org:443
 
-      - name: Checkout
-        uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+        with:
+          fetch-depth: 0
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@bb45937a053e097f8591208d8e74c90db1873d07
         with:
-          toolchain: 1.73.0
+          toolchain: "1.73.0"
           components: rustfmt
 
       - name: Check Formatting
         run: cargo fmt --check
+
+  Clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            crates.io:443
+            index.crates.io:443
+            github.com:443
+            static.crates.io:443
+            index.crates.io:443
+            static.rust-lang.org:443
+            api.github.com:443
+
+      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+        with:
+          fetch-depth: 0
+
+      - name: Install minimal stable with clippy
+        uses: dtolnay/rust-toolchain@be73d7920c329f220ce78e0234b8f96b7ae60248
+        with:
+          toolchain: "1.73.0"
+          components: clippy
+
+      - run: cargo clean
+
+      - name: Run cargo check
+        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1.0.3
+        with:
+          command: clippy
+          args: --workspace -- -D warnings 
 
   Test:
     strategy:
@@ -51,6 +86,9 @@ jobs:
             allow-prereleases: false
           - os: ubuntu-latest
             python-version: "3.10"
+            allow-prereleases: false
+          - os: ubuntu-latest
+            python-version: 3.9
             allow-prereleases: false
           - os: ubuntu-latest
             python-version: 3.8
@@ -73,7 +111,10 @@ jobs:
             static.rust-lang.org:443
             objects.githubusercontent.com:443
 
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d  # 5.1.0
         with:
           python-version: ${{ matrix.python-version }}
@@ -81,7 +122,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@bb45937a053e097f8591208d8e74c90db1873d07
         with:
-          toolchain: 1.73.0
+          toolchain: "1.73.0"
 
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84  # 2.7.3
       - run: python3 -m pip install nox
