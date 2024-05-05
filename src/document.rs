@@ -102,7 +102,9 @@ pub(crate) fn extract_value_for_type(
                 .extract::<NaiveDateTime>()
                 .map_err(to_pyerr_for_type("DateTime", field_name, any))?;
 
-            Value::Date(tv::DateTime::from_timestamp_secs(datetime.and_utc().timestamp()))
+            Value::Date(tv::DateTime::from_timestamp_secs(
+                datetime.and_utc().timestamp(),
+            ))
         }
         tv::schema::Type::Facet => Value::Facet(
             any.extract::<Facet>()
@@ -121,16 +123,25 @@ pub(crate) fn extract_value_for_type(
             }
 
             Value::Object(
-                any.clone().downcast_into::<PyDict>()
-                    .map(|dict| pythonize::depythonize_bound(dict.clone().into_any()))
-                    .map_err(to_pyerr_for_type("Json", field_name, any.clone()))?
+                any.clone()
+                    .downcast_into::<PyDict>()
+                    .map(|dict| {
+                        pythonize::depythonize_bound(dict.clone().into_any())
+                    })
+                    .map_err(to_pyerr_for_type(
+                        "Json",
+                        field_name,
+                        any.clone(),
+                    ))?
                     .map_err(to_pyerr_for_type("Json", field_name, any))?,
             )
         }
         tv::schema::Type::IpAddr => {
-            let val = any
-                .extract::<&str>()
-                .map_err(to_pyerr_for_type("IpAddr", field_name, any.clone()))?;
+            let val = any.extract::<&str>().map_err(to_pyerr_for_type(
+                "IpAddr",
+                field_name,
+                any.clone(),
+            ))?;
 
             IpAddr::from_str(val)
                 .map(|addr| match addr {
@@ -683,7 +694,11 @@ impl Document {
     ///         to the document.
     ///
     /// Raises a ValueError if the JSON is invalid.
-    fn add_json(&mut self, field_name: String, value: Bound<PyAny>) -> PyResult<()> {
+    fn add_json(
+        &mut self,
+        field_name: String,
+        value: Bound<PyAny>,
+    ) -> PyResult<()> {
         type JsonMap = serde_json::Map<String, serde_json::Value>;
 
         if let Ok(json_str) = value.extract::<&str>() {
@@ -691,7 +706,9 @@ impl Document {
                 serde_json::from_str(json_str).map_err(to_pyerr)?;
             self.add_value(field_name, json_map);
             Ok(())
-        } else if let Ok(json_map) = pythonize::depythonize_bound::<JsonMap>(value) {
+        } else if let Ok(json_map) =
+            pythonize::depythonize_bound::<JsonMap>(value)
+        {
             self.add_value(field_name, json_map);
             Ok(())
         } else {
