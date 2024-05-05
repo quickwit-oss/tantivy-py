@@ -4,9 +4,9 @@ on:
   release:
     types: [published]
 
-  pull_request:
-    branches:
-      - master
+  # pull_request:
+  #   branches:
+  #     - master
 
 permissions:
   contents: read
@@ -62,7 +62,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels-${{ matrix.platform }}
+          name: wheels-linux-${{ matrix.platform }}
           path: dist/*.whl
 
   windows:
@@ -96,7 +96,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels-${{ matrix.python-version }}-${{ matrix.target }}
+          name: wheels-windows-${{ matrix.python-version }}-${{ matrix.target }}
           path: dist/*.whl
 
   macos:
@@ -132,7 +132,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels-${{ matrix.python-version }}-${{ matrix.target }}
+          name: wheels-macos-${{ matrix.python-version }}-${{ matrix.target }}
           path: dist/*.whl
 
   python-release-github:
@@ -140,6 +140,8 @@ jobs:
     needs: [ macos, windows, linux ]
     permissions:
       contents: write # To add assets to a release.
+      checks: write
+      packages: write
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.1.0
@@ -172,7 +174,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload release binaries
-        uses: alexellis/upload-assets@13926a61cdb2cb35f5fdef1c06b8b591523236d3
+        uses: alexellis/upload-assets@13926a61cdb2cb35f5fdef1c06b8b591523236d3 # 0.4.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
