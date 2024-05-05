@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
           name: wheels-${{ matrix.platform }}
-          path: dist
+          path: dist/*.whl
 
   windows:
     runs-on: windows-latest
@@ -96,8 +96,8 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          ame: wheels-${{ matrix.python-version }}-${{ matrix.platform }}
-          path: dist
+          name: wheels-${{ matrix.python-version }}-${{ matrix.platform }}
+          path: dist/*.whl
 
   macos:
     runs-on: macos-latest
@@ -133,7 +133,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
           name: wheels-${{ matrix.python-version }}-${{ matrix.platform }}
-          path: dist
+          path: dist/*.whl
           overwrite: true
 
   python-release-github:
