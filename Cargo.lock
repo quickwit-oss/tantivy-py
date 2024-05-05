@@ -755,7 +755,7 @@ dependencies = [
  "libc",
  "memoffset",
  "parking_lot",
- "pyo3-build-config",
+ "pyo3-build-config 0.20.3",
  "pyo3-ffi",
  "pyo3-macros",
  "unindent",
@@ -763,9 +763,19 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.20.0"
+version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a96fe70b176a89cff78f2fa7b3c930081e163d5379b4dcdf993e3ae29ca662e5"
+checksum = "deaa5745de3f5231ce10517a1f5dd97d53e5a2fd77aa6b5842292085831d48d7"
+dependencies = [
+ "once_cell",
+ "target-lexicon",
+]
+
+[[package]]
+name = "pyo3-build-config"
+version = "0.21.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7883df5835fafdad87c0d888b266c8ec0f4c9ca48a5bed6bbb592e8dedee1b50"
 dependencies = [
  "once_cell",
  "target-lexicon",
@@ -778,7 +788,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "214929900fd25e6604661ed9cf349727c8920d47deff196c4e28165a6ef2a96b"
 dependencies = [
  "libc",
- "pyo3-build-config",
+ "pyo3-build-config 0.20.3",
 ]
 
 [[package]]
@@ -1080,7 +1090,7 @@ dependencies = [
  "futures",
  "itertools",
  "pyo3",
- "pyo3-build-config",
+ "pyo3-build-config 0.21.2",
  "pythonize",
  "serde",
  "serde_json",
