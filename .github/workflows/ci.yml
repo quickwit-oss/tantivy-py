@@ -8,6 +8,10 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -24,13 +28,14 @@ jobs:
             github.com:443
             static.rust-lang.org:443
 
-      - name: Checkout
-        uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+        with:
+          fetch-depth: 0
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
-          toolchain: 1.73.0
+          toolchain: "1.73.0"
           components: rustfmt
 
       - name: Check Formatting
@@ -53,6 +58,9 @@ jobs:
             python-version: "3.10"
             allow-prereleases: false
           - os: ubuntu-latest
+            python-version: 3.9
+            allow-prereleases: false
+          - os: ubuntu-latest
             python-version: 3.8
             allow-prereleases: false
     runs-on: "${{ matrix.os }}"
@@ -73,7 +81,10 @@ jobs:
             static.rust-lang.org:443
             objects.githubusercontent.com:443
 
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d  # 5.1.0
         with:
           python-version: ${{ matrix.python-version }}
@@ -81,7 +92,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
-          toolchain: 1.73.0
+          toolchain: "1.73.0"
 
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84  # 2.7.3
       - run: python3 -m pip install nox

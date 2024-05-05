@@ -9,9 +9,16 @@ on:
 #     branches:
 #       - master
 
+permissions:
+  contents: read
+
 jobs:
   linux:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # ability to mint the OIDC token permission is necessary to persist the attestation
+      contents: read
+      attestations: write  # persist the attestation
     strategy:
       matrix:
         platform: [ 'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu' ]
@@ -32,13 +39,13 @@ jobs:
             github.com:443
             index.crates.io:443
             objects.githubusercontent.com:443
-            uploads.github.com:443
             pkg-containers.githubusercontent.com:443
             pypi.org:443
             quay.io:443
             sh.rustup.rs:443
             static.crates.io:443
             static.rust-lang.org:443
+            uploads.github.com:443
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
@@ -53,14 +60,23 @@ jobs:
           command: build
           args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11 3.12
 
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@897ed5eab6ed058a474202017ada7f40bfa52940 # v1.0.0
+        with:
+          subject-path: 'dist/*'
+
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels
+          name: wheels-${{ matrix.platform }}
           path: dist
 
   windows:
     runs-on: windows-latest
+    permissions:
+      id-token: write  # ability to mint the OIDC token permission is necessary to persist the attestation
+      contents: read
+      attestations: write  # persist the attestation
     strategy:
       matrix:
         target: [x64]
@@ -69,7 +85,7 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          egress-policy: audit
 
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
@@ -83,6 +99,11 @@ jobs:
           command: build
           args: --release -o dist
 
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@897ed5eab6ed058a474202017ada7f40bfa52940 # v1.0.0
+        with:
+          subject-path: 'dist/*'
+
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
@@ -91,6 +112,10 @@ jobs:
 
   macos:
     runs-on: macos-latest
+    permissions:
+      id-token: write  # ability to mint the OIDC token permission is necessary to persist the attestation
+      contents: read
+      attestations: write  # persist the attestation
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
@@ -115,10 +140,15 @@ jobs:
           command: build
           args: --release -o dist
 
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@897ed5eab6ed058a474202017ada7f40bfa52940 # v1.0.0
+        with:
+          subject-path: 'dist/*'
+
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels
+          name: wheels-${{ matrix.platform }}
           path: dist
 
   python-release-github:
@@ -144,7 +174,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
-          toolchain: 1.73.0
+          toolchain: "1.73.0"
 
       - name: Set up Python 3.8
         uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
@@ -153,8 +183,9 @@ jobs:
 
       - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
-          name: wheels
           path: wheels
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Upload release binaries
         uses: alexellis/upload-assets@13926a61cdb2cb35f5fdef1c06b8b591523236d3
@@ -173,12 +204,13 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          egress-policy: audit
 
       - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
-          name: wheels
           path: wheels
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Publish package distributions to Test PyPI
         uses: pypa/gh-action-pypi-publish@81e9d935c883d0b210363ab89cf05f3894778450 # v1.8.14
