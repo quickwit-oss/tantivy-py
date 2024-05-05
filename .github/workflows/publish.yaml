@@ -98,6 +98,7 @@ jobs:
         with:
           name: wheels-${{ matrix.python-version }}-${{ matrix.platform }}
           path: dist/*.whl
+          overwrite: true
 
   macos:
     runs-on: macos-latest
