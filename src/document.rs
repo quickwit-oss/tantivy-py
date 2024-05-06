@@ -123,8 +123,7 @@ pub(crate) fn extract_value_for_type(
             }
 
             Value::Object(
-                any
-                    .downcast::<PyDict>()
+                any.downcast::<PyDict>()
                     .map_err(to_pyerr_for_type("Json", field_name, any))
                     .and_then(|dict| {
                         pythonize::depythonize_bound(dict.clone().into_any())
