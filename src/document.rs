@@ -66,7 +66,7 @@ pub(crate) fn extract_value_for_type(
     fn to_pyerr_for_type<'a, E: std::error::Error>(
         type_name: &'a str,
         field_name: &'a str,
-        any: &'a Bound<'a, PyAny>,
+        any: &'a Bound<PyAny>,
     ) -> impl Fn(E) -> PyErr + 'a {
         move |_| {
             to_pyerr(format!(
@@ -123,11 +123,11 @@ pub(crate) fn extract_value_for_type(
             }
 
             Value::Object(
-                any.clone()
-                    .downcast_into::<PyDict>()
+                any
+                    .downcast::<PyDict>()
                     .map_err(to_pyerr_for_type("Json", field_name, any))
                     .and_then(|dict| {
-                        pythonize::depythonize_bound(dict.into_any())
+                        pythonize::depythonize_bound(dict.clone().into_any())
                             .map_err(to_pyerr_for_type("Json", field_name, any))
                     })?,
             )
@@ -164,7 +164,7 @@ fn extract_value_single_or_list_for_type(
     field_name: &str,
 ) -> PyResult<Vec<Value>> {
     // Check if a numeric fast field supports multivalues.
-    if let Ok(values) = any.clone().downcast_into::<PyList>() {
+    if let Ok(values) = any.downcast::<PyList>() {
         // Process an array of integers as a single entry if it is a bytes field.
         if field_type.value_type() == tv::schema::Type::Bytes
             && values
@@ -173,7 +173,7 @@ fn extract_value_single_or_list_for_type(
                 .unwrap_or(false)
         {
             return Ok(vec![extract_value_for_type(
-                &values,
+                values,
                 field_type.value_type(),
                 field_name,
             )?]);
