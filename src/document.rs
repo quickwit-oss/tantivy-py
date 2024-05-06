@@ -124,12 +124,12 @@ pub(crate) fn extract_value_for_type(
 
             Value::Object(
                 any.clone()
-                    .downcast_into::<PyDict>()
-                    .map(|dict| {
-                        pythonize::depythonize_bound(dict.clone().into_any())
-                    })
-                    .map_err(to_pyerr_for_type("Json", field_name, any))?
-                    .map_err(to_pyerr_for_type("Json", field_name, any))?,
+                .downcast_into::<PyDict>()
+                .map_err(to_pyerr_for_type("Json", field_name, any))
+                .and_then(|dict| {
+                   pythonize::depythonize_bound(dict.into_any())
+                   .map_err(to_pyerr_for_type("Json", field_name, any))
+                })?
             )
         }
         tv::schema::Type::IpAddr => {
