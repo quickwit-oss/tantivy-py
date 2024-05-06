@@ -27,7 +27,7 @@ use std::{
     str::FromStr,
 };
 
-pub(crate) fn extract_value(any: Bound<PyAny>) -> PyResult<Value> {
+pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
     if let Ok(s) = any.extract::<String>() {
         return Ok(Value::Str(s));
     }
@@ -58,7 +58,7 @@ pub(crate) fn extract_value(any: Bound<PyAny>) -> PyResult<Value> {
 }
 
 pub(crate) fn extract_value_for_type(
-    any: Bound<PyAny>,
+    any: &Bound<PyAny>,
     tv_type: tv::schema::Type,
     field_name: &str,
 ) -> PyResult<Value> {
@@ -66,7 +66,7 @@ pub(crate) fn extract_value_for_type(
     fn to_pyerr_for_type<'a, E: std::error::Error>(
         type_name: &'a str,
         field_name: &'a str,
-        any: Bound<'a, PyAny>,
+        any: &'a Bound<'a, PyAny>,
     ) -> impl Fn(E) -> PyErr + 'a {
         move |_| {
             to_pyerr(format!(
@@ -128,20 +128,14 @@ pub(crate) fn extract_value_for_type(
                     .map(|dict| {
                         pythonize::depythonize_bound(dict.clone().into_any())
                     })
-                    .map_err(to_pyerr_for_type(
-                        "Json",
-                        field_name,
-                        any.clone(),
-                    ))?
+                    .map_err(to_pyerr_for_type("Json", field_name, any))?
                     .map_err(to_pyerr_for_type("Json", field_name, any))?,
             )
         }
         tv::schema::Type::IpAddr => {
-            let val = any.extract::<&str>().map_err(to_pyerr_for_type(
-                "IpAddr",
-                field_name,
-                any.clone(),
-            ))?;
+            let val = any
+                .extract::<&str>()
+                .map_err(to_pyerr_for_type("IpAddr", field_name, any))?;
 
             IpAddr::from_str(val)
                 .map(|addr| match addr {
@@ -156,16 +150,16 @@ pub(crate) fn extract_value_for_type(
     Ok(value)
 }
 
-fn extract_value_single_or_list(any: Bound<PyAny>) -> PyResult<Vec<Value>> {
+fn extract_value_single_or_list(any: &Bound<PyAny>) -> PyResult<Vec<Value>> {
     if let Ok(values) = any.downcast::<PyList>() {
-        values.iter().map(extract_value).collect()
+        values.iter().map(|v| extract_value(&v)).collect()
     } else {
         Ok(vec![extract_value(any)?])
     }
 }
 
 fn extract_value_single_or_list_for_type(
-    any: Bound<PyAny>,
+    any: &Bound<PyAny>,
     field_type: &tv::schema::FieldType,
     field_name: &str,
 ) -> PyResult<Vec<Value>> {
@@ -179,7 +173,7 @@ fn extract_value_single_or_list_for_type(
                 .unwrap_or(false)
         {
             return Ok(vec![extract_value_for_type(
-                values.into_any(),
+                &values,
                 field_type.value_type(),
                 field_name,
             )?]);
@@ -188,7 +182,11 @@ fn extract_value_single_or_list_for_type(
         values
             .iter()
             .map(|any| {
-                extract_value_for_type(any, field_type.value_type(), field_name)
+                extract_value_for_type(
+                    &any,
+                    field_type.value_type(),
+                    field_name,
+                )
             })
             .collect()
     } else {
@@ -651,7 +649,7 @@ impl Document {
     /// Args:
     ///     field_name (str): The field name for which we are adding the date.
     ///     value (datetime): The date that will be added to the document.
-    fn add_date(&mut self, field_name: String, value: Bound<PyDateTime>) {
+    fn add_date(&mut self, field_name: String, value: &Bound<PyDateTime>) {
         let datetime = Utc
             .with_ymd_and_hms(
                 value.get_year(),
@@ -697,7 +695,7 @@ impl Document {
     fn add_json(
         &mut self,
         field_name: String,
-        value: Bound<PyAny>,
+        value: &Bound<PyAny>,
     ) -> PyResult<()> {
         type JsonMap = serde_json::Map<String, serde_json::Value>;
 
@@ -707,7 +705,7 @@ impl Document {
             self.add_value(field_name, json_map);
             Ok(())
         } else if let Ok(json_map) =
-            pythonize::depythonize_bound::<JsonMap>(value)
+            pythonize::depythonize_bound::<JsonMap>(value.clone())
         {
             self.add_value(field_name, json_map);
             Ok(())
@@ -775,7 +773,7 @@ impl Document {
         self.clone()
     }
 
-    fn __deepcopy__(&self, _memo: Bound<PyDict>) -> Self {
+    fn __deepcopy__(&self, _memo: &Bound<PyDict>) -> Self {
         self.clone()
     }
 
@@ -793,8 +791,8 @@ impl Document {
     }
 
     #[staticmethod]
-    fn _internal_from_pythonized(serialized: Bound<PyAny>) -> PyResult<Self> {
-        pythonize::depythonize_bound(serialized).map_err(to_pyerr)
+    fn _internal_from_pythonized(serialized: &Bound<PyAny>) -> PyResult<Self> {
+        pythonize::depythonize_bound(serialized.clone()).map_err(to_pyerr)
     }
 
     fn __reduce__<'a>(
@@ -862,12 +860,12 @@ impl Document {
 
                 let value_list = if let Some(field_type) = field_type {
                     extract_value_single_or_list_for_type(
-                        key_value.get_item(1)?,
+                        &key_value.get_item(1)?,
                         field_type,
                         key.as_str(),
                     )?
                 } else {
-                    extract_value_single_or_list(key_value.get_item(1)?)?
+                    extract_value_single_or_list(&key_value.get_item(1)?)?
                 };
 
                 out_field_values.insert(key, value_list);

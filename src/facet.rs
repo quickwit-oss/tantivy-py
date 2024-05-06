@@ -34,7 +34,7 @@ impl Facet {
 
     /// Create a new instance of the "root facet" Equivalent to /.
     #[classmethod]
-    fn root(_cls: Bound<PyType>) -> Facet {
+    fn root(_cls: &Bound<PyType>) -> Facet {
         Facet {
             inner: schema::Facet::root(),
         }
@@ -60,7 +60,7 @@ impl Facet {
     ///
     /// Returns the created Facet.
     #[classmethod]
-    fn from_string(_cls: Bound<PyType>, facet_string: &str) -> Facet {
+    fn from_string(_cls: &Bound<PyType>, facet_string: &str) -> Facet {
         Facet {
             inner: schema::Facet::from(facet_string),
         }

@@ -154,7 +154,7 @@ impl IndexWriter {
     fn delete_documents(
         &mut self,
         field_name: &str,
-        field_value: Bound<PyAny>,
+        field_value: &Bound<PyAny>,
     ) -> PyResult<u64> {
         let field = get_field(&self.schema, field_name)?;
         let value = extract_value(field_value)?;
