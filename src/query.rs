@@ -71,7 +71,7 @@ impl Query {
     pub(crate) fn term_query(
         schema: &Schema,
         field_name: &str,
-        field_value: &PyAny,
+        field_value: &Bound<PyAny>,
         index_option: &str,
     ) -> PyResult<Query> {
         let term = make_term(&schema.inner, field_name, field_value)?;
@@ -95,12 +95,12 @@ impl Query {
     pub(crate) fn term_set_query(
         schema: &Schema,
         field_name: &str,
-        field_values: Vec<&PyAny>,
+        field_values: Vec<Bound<PyAny>>,
     ) -> PyResult<Query> {
         let terms = field_values
             .into_iter()
             .map(|field_value| {
-                make_term(&schema.inner, field_name, field_value)
+                make_term(&schema.inner, field_name, &field_value)
             })
             .collect::<Result<Vec<_>, _>>()?;
         let inner = tv::query::TermSetQuery::new(terms);
@@ -133,7 +133,7 @@ impl Query {
     pub(crate) fn fuzzy_term_query(
         schema: &Schema,
         field_name: &str,
-        text: &PyString,
+        text: &Bound<PyString>,
         distance: u8,
         transposition_cost_one: bool,
         prefix: bool,
@@ -170,18 +170,18 @@ impl Query {
     pub(crate) fn phrase_query(
         schema: &Schema,
         field_name: &str,
-        words: Vec<&PyAny>,
+        words: Vec<Bound<PyAny>>,
         slop: u32,
     ) -> PyResult<Query> {
         let mut terms_with_offset = Vec::with_capacity(words.len());
         for (idx, word) in words.into_iter().enumerate() {
             if let Ok((offset, value)) = word.extract() {
                 // Custom offset is provided.
-                let term = make_term(&schema.inner, field_name, value)?;
+                let term = make_term(&schema.inner, field_name, &value)?;
                 terms_with_offset.push((offset, term));
             } else {
                 // Custom offset is not provided. Use the list index as the offset.
-                let term = make_term(&schema.inner, field_name, word)?;
+                let term = make_term(&schema.inner, field_name, &word)?;
                 terms_with_offset.push((idx, term));
             };
         }
@@ -221,7 +221,7 @@ impl Query {
     #[staticmethod]
     pub(crate) fn disjunction_max_query(
         subqueries: Vec<Query>,
-        tie_breaker: Option<&PyFloat>,
+        tie_breaker: Option<Bound<PyFloat>>,
     ) -> PyResult<Query> {
         let inner_queries: Vec<Box<dyn tv::query::Query>> = subqueries
             .iter()

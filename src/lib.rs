@@ -74,7 +74,7 @@ use crate::document::extract_value;
 ///     >>> assert len(result) == 1
 ///
 #[pymodule]
-fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
+fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<Order>()?;
     m.add_class::<Schema>()?;
     m.add_class::<SchemaBuilder>()?;
@@ -119,7 +119,7 @@ fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
 ///     >>> assert isinstance(errors[0], query_parser_error.FieldDoesNotExistError)
 ///     >>> assert isinstance(errors[1], query_parser_error.ExpectedIntError)
 #[pymodule]
-fn query_parser_error(_py: Python, m: &PyModule) -> PyResult<()> {
+fn query_parser_error(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<parser_error::SyntaxError>()?;
     m.add_class::<parser_error::UnsupportedQueryError>()?;
     m.add_class::<parser_error::FieldDoesNotExistError>()?;
@@ -161,7 +161,7 @@ pub(crate) fn get_field(
 pub(crate) fn make_term(
     schema: &tv::schema::Schema,
     field_name: &str,
-    field_value: &PyAny,
+    field_value: &Bound<PyAny>,
 ) -> PyResult<tv::Term> {
     let field = get_field(schema, field_name)?;
     let value = extract_value(field_value)?;
