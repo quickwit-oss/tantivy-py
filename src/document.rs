@@ -51,8 +51,11 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
     if let Ok(b) = any.extract::<Vec<u8>>() {
         return Ok(Value::Bytes(b));
     }
-    if let Ok(json) = pythonize::depythonize_bound(any.clone()) {
-        return Ok(Value::Object(json));
+    if let Ok(dict) = any.downcast::<PyDict>() {
+        if let Ok(json) = pythonize::depythonize_bound(dict.clone().into_any())
+        {
+            return Ok(Value::Object(json));
+        }
     }
     Err(to_pyerr(format!("Value unsupported {any:?}")))
 }
