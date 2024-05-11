@@ -5,6 +5,11 @@ use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use serde::{Deserialize, Serialize};
 use tantivy as tv;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
+use tantivy::TantivyDocument;
+// Bring the trait into scope. This is required for the `to_named_doc` method.
+// However, tantivy-py declares its own `Document` class, so we need to avoid
+// introduce the `Document` trait into the namespace.
+use tantivy::Document as _;
 
 /// Tantivy's Searcher class
 ///
@@ -153,6 +158,7 @@ impl Searcher {
     ///
     /// Raises a ValueError if there was an error with the search.
     #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0, order = Order::Desc))]
+    #[allow(clippy::too_many_arguments)]
     fn search(
         &self,
         py: Python,
@@ -176,7 +182,7 @@ impl Searcher {
                 if let Some(order_by) = order_by_field {
                     let collector = TopDocs::with_limit(limit)
                         .and_offset(offset)
-                        .order_by_fast_field(order_by, order.into());
+                        .order_by_u64_field(order_by, order.into());
                     let top_docs_handle =
                         multicollector.add_collector(collector);
                     let ret = self.inner.search(query.get(), &multicollector);
@@ -247,9 +253,10 @@ impl Searcher {
     ///
     /// Returns the Document, raises ValueError if the document can't be found.
     fn doc(&self, doc_address: &DocAddress) -> PyResult<Document> {
-        let doc = self.inner.doc(doc_address.into()).map_err(to_pyerr)?;
-        let named_doc = self.inner.schema().to_named_doc(&doc);
-        Ok(Document {
+        let doc: TantivyDocument =
+            self.inner.doc(doc_address.into()).map_err(to_pyerr)?;
+        let named_doc = doc.to_named_doc(self.inner.schema());
+        Ok(crate::document::Document {
             field_values: named_doc.0,
         })
     }

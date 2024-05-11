@@ -62,21 +62,21 @@ impl Schema {
     }
 
     #[staticmethod]
-    fn _internal_from_pythonized(serialized: &PyAny) -> PyResult<Self> {
-        pythonize::depythonize(serialized).map_err(to_pyerr)
+    fn _internal_from_pythonized(serialized: &Bound<PyAny>) -> PyResult<Self> {
+        pythonize::depythonize_bound(serialized.clone()).map_err(to_pyerr)
     }
 
     fn __reduce__<'a>(
         slf: PyRef<'a, Self>,
         py: Python<'a>,
-    ) -> PyResult<&'a PyTuple> {
+    ) -> PyResult<Bound<'a, PyTuple>> {
         let serialized = pythonize::pythonize(py, &*slf).map_err(to_pyerr)?;
 
-        Ok(PyTuple::new(
+        Ok(PyTuple::new_bound(
             py,
             [
                 slf.into_py(py).getattr(py, "_internal_from_pythonized")?,
-                PyTuple::new(py, [serialized]).to_object(py),
+                PyTuple::new_bound(py, [serialized]).to_object(py),
             ],
         ))
     }

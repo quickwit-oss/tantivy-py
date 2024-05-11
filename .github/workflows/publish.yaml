@@ -4,20 +4,26 @@ on:
   release:
     types: [published]
 
-# on:
-#   pull_request:
-#     branches:
-#       - master
+  # pull_request:
+  #   branches:
+  #     - master
+
+permissions:
+  contents: read
 
 jobs:
   linux:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # ability to mint the OIDC token permission is necessary to persist the attestation
+      contents: read
+      attestations: write  # persist the attestation
     strategy:
       matrix:
         platform: [ 'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu' ]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -32,21 +38,21 @@ jobs:
             github.com:443
             index.crates.io:443
             objects.githubusercontent.com:443
-            uploads.github.com:443
             pkg-containers.githubusercontent.com:443
             pypi.org:443
             quay.io:443
             sh.rustup.rs:443
             static.crates.io:443
             static.rust-lang.org:443
+            uploads.github.com:443
 
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: 3.8
           architecture: x64
 
-      - uses: PyO3/maturin-action@bf468cfccfe9a3fec2554b0eebf2e9276cf066aa
+      - uses: PyO3/maturin-action@52b28abb0c6729beb388babfc348bf6ff5aaff31
         with:
           manylinux: auto
           target: ${{ matrix.platform }}
@@ -56,27 +62,31 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels
+          name: wheels-linux-${{ matrix.platform }}
           path: dist
 
   windows:
     runs-on: windows-latest
+    permissions:
+      id-token: write  # ability to mint the OIDC token permission is necessary to persist the attestation
+      contents: read
+      attestations: write  # persist the attestation
     strategy:
       matrix:
         target: [x64]
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          egress-policy: audit
 
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: PyO3/maturin-action@bf468cfccfe9a3fec2554b0eebf2e9276cf066aa
+      - uses: PyO3/maturin-action@52b28abb0c6729beb388babfc348bf6ff5aaff31
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -86,28 +96,32 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels
+          name: wheels-windows-${{ matrix.python-version }}-${{ matrix.target }}
           path: dist
 
   macos:
     runs-on: macos-latest
+    permissions:
+      id-token: write  # ability to mint the OIDC token permission is necessary to persist the attestation
+      contents: read
+      attestations: write  # persist the attestation
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Build wheels - ${{ matrix.target }}
-        uses: PyO3/maturin-action@bf468cfccfe9a3fec2554b0eebf2e9276cf066aa
+        uses: PyO3/maturin-action@52b28abb0c6729beb388babfc348bf6ff5aaff31
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -118,7 +132,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808  # 4.3.3
         with:
-          name: wheels
+          name: wheels-macos-${{ matrix.python-version }}-${{ matrix.target }}
           path: dist
 
   python-release-github:
@@ -126,9 +140,11 @@ jobs:
     needs: [ macos, windows, linux ]
     permissions:
       contents: write # To add assets to a release.
+      checks: write
+      packages: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.1.0
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.1.0
         with:
           disable-sudo: true
           egress-policy: block
@@ -138,26 +154,27 @@ jobs:
             uploads.github.com:443
             static.rust-lang.org:443 
 
-      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
         with:
           ref: ${{ github.head_ref }}
 
-      - uses: dtolnay/rust-toolchain@bb45937a053e097f8591208d8e74c90db1873d07
+      - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
-          toolchain: 1.73.0
+          toolchain: "1.73.0"
 
       - name: Set up Python 3.8
         uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
         with:
           python-version: 3.8
 
-      - uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
+      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
-          name: wheels
           path: wheels
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Upload release binaries
-        uses: alexellis/upload-assets@13926a61cdb2cb35f5fdef1c06b8b591523236d3
+        uses: alexellis/upload-assets@13926a61cdb2cb35f5fdef1c06b8b591523236d3 # 0.4.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -171,14 +188,15 @@ jobs:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          egress-policy: audit
 
-      - uses: actions/download-artifact@9c19ed7fe5d278cd354c7dfd5d3b88589c7e2395 # v4.1.6
+      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         with:
-          name: wheels
           path: wheels
+          pattern: wheels-*
+          merge-multiple: true
 
       - name: Publish package distributions to Test PyPI
         uses: pypa/gh-action-pypi-publish@81e9d935c883d0b210363ab89cf05f3894778450 # v1.8.14

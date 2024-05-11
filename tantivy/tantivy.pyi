@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum
-from typing import Any, Optional, Sequence, TypeVar
+from typing import Any, Optional, Sequence, TypeVar, Union
 
 class Schema:
     pass
@@ -224,14 +224,19 @@ class Query:
 
     @staticmethod
     def fuzzy_term_query(
-        schema: Schema,
-        field_name: str,
-        text: str,
-        distance: int = 1,
-        transposition_cost_one: bool = True,
-        prefix=False,
+            schema: Schema,
+            field_name: str,
+            text: str,
+            distance: int = 1,
+            transposition_cost_one: bool = True,
+            prefix=False,
     ) -> Query:
         pass
+
+    @staticmethod
+    def phrase_query(schema: Schema, field_name: str, words: list[Union[str, tuple[int, str]]], slop: int = 0) -> Query:
+        pass
+
 
     @staticmethod
     def boolean_query(subqueries: Sequence[tuple[Occur, Query]]) -> Query:
@@ -251,9 +256,23 @@ class Query:
         pass
 
     @staticmethod
+    def more_like_this_query(
+        doc_address: DocAddress,
+        min_doc_frequency: Optional[int] = 5,
+        max_doc_frequency: Optional[int] = None,
+        min_term_frequency: Optional[int] = 2,
+        max_query_terms: Optional[int] = 25,
+        min_word_length: Optional[int] = None,
+        max_word_length: Optional[int] = None,
+        boost_factor: Optional[float] = 1.0,
+        stop_words: list[str] = []
+    ) -> Query:
+        pass
+
+    @staticmethod
     def const_score_query(query: Query, score: float) -> Query:
         pass
-    
+       
     @staticmethod
     def range_query(
         schema: Schema,

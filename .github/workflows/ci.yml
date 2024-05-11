@@ -8,6 +8,10 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -16,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
         with:
           disable-sudo: true
           egress-policy: block
@@ -24,28 +28,34 @@ jobs:
             github.com:443
             static.rust-lang.org:443
 
-      - name: Checkout
-        uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
+        with:
+          fetch-depth: 0
 
       - name: Rust toolchain
-        uses: dtolnay/rust-toolchain@bb45937a053e097f8591208d8e74c90db1873d07
+        uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
-          toolchain: 1.73.0
+          toolchain: "1.73.0"
           components: rustfmt
 
       - name: Check Formatting
         run: cargo fmt --check
 
   Test:
+    continue-on-error: ${{ matrix.python-version == '3.13' }}
+    env:
+      UNSAFE_PYO3_SKIP_VERSION_CHECK: ${{ matrix.unsafe-pyo3-skip-version-check }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12"]
         allow-prereleases: [false]
+        unsafe-pyo3-skip-version-check: [0]
         include:
           - os: ubuntu-latest
             python-version: "3.13"
             allow-prereleases: true
+            unsafe-pyo3-skip-version-check: 1
           - os: ubuntu-latest
             python-version: "3.11"
             allow-prereleases: false
@@ -53,12 +63,15 @@ jobs:
             python-version: "3.10"
             allow-prereleases: false
           - os: ubuntu-latest
+            python-version: 3.9
+            allow-prereleases: false
+          - os: ubuntu-latest
             python-version: 3.8
             allow-prereleases: false
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
         with:
           disable-sudo: true
           egress-policy: block
@@ -73,15 +86,18 @@ jobs:
             static.rust-lang.org:443
             objects.githubusercontent.com:443
 
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d  # 5.1.0
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: ${{ matrix.allow-prereleases }}
 
-      - uses: dtolnay/rust-toolchain@bb45937a053e097f8591208d8e74c90db1873d07
+      - uses: dtolnay/rust-toolchain@d8352f6b1d2e870bc5716e7a6d9b65c4cc244a1a
         with:
-          toolchain: 1.73.0
+          toolchain: "1.73.0"
 
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84  # 2.7.3
       - run: python3 -m pip install nox
