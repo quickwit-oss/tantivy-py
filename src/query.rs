@@ -1,4 +1,4 @@
-use crate::{get_field, make_term, to_pyerr, Schema};
+use crate::{get_field, make_term, make_term_for_type, schema::FieldType, to_pyerr, Schema};
 use core::ops::Bound;
 use pyo3::{
     exceptions,
@@ -6,7 +6,6 @@ use pyo3::{
     types::{PyAny, PyFloat, PyString, PyTuple},
 };
 use tantivy as tv;
-use crate::schema::FieldType;
 
 /// Custom Tuple struct to represent a pair of Occur and Query
 /// for the BooleanQuery
@@ -256,37 +255,36 @@ impl Query {
         match field_type {
             FieldType::Text => {
                 return Err(exceptions::PyValueError::new_err(
-                    "Text fields are not supported for range queries."
+                    "Text fields are not supported for range queries.",
                 ))
             }
             FieldType::Boolean => {
                 return Err(exceptions::PyValueError::new_err(
-                    "Boolean fields are not supported for range queries."
+                    "Boolean fields are not supported for range queries.",
                 ))
             }
             FieldType::Facet => {
                 return Err(exceptions::PyValueError::new_err(
-                    "Facet fields are not supported for range queries."
+                    "Facet fields are not supported for range queries.",
                 ))
             }
             FieldType::Bytes => {
                 return Err(exceptions::PyValueError::new_err(
-                    "Bytes fields are not supported for range queries."
+                    "Bytes fields are not supported for range queries.",
                 ))
             }
             FieldType::Json => {
                 return Err(exceptions::PyValueError::new_err(
-                    "Json fields are not supported for range queries."
+                    "Json fields are not supported for range queries.",
                 ))
             }
             _ => {}
         }
 
-
         let lower_bound_term =
-            make_term(&schema.inner, field_name, lower_bound)?;
+            make_term_for_type(&schema.inner, field_name, field_type.clone(), lower_bound)?;
         let upper_bound_term =
-            make_term(&schema.inner, field_name, upper_bound)?;
+            make_term_for_type(&schema.inner, field_name, field_type.clone(), upper_bound)?;
 
         let lower_bound = if include_lower {
             Bound::Included(lower_bound_term)

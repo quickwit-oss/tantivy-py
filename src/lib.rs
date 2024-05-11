@@ -12,7 +12,7 @@ mod schemabuilder;
 mod searcher;
 mod snippet;
 
-use document::Document;
+use document::{extract_value, extract_value_for_type, Document};
 use facet::Facet;
 use index::Index;
 use query::{Occur, Query};
@@ -20,8 +20,6 @@ use schema::{Schema, FieldType};
 use schemabuilder::SchemaBuilder;
 use searcher::{DocAddress, Order, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
-
-use crate::document::extract_value;
 
 /// Python bindings for the search engine library Tantivy.
 ///
@@ -166,6 +164,37 @@ pub(crate) fn make_term(
 ) -> PyResult<tv::Term> {
     let field = get_field(schema, field_name)?;
     let value = extract_value(field_value)?;
+    let term = match value {
+        Value::Str(text) => Term::from_field_text(field, &text),
+        Value::U64(num) => Term::from_field_u64(field, num),
+        Value::I64(num) => Term::from_field_i64(field, num),
+        Value::F64(num) => Term::from_field_f64(field, num),
+        Value::Date(d) => Term::from_field_date(field, d),
+        Value::Facet(facet) => Term::from_facet(field, &facet),
+        Value::Bool(b) => Term::from_field_bool(field, b),
+        Value::IpAddr(i) => Term::from_field_ip_addr(field, i),
+        _ => {
+            return Err(exceptions::PyValueError::new_err(format!(
+                "Can't create a term for Field `{field_name}` with value `{field_value}`."
+            )))
+        }
+    };
+
+    Ok(term)
+}
+
+pub(crate) fn make_term_for_type(
+    schema: &tv::schema::Schema,
+    field_name: &str,
+    field_type: FieldType,
+    field_value: &PyAny,
+) -> PyResult<tv::Term> {
+    let field = get_field(schema, field_name)?;
+    let value = extract_value_for_type(
+        field_value,
+        field_type.into(),
+        field_name,
+    )?;
     let term = match value {
         Value::Str(text) => Term::from_field_text(field, &text),
         Value::U64(num) => Term::from_field_u64(field, num),

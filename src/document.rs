@@ -30,13 +30,6 @@ use std::{
 
 pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     if let Ok(s) = any.extract::<String>() {
-        if let Ok(ip) = IpAddr::from_str(s.as_str())
-        .map(|addr| match addr {
-            IpAddr::V4(addr) => addr.to_ipv6_mapped(),
-            IpAddr::V6(addr) => addr,
-        }) {
-            return Ok(Value::IpAddr(ip));
-        }
         return Ok(Value::Str(s));
     }
     if any.is_exact_instance_of::<PyBool>() {
