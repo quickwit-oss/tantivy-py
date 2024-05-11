@@ -1,10 +1,12 @@
 use crate::{get_field, make_term, to_pyerr, Schema};
+use core::ops::Bound;
 use pyo3::{
     exceptions,
     prelude::*,
     types::{PyAny, PyFloat, PyString, PyTuple},
 };
 use tantivy as tv;
+use crate::schema::FieldType;
 
 /// Custom Tuple struct to represent a pair of Occur and Query
 /// for the BooleanQuery
@@ -225,5 +227,88 @@ impl Query {
             }),
             Err(e) => Err(to_pyerr(e)),
         }
+    }
+
+    /// Construct a Tantivy's ConstScoreQuery
+    #[staticmethod]
+    #[pyo3(signature = (query, score))]
+    pub(crate) fn const_score_query(
+        query: Query,
+        score: f32,
+    ) -> PyResult<Query> {
+        let inner = tv::query::ConstScoreQuery::new(query.inner, score);
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, field_type, lower_bound, upper_bound, include_lower = true, include_upper = true))]
+    pub(crate) fn range_query(
+        schema: &Schema,
+        field_name: &str,
+        field_type: FieldType,
+        lower_bound: &PyAny,
+        upper_bound: &PyAny,
+        include_lower: bool,
+        include_upper: bool,
+    ) -> PyResult<Query> {
+        match field_type {
+            FieldType::Text => {
+                return Err(exceptions::PyValueError::new_err(
+                    "Text fields are not supported for range queries."
+                ))
+            }
+            FieldType::Boolean => {
+                return Err(exceptions::PyValueError::new_err(
+                    "Boolean fields are not supported for range queries."
+                ))
+            }
+            FieldType::Facet => {
+                return Err(exceptions::PyValueError::new_err(
+                    "Facet fields are not supported for range queries."
+                ))
+            }
+            FieldType::Bytes => {
+                return Err(exceptions::PyValueError::new_err(
+                    "Bytes fields are not supported for range queries."
+                ))
+            }
+            FieldType::Json => {
+                return Err(exceptions::PyValueError::new_err(
+                    "Json fields are not supported for range queries."
+                ))
+            }
+            _ => {}
+        }
+
+
+        let lower_bound_term =
+            make_term(&schema.inner, field_name, lower_bound)?;
+        let upper_bound_term =
+            make_term(&schema.inner, field_name, upper_bound)?;
+
+        let lower_bound = if include_lower {
+            Bound::Included(lower_bound_term)
+        } else {
+            Bound::Excluded(lower_bound_term)
+        };
+
+        let upper_bound = if include_upper {
+            Bound::Included(upper_bound_term)
+        } else {
+            Bound::Excluded(upper_bound_term)
+        };
+
+        let inner = tv::query::RangeQuery::new_term_bounds(
+            field_name.to_string(),
+            field_type.into(),
+            &lower_bound,
+            &upper_bound,
+        );
+
+        Ok(Query {
+            inner: Box::new(inner),
+        })
     }
 }

@@ -30,6 +30,13 @@ use std::{
 
 pub(crate) fn extract_value(any: &PyAny) -> PyResult<Value> {
     if let Ok(s) = any.extract::<String>() {
+        if let Ok(ip) = IpAddr::from_str(s.as_str())
+        .map(|addr| match addr {
+            IpAddr::V4(addr) => addr.to_ipv6_mapped(),
+            IpAddr::V6(addr) => addr,
+        }) {
+            return Ok(Value::IpAddr(ip));
+        }
         return Ok(Value::Str(s));
     }
     if any.is_exact_instance_of::<PyBool>() {
@@ -677,7 +684,7 @@ impl Document {
     /// Add a JSON value to the document.
     ///
     /// Args:
-    ///     field_name (str): The field for which we are adding the bytes.
+    ///     field_name (str): The field for which we are adding the JSON.
     ///     value (str | Dict[str, Any]): The JSON object that will be added
     ///         to the document.
     ///
@@ -696,6 +703,23 @@ impl Document {
         } else {
             Err(to_pyerr("Invalid JSON object. Expected valid JSON string or Dict[str, Any]."))
         }
+    }
+
+    /// Add an IP address value to the document.
+    ///
+    /// Args:
+    ///     field_name (str): The field for which we are adding the IP address.
+    ///     value (str): The IP address object that will be added
+    ///         to the document.
+    ///
+    /// Raises a ValueError if the IP address is invalid.
+    fn add_ip_addr(&mut self, field_name: String, value: &str) -> PyResult<()> {
+        let ip_addr = IpAddr::from_str(value).map_err(to_pyerr)?;
+        match ip_addr {
+            IpAddr::V4(addr) => self.add_value(field_name, addr.to_ipv6_mapped()),
+            IpAddr::V6(addr) => self.add_value(field_name, addr),
+        }
+        Ok(())
     }
 
     /// Returns the number of added fields that have been added to the document
