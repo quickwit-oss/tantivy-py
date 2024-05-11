@@ -16,7 +16,7 @@ use document::{extract_value, extract_value_for_type, Document};
 use facet::Facet;
 use index::Index;
 use query::{Occur, Query};
-use schema::{Schema, FieldType};
+use schema::{FieldType, Schema};
 use schemabuilder::SchemaBuilder;
 use searcher::{DocAddress, Order, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
@@ -190,11 +190,8 @@ pub(crate) fn make_term_for_type(
     field_value: &Bound<PyAny>,
 ) -> PyResult<tv::Term> {
     let field = get_field(schema, field_name)?;
-    let value = extract_value_for_type(
-        field_value,
-        field_type.into(),
-        field_name,
-    )?;
+    let value =
+        extract_value_for_type(field_value, field_type.into(), field_name)?;
     let term = match value {
         Value::Str(text) => Term::from_field_text(field, &text),
         Value::U64(num) => Term::from_field_u64(field, num),

@@ -727,7 +727,9 @@ impl Document {
     fn add_ip_addr(&mut self, field_name: String, value: &str) -> PyResult<()> {
         let ip_addr = IpAddr::from_str(value).map_err(to_pyerr)?;
         match ip_addr {
-            IpAddr::V4(addr) => self.add_value(field_name, addr.to_ipv6_mapped()),
+            IpAddr::V4(addr) => {
+                self.add_value(field_name, addr.to_ipv6_mapped())
+            }
             IpAddr::V6(addr) => self.add_value(field_name, addr),
         }
         Ok(())

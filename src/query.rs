@@ -1,4 +1,7 @@
-use crate::{get_field, make_term, make_term_for_type, schema::FieldType, to_pyerr, DocAddress, Schema};
+use crate::{
+    get_field, make_term, make_term_for_type, schema::FieldType, to_pyerr,
+    DocAddress, Schema,
+};
 use core::ops::Bound as OpsBound;
 use pyo3::{
     exceptions,
@@ -370,10 +373,18 @@ impl Query {
             _ => {}
         }
 
-        let lower_bound_term =
-            make_term_for_type(&schema.inner, field_name, field_type.clone(), lower_bound)?;
-        let upper_bound_term =
-            make_term_for_type(&schema.inner, field_name, field_type.clone(), upper_bound)?;
+        let lower_bound_term = make_term_for_type(
+            &schema.inner,
+            field_name,
+            field_type.clone(),
+            lower_bound,
+        )?;
+        let upper_bound_term = make_term_for_type(
+            &schema.inner,
+            field_name,
+            field_type.clone(),
+            upper_bound,
+        )?;
 
         let lower_bound = if include_lower {
             OpsBound::Included(lower_bound_term)
