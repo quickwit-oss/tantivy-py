@@ -64,7 +64,7 @@ class TestClass(object):
 
         assert len(result.hits) == 1
 
-    def test_and_agg(self, ram_index_numeric_fields):
+    def test_and_aggregate(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
         query = Query.all_query()
         agg_query = """
@@ -82,13 +82,15 @@ class TestClass(object):
     }
   }
 }
-        """
+"""
         searcher = index.searcher()
         result = searcher.aggregate(query, agg_query)
 
-        print("the result is", result)
-
-        assert len(result) == 2
+        assert isinstance(result, dict)
+        assert "top_hits_req" in result
+        assert len(result["top_hits_req"]["hits"]) == 2
+        for hit in result["top_hits_req"]["hits"]:
+            assert len(hit["docvalue_fields"]) == 3
 
     def test_and_query_numeric_fields(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
