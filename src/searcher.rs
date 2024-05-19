@@ -1,9 +1,11 @@
 #![allow(clippy::new_ret_no_self)]
 
 use crate::{document::Document, query::Query, to_pyerr};
+use pyo3::types::{IntoPyDict, PyDict};
 use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use serde::{Deserialize, Serialize};
 use tantivy as tv;
+use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
 use tantivy::TantivyDocument;
 // Bring the trait into scope. This is required for the `to_named_doc` method.
@@ -231,6 +233,41 @@ impl Searcher {
 
             Ok(SearchResult { hits, count })
         })
+    }
+
+    #[pyo3(signature = (_search_query, agg_query))]
+    fn aggregate(
+        &self,
+        py: Python,
+        _search_query: &Query,
+        agg_query: String,
+    ) -> PyResult<PyObject> {
+        let agg_str = py.allow_threads(move || {
+            let agg_collector = AggregationCollector::from_aggs(
+                serde_json::from_str(&agg_query).map_err(to_pyerr)?,
+                Default::default(),
+            );
+            let agg_res = self
+                .inner
+                .search(
+                    // search_query.get(),
+                    &tv::query::AllQuery,
+                    &agg_collector,
+                )
+                .map_err(to_pyerr)?;
+
+            serde_json::to_string(&agg_res).map_err(to_pyerr)
+        })?;
+
+        let locals = [("json_str", agg_str)].into_py_dict(py);
+        let agg_dict_any = py
+            .eval("json.loads(json_str)", None, Some(locals))
+            .map_err(to_pyerr)?;
+
+        let agg_dict =
+            <PyDict as PyTryFrom>::try_from(agg_dict_any).map_err(to_pyerr)?;
+
+        Ok(agg_dict.into())
     }
 
     /// Returns the overall number of documents in the index.
