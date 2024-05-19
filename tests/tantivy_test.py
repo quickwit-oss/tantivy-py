@@ -67,9 +67,6 @@ class TestClass(object):
     def test_and_agg(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
         query = Query.all_query()
-        # query = index.parse_query(
-        #     "title:men AND body:summer", default_field_names=["title", "body"]
-        # )
         agg_query = """
 {
   "top_hits_req": {
@@ -77,10 +74,11 @@ class TestClass(object):
       "size": 2,
       "sort": [
         {
-          "id": "desc"
+          "rating": "desc"
         }
       ],
-      "from": 0
+      "from": 0,
+      "docvalue_fields": [ "rating", "id", "body" ]
     }
   }
 }
@@ -88,15 +86,9 @@ class TestClass(object):
         searcher = index.searcher()
         result = searcher.aggregate(query, agg_query)
 
-        print(result)
+        print("the result is", result)
 
-        # # summer isn't present
-        # assert len(result.hits) == 0
-        #
-        # query = index.parse_query("title:men AND body:winter", ["title", "body"])
-        # result = searcher.search(query)
-        #
-        # assert len(result.hits) == 1
+        assert len(result) == 2
 
     def test_and_query_numeric_fields(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields

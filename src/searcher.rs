@@ -252,11 +252,7 @@ impl Searcher {
                 .search(search_query.get(), &agg_collector)
                 .map_err(to_pyerr)?;
 
-            println!("agg_res is {:?}", agg_res);
-
-            let ajson = serde_json::to_string(&agg_res).map_err(to_pyerr);
-            println!("ajson is {:?}", ajson);
-            ajson
+            serde_json::to_string(&agg_res).map_err(to_pyerr)
         })?;
 
         let locals = [("json_str", agg_str)].into_py_dict_bound(py);
