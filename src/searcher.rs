@@ -235,13 +235,13 @@ impl Searcher {
         })
     }
 
-    #[pyo3(signature = (_search_query, agg_query))]
+    #[pyo3(signature = (search_query, agg_query))]
     fn aggregate(
         &self,
         py: Python,
-        _search_query: &Query,
+        search_query: &Query,
         agg_query: String,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyDict>> {
         let agg_str = py.allow_threads(move || {
             let agg_collector = AggregationCollector::from_aggs(
                 serde_json::from_str(&agg_query).map_err(to_pyerr)?,
@@ -249,25 +249,31 @@ impl Searcher {
             );
             let agg_res = self
                 .inner
-                .search(
-                    // search_query.get(),
-                    &tv::query::AllQuery,
-                    &agg_collector,
-                )
+                .search(search_query.get(), &agg_collector)
                 .map_err(to_pyerr)?;
 
-            serde_json::to_string(&agg_res).map_err(to_pyerr)
+            println!("agg_res is {:?}", agg_res);
+
+            let ajson = serde_json::to_string(&agg_res).map_err(to_pyerr);
+            println!("ajson is {:?}", ajson);
+            ajson
         })?;
 
-        let locals = [("json_str", agg_str)].into_py_dict(py);
-        let agg_dict_any = py
-            .eval("json.loads(json_str)", None, Some(locals))
-            .map_err(to_pyerr)?;
+        let locals = [("json_str", agg_str)].into_py_dict_bound(py);
+        py.run_bound(
+            r#"
+import json
+agg_dict = json.loads(json_str)
+"#,
+            None,
+            Some(&locals),
+        )
+        .map_err(to_pyerr)?;
 
-        let agg_dict =
-            <PyDict as PyTryFrom>::try_from(agg_dict_any).map_err(to_pyerr)?;
+        let agg_dict_any = locals.get_item("agg_dict")?.unwrap();
+        let agg_dict = agg_dict_any.downcast::<PyDict>()?;
 
-        Ok(agg_dict.into())
+        Ok(agg_dict.clone().unbind())
     }
 
     /// Returns the overall number of documents in the index.
