@@ -86,6 +86,39 @@ class TestClass(object):
         searcher = index.searcher()
         result = searcher.aggregate(query, agg_query)
 
+        assert result == json.loads("""
+{
+"top_hits_req": {
+    "hits": [
+      {
+        "sort": [ 13840124604862955520 ],
+        "docvalue_fields": {
+          "id": [ 2 ],
+          "rating": [ 4.5 ],
+          "body": [ "a", "few", "miles", "south", "of", "soledad", "the", "salinas", "river", "drops", "in", "close", "to", "the", "hillside",
+            "bank", "and", "runs", "deep", "and", "green", "the", "water", "is", "warm", "too", "for", "it", "has", "slipped", "twinkling",
+            "over", "the", "yellow", "sands", "in", "the", "sunlight", "before", "reaching", "the", "narrow", "pool",
+            "on", "one", "side", "of", "the", "river", "the", "golden", "foothill", "slopes", "curve", "up",
+            "to", "the", "strong", "and", "rocky", "gabilan", "mountains", "but", "on", "the", "valley", "side", "the",
+            "water", "is", "lined", "with", "trees", "willows", "fresh", "and", "green", "with", "every", "spring", "carrying", "in", "their", "lower", "leaf",
+            "junctures", "the", "debris", "of", "the", "winter", "s", "flooding", "and", "sycamores", "with", "mottled", "white", "recumbent", "limbs",
+            "and", "branches", "that", "arch", "over", "the", "pool" ]
+        }
+      },
+      {
+        "sort": [ 13838435755002691584 ],
+        "docvalue_fields": {
+          "body": [ "he", "was", "an", "old", "man", "who", "fished", "alone", "in", "a", "skiff", "inthe", "gulf", "stream",
+            "and", "he", "had", "gone", "eighty", "four", "days", "now", "without", "taking", "a", "fish" ],
+          "rating": [ 3.5 ],
+          "id": [ 1 ]
+        }
+      }
+    ]
+  }
+}
+""")
+
         assert isinstance(result, dict)
         assert "top_hits_req" in result
         assert len(result["top_hits_req"]["hits"]) == 2
