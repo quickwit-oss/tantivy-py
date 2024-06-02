@@ -67,22 +67,16 @@ class TestClass(object):
     def test_and_aggregate(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
         query = Query.all_query()
-        agg_query = """
-{
-  "top_hits_req": {
-    "top_hits": {
-      "size": 2,
-      "sort": [
-        {
-          "rating": "desc"
+        agg_query = {
+            "top_hits_req": {
+                "top_hits": {
+                    "size": 2,
+                    "sort": [{"rating": "desc"}],
+                    "from": 0,
+                    "docvalue_fields": ["rating", "id", "body"],
+                }
+            }
         }
-      ],
-      "from": 0,
-      "docvalue_fields": [ "rating", "id", "body" ]
-    }
-  }
-}
-"""
         searcher = index.searcher()
         result = searcher.aggregate(query, agg_query)
         assert isinstance(result, dict)

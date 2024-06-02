@@ -292,7 +292,7 @@ class Searcher:
     def aggregate(
         self,
         search_query: Query,
-        agg_query: str,
+        agg_query: dict,
     ) -> dict:
         pass
 

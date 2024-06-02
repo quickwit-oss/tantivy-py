@@ -1,7 +1,7 @@
 #![allow(clippy::new_ret_no_self)]
 
 use crate::{document::Document, query::Query, to_pyerr};
-use pyo3::types::{IntoPyDict, PyDict};
+use pyo3::types::{IntoPyDict, PyDict, PyString};
 use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use serde::{Deserialize, Serialize};
 use tantivy as tv;
@@ -240,11 +240,25 @@ impl Searcher {
         &self,
         py: Python,
         search_query: &Query,
-        agg_query: String,
+        agg_query: Py<PyDict>,
     ) -> PyResult<Py<PyDict>> {
+        let locals = [("search_query", agg_query)].into_py_dict_bound(py);
+        py.run_bound(
+            r#"
+import json
+search_query_str = json.dumps(search_query)
+            "#,
+            None,
+            Some(&locals),
+        )?;
+        let agg_query_str = locals
+            .get_item("search_query_str")?
+            .unwrap()
+            .downcast::<PyString>()?
+            .to_string();
         let agg_str = py.allow_threads(move || {
             let agg_collector = AggregationCollector::from_aggs(
-                serde_json::from_str(&agg_query).map_err(to_pyerr)?,
+                serde_json::from_str(&agg_query_str).map_err(to_pyerr)?,
                 Default::default(),
             );
             let agg_res = self
