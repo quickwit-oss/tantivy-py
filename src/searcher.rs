@@ -235,16 +235,15 @@ impl Searcher {
         })
     }
 
-    #[pyo3(signature = (search_query, agg_query))]
+    #[pyo3(signature = (query, agg))]
     fn aggregate(
         &self,
         py: Python,
-        search_query: &Query,
-        agg_query: Py<PyDict>,
+        query: &Query,
+        agg: Py<PyDict>,
     ) -> PyResult<Py<PyDict>> {
         let py_json = py.import_bound("json")?;
-        let agg_query_str =
-            py_json.call_method1("dumps", (agg_query,))?.to_string();
+        let agg_query_str = py_json.call_method1("dumps", (agg,))?.to_string();
 
         let agg_str = py.allow_threads(move || {
             let agg_collector = AggregationCollector::from_aggs(
@@ -253,7 +252,7 @@ impl Searcher {
             );
             let agg_res = self
                 .inner
-                .search(search_query.get(), &agg_collector)
+                .search(query.get(), &agg_collector)
                 .map_err(to_pyerr)?;
 
             serde_json::to_string(&agg_res).map_err(to_pyerr)
