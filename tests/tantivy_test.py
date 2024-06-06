@@ -64,6 +64,32 @@ class TestClass(object):
 
         assert len(result.hits) == 1
 
+    def test_combine_queries(self, ram_index):
+        index = ram_index
+
+        query1 = ram_index.parse_query("title:men", ["title"])
+        query2 = ram_index.parse_query("body:summer", ["body"])
+
+        combined_and = query1 & query2
+
+        searcher = index.searcher()
+        result = searcher.search(combined_and, 10)
+
+        # This is an AND query, so it should return 0 results since summer isn't present
+        assert len(result.hits) == 0
+
+        combined_or = query1 | query2
+
+        result = searcher.search(combined_or, 10)
+
+        assert len(result.hits) == 1
+
+        double_combined = (query1 & query2) | query1
+
+        result = searcher.search(double_combined, 10)
+
+        assert len(result.hits) == 1
+
     def test_and_query_numeric_fields(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
         searcher = index.searcher()

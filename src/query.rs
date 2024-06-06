@@ -65,6 +65,26 @@ impl Query {
         Ok(format!("Query({:?})", self.get()))
     }
 
+    pub(crate) fn __and__(&self, other: Query) -> Query {
+        let inner = tv::query::BooleanQuery::from(vec![
+            (tv::query::Occur::Must, self.inner.box_clone()),
+            (tv::query::Occur::Must, other.inner.box_clone()),
+        ]);
+        Query {
+            inner: Box::new(inner),
+        }
+    }
+
+    pub(crate) fn __or__(&self, other: Query) -> Query {
+        let inner = tv::query::BooleanQuery::from(vec![
+            (tv::query::Occur::Should, self.inner.box_clone()),
+            (tv::query::Occur::Should, other.inner.box_clone()),
+        ]);
+        Query {
+            inner: Box::new(inner),
+        }
+    }
+
     /// Construct a Tantivy's TermQuery
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, field_value, index_option = "position"))]
