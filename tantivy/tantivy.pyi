@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Optional, Sequence, TypeVar, Union
 
 class Schema:
     pass
@@ -168,6 +168,9 @@ class Document:
     def add_json(self, field_name: str, value: Any) -> None:
         pass
 
+    def add_ip_addr(self, field_name: str, ip_addr: str) -> None:
+        pass
+
     @property
     def num_fields(self) -> int:
         pass
@@ -186,6 +189,20 @@ class Occur(Enum):
     Must = 1
     Should = 2
     MustNot = 3
+
+class FieldType(Enum):
+    Text = 1
+    Unsigned = 2
+    Integer = 3
+    Float = 4
+    Boolean = 5
+    Date = 6
+    Facet = 7
+    Bytes = 8
+    Json = 9
+    IpAddr = 10
+    
+_RangeType = TypeVar("_RangeType", bound=int | float | datetime.datetime | bool | str | bytes)
 
 class Query:
     @staticmethod
@@ -255,7 +272,20 @@ class Query:
     @staticmethod
     def const_score_query(query: Query, score: float) -> Query:
         pass
-    
+       
+    @staticmethod
+    def range_query(
+        schema: Schema,
+        field_name: str,
+        field_type: FieldType,
+        lower_bound: _RangeType,
+        upper_bound: _RangeType,
+        include_lower: bool = True,
+        include_upper: bool = True,
+    ) -> Query:
+        pass
+ 
+
 class Order(Enum):
     Asc = 1
     Desc = 2
