@@ -289,6 +289,13 @@ class Searcher:
     ) -> SearchResult:
         pass
 
+    def aggregate(
+        self,
+        search_query: Query,
+        agg_query: dict,
+    ) -> dict:
+        pass
+
     @property
     def num_docs(self) -> int:
         pass
