@@ -23,7 +23,7 @@ jobs:
         platform: [ 'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu' ]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
+        uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -46,13 +46,13 @@ jobs:
             static.rust-lang.org:443
             uploads.github.com:443
 
-      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: 3.8
           architecture: x64
 
-      - uses: PyO3/maturin-action@52b28abb0c6729beb388babfc348bf6ff5aaff31
+      - uses: PyO3/maturin-action@6c20e5e8673d2470a20e14adf067b68db6fee644
         with:
           manylinux: auto
           target: ${{ matrix.platform }}
@@ -77,16 +77,16 @@ jobs:
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
+        uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: PyO3/maturin-action@52b28abb0c6729beb388babfc348bf6ff5aaff31
+      - uses: PyO3/maturin-action@6c20e5e8673d2470a20e14adf067b68db6fee644
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -111,17 +111,17 @@ jobs:
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
+        uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
-      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
       - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Build wheels - ${{ matrix.target }}
-        uses: PyO3/maturin-action@52b28abb0c6729beb388babfc348bf6ff5aaff31
+        uses: PyO3/maturin-action@6c20e5e8673d2470a20e14adf067b68db6fee644
         env:
           PYO3_PYTHON: python${{ matrix.python-version }}
         with:
@@ -144,7 +144,7 @@ jobs:
       packages: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.1.0
+        uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10 # v2.1.0
         with:
           disable-sudo: true
           egress-policy: block
@@ -154,7 +154,7 @@ jobs:
             uploads.github.com:443
             static.rust-lang.org:443 
 
-      - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
         with:
           ref: ${{ github.head_ref }}
 
@@ -188,7 +188,7 @@ jobs:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4
+        uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10
         with:
           egress-policy: audit
 

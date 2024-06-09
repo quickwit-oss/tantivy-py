@@ -16,10 +16,10 @@ def schema():
 def schema_numeric_fields():
     return (
         SchemaBuilder()
-        .add_integer_field("id", stored=True, indexed=True)
-        .add_float_field("rating", stored=True, indexed=True)
+        .add_integer_field("id", stored=True, indexed=True, fast=True)
+        .add_float_field("rating", stored=True, indexed=True, fast=True)
         .add_boolean_field("is_good", stored=True, indexed=True)
-        .add_text_field("body", stored=True)
+        .add_text_field("body", stored=True, fast=True)
         .build()
     )
 
