@@ -21,7 +21,7 @@ itertools = "0.13.0"
 futures = "0.3.30"
 pythonize = "0.21.0"
 serde = "1.0"
-serde_json = "1.0.120"
+serde_json = "1.0.121"
 
 [dependencies.pyo3]
 version = "0.21.0"
