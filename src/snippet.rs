@@ -80,4 +80,8 @@ impl SnippetGenerator {
         let result = self.inner.snippet(&text);
         Snippet { inner: result }
     }
+
+    pub fn set_max_num_chars(&mut self, max_num_chars: usize) {
+        self.inner.set_max_num_chars(max_num_chars);
+    }
 }
