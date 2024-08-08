@@ -433,3 +433,6 @@ class SnippetGenerator:
 
     def snippet_from_doc(self, doc: Document) -> Snippet:
         pass
+
+    def set_max_num_chars(self, max_num_chars: int) -> None:
+        pass
