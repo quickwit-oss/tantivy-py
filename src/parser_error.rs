@@ -82,11 +82,7 @@ impl QueryParserErrorIntoPy for tv::query::QueryParserError {
 }
 
 /// Error in the query syntax.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct SyntaxError {
     message: String,
 }
@@ -135,11 +131,7 @@ impl TryFrom<tv::query::QueryParserError> for SyntaxError {
 }
 
 /// This query is unsupported.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct UnsupportedQueryError {
     message: String,
 }
@@ -188,11 +180,7 @@ impl TryFrom<tv::query::QueryParserError> for UnsupportedQueryError {
 }
 
 /// The query references a field that is not in the schema.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub struct FieldDoesNotExistError {
     field: String,
 }
@@ -242,11 +230,7 @@ impl TryFrom<tv::query::QueryParserError> for FieldDoesNotExistError {
 }
 
 /// The query contains a term for a `u64` or `i64`-field, but the value is neither.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct ExpectedIntError {
     parse_int_error: ParseIntError,
 }
@@ -310,11 +294,7 @@ impl TryFrom<tv::query::QueryParserError> for ExpectedIntError {
 }
 
 /// The query contains a term for a bytes field, but the value is not valid base64.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct ExpectedBase64Error {
     decode_error: base64::DecodeError,
 }
@@ -324,14 +304,7 @@ impl ExpectedBase64Error {
     /// If `true`, an invalid byte was found in the query. Padding characters (`=`) interspersed in
     /// the encoded form will be treated as invalid bytes.
     fn caused_by_invalid_byte(&self) -> bool {
-<<<<<<< HEAD
-        match self.decode_error {
-            base64::DecodeError::InvalidByte { .. } => true,
-            _ => false,
-        }
-=======
         matches!(self.decode_error, base64::DecodeError::InvalidByte { .. })
->>>>>>> upstream/master
     }
 
     /// If the error was caused by an invalid byte, returns the offset and offending byte.
@@ -346,30 +319,16 @@ impl ExpectedBase64Error {
 
     /// If `true`, the length of the base64 string was invalid.
     fn caused_by_invalid_length(&self) -> bool {
-<<<<<<< HEAD
-        match self.decode_error {
-            base64::DecodeError::InvalidLength => true,
-            _ => false,
-        }
-=======
         matches!(self.decode_error, base64::DecodeError::InvalidLength(_))
->>>>>>> upstream/master
     }
 
     /// The last non-padding input symbol's encoded 6 bits have nonzero bits that will be discarded.
     /// If `true`, this is indicative of corrupted or truncated Base64.
     fn caused_by_invalid_last_symbol(&self) -> bool {
-<<<<<<< HEAD
-        match self.decode_error {
-            base64::DecodeError::InvalidLastSymbol { .. } => true,
-            _ => false,
-        }
-=======
         matches!(
             self.decode_error,
             base64::DecodeError::InvalidLastSymbol { .. }
         )
->>>>>>> upstream/master
     }
 
     /// If the error was caused by an invalid last symbol, returns the offset and offending byte.
@@ -385,14 +344,7 @@ impl ExpectedBase64Error {
     /// The nature of the padding was not as configured: absent or incorrect when it must be
     /// canonical, or present when it must be absent, etc.
     fn caused_by_invalid_padding(&self) -> bool {
-<<<<<<< HEAD
-        match self.decode_error {
-            base64::DecodeError::InvalidPadding => true,
-            _ => false,
-        }
-=======
         matches!(self.decode_error, base64::DecodeError::InvalidPadding)
->>>>>>> upstream/master
     }
 
     fn __repr__(&self) -> String {
@@ -432,11 +384,7 @@ impl TryFrom<tv::query::QueryParserError> for ExpectedBase64Error {
 }
 
 /// The query contains a term for a `f64`-field, but the value is not a f64.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct ExpectedFloatError {
     parse_float_error: ParseFloatError,
 }
@@ -480,11 +428,7 @@ impl TryFrom<tv::query::QueryParserError> for ExpectedFloatError {
 }
 
 /// The query contains a term for a `bool`-field, but the value is not a bool.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct ExpectedBoolError {
     parse_bool_error: ParseBoolError,
 }
@@ -528,11 +472,7 @@ impl TryFrom<tv::query::QueryParserError> for ExpectedBoolError {
 }
 
 /// It is forbidden queries that are only "excluding". (e.g. -title:pop)
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct AllButQueryForbiddenError;
 
 #[pymethods]
@@ -572,11 +512,7 @@ impl TryFrom<tv::query::QueryParserError> for AllButQueryForbiddenError {
 }
 
 /// If no default field is declared, running a query without any field specified is forbbidden.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct NoDefaultFieldDeclaredError;
 
 #[pymethods]
@@ -616,11 +552,7 @@ impl TryFrom<tv::query::QueryParserError> for NoDefaultFieldDeclaredError {
 }
 
 /// The field searched for is not declared as indexed in the schema.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct FieldNotIndexedError {
     field: String,
 }
@@ -668,11 +600,7 @@ impl TryFrom<tv::query::QueryParserError> for FieldNotIndexedError {
 }
 
 /// A phrase query was requested for a field that does not have any positions indexed.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct FieldDoesNotHavePositionsIndexedError {
     field: String,
 }
@@ -731,11 +659,7 @@ impl TryFrom<tv::query::QueryParserError>
 }
 
 /// A phrase-prefix query requires at least two terms
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct PhrasePrefixRequiresAtLeastTwoTermsError {
     /// The phrase which triggered the issue.
     phrase: String,
@@ -803,11 +727,7 @@ impl TryFrom<tv::query::QueryParserError>
 }
 
 /// The tokenizer for the given field is unknown.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct UnknownTokenizerError {
     /// The name of the tokenizer.
     tokenizer: String,
@@ -870,11 +790,7 @@ impl TryFrom<tv::query::QueryParserError> for UnknownTokenizerError {
 
 /// The query contains a range query with a phrase as one of the bounds. Only terms can be used as
 /// bounds.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct RangeMustNotHavePhraseError;
 
 #[pymethods]
@@ -914,11 +830,7 @@ impl TryFrom<tv::query::QueryParserError> for RangeMustNotHavePhraseError {
 }
 
 /// The format for the date field is not RFC 3339 compliant.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct DateFormatError {
     // Keep around the entire `QueryParserError` to avoid importing the `time` crate.
     inner: tv::query::QueryParserError,
@@ -963,11 +875,7 @@ impl TryFrom<tv::query::QueryParserError> for DateFormatError {
 }
 
 /// The format for the facet field is invalid.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct FacetFormatError {
     facet_parse_error: FacetParseError,
 }
@@ -1011,11 +919,7 @@ impl TryFrom<tv::query::QueryParserError> for FacetFormatError {
 }
 
 /// The format for the ip field is invalid.
-<<<<<<< HEAD
-#[pyclass(frozen)]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 pub(crate) struct IpFormatError {
     addr_parse_error: AddrParseError,
 }

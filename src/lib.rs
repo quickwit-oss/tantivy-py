@@ -1,39 +1,22 @@
 use ::tantivy as tv;
-<<<<<<< HEAD
-=======
 use ::tantivy::schema::{OwnedValue as Value, Term};
->>>>>>> upstream/master
 use pyo3::{exceptions, prelude::*, wrap_pymodule};
 
 mod document;
 mod facet;
-mod filters;
 mod index;
-<<<<<<< HEAD
-mod more_collectors;
-=======
->>>>>>> upstream/master
 mod parser_error;
 mod query;
 mod schema;
 mod schemabuilder;
 mod searcher;
-<<<<<<< HEAD
-mod searcher_frame_document;
-=======
->>>>>>> upstream/master
 mod snippet;
 
 use document::{extract_value, extract_value_for_type, Document};
 use facet::Facet;
 use index::Index;
-<<<<<<< HEAD
-use query::Query;
-use schema::Schema;
-=======
 use query::{Occur, Query};
 use schema::{FieldType, Schema};
->>>>>>> upstream/master
 use schemabuilder::SchemaBuilder;
 use searcher::{DocAddress, Order, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
@@ -89,11 +72,7 @@ use snippet::{Snippet, SnippetGenerator};
 ///     >>> assert len(result) == 1
 ///
 #[pymodule]
-<<<<<<< HEAD
-fn tantivy(_py: Python, m: &PyModule) -> PyResult<()> {
-=======
 fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
->>>>>>> upstream/master
     m.add_class::<Order>()?;
     m.add_class::<Schema>()?;
     m.add_class::<SchemaBuilder>()?;
@@ -106,12 +85,9 @@ fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<Query>()?;
     m.add_class::<Snippet>()?;
     m.add_class::<SnippetGenerator>()?;
-<<<<<<< HEAD
-=======
     m.add_class::<Occur>()?;
     m.add_class::<FieldType>()?;
 
->>>>>>> upstream/master
     m.add_wrapped(wrap_pymodule!(query_parser_error))?;
 
     Ok(())
@@ -142,11 +118,7 @@ fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 ///     >>> assert isinstance(errors[0], query_parser_error.FieldDoesNotExistError)
 ///     >>> assert isinstance(errors[1], query_parser_error.ExpectedIntError)
 #[pymodule]
-<<<<<<< HEAD
-fn query_parser_error(_py: Python, m: &PyModule) -> PyResult<()> {
-=======
 fn query_parser_error(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
->>>>>>> upstream/master
     m.add_class::<parser_error::SyntaxError>()?;
     m.add_class::<parser_error::UnsupportedQueryError>()?;
     m.add_class::<parser_error::FieldDoesNotExistError>()?;
@@ -164,10 +136,7 @@ fn query_parser_error(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<parser_error::DateFormatError>()?;
     m.add_class::<parser_error::FacetFormatError>()?;
     m.add_class::<parser_error::IpFormatError>()?;
-<<<<<<< HEAD
-=======
 
->>>>>>> upstream/master
     Ok(())
 }
 

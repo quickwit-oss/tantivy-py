@@ -52,14 +52,9 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
         return Ok(Value::Bytes(b));
     }
     if let Ok(dict) = any.downcast::<PyDict>() {
-<<<<<<< HEAD
-        if let Ok(json) = pythonize::depythonize(dict) {
-            return Ok(Value::JsonObject(json));
-=======
         if let Ok(json) = pythonize::depythonize_bound(dict.clone().into_any())
         {
             return Ok(Value::Object(json));
->>>>>>> upstream/master
         }
     }
     Err(to_pyerr(format!("Value unsupported {any:?}")))
@@ -126,17 +121,6 @@ pub(crate) fn extract_value_for_type(
         tv::schema::Type::Json => {
             if let Ok(json_str) = any.extract::<&str>() {
                 return serde_json::from_str(json_str)
-<<<<<<< HEAD
-                    .map(Value::JsonObject)
-                    .map_err(to_pyerr_for_type("Json", field_name, any));
-            }
-
-            Value::JsonObject(
-                any.downcast::<PyDict>()
-                    .map(|dict| pythonize::depythonize(&dict))
-                    .map_err(to_pyerr_for_type("Json", field_name, any))?
-                    .map_err(to_pyerr_for_type("Json", field_name, any))?,
-=======
                     .map(Value::Object)
                     .map_err(to_pyerr_for_type("Json", field_name, any));
             }
@@ -148,7 +132,6 @@ pub(crate) fn extract_value_for_type(
                         pythonize::depythonize_bound(dict.clone().into_any())
                             .map_err(to_pyerr_for_type("Json", field_name, any))
                     })?,
->>>>>>> upstream/master
             )
         }
         tv::schema::Type::IpAddr => {
@@ -493,11 +476,7 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
 ///     ...     {"unsigned": 1000, "signed": -5, "float": 0.4},
 ///     ...     schema,
 ///     ... )
-<<<<<<< HEAD
-#[pyclass(module = "tantivy")]
-=======
 #[pyclass(module = "tantivy.tantivy")]
->>>>>>> upstream/master
 #[derive(Clone, Default, PartialEq)]
 pub(crate) struct Document {
     pub(crate) field_values: BTreeMap<String, Vec<Value>>,

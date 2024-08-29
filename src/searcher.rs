@@ -47,11 +47,7 @@ impl ToPyObject for Fruit {
     }
 }
 
-<<<<<<< HEAD
-#[pyclass(frozen, module = "tantivy")]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 #[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 /// Enum representing the direction in which something should be sorted.
 pub(crate) enum Order {
@@ -71,11 +67,7 @@ impl From<Order> for tv::Order {
     }
 }
 
-<<<<<<< HEAD
-#[pyclass(frozen, module = "tantivy")]
-=======
 #[pyclass(frozen, module = "tantivy.tantivy")]
->>>>>>> upstream/master
 #[derive(Clone, Default, Deserialize, PartialEq, Serialize)]
 /// Object holding a results successful search.
 pub(crate) struct SearchResult {
@@ -168,10 +160,7 @@ impl Searcher {
     ///
     /// Raises a ValueError if there was an error with the search.
     #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0, order = Order::Desc))]
-<<<<<<< HEAD
-=======
     #[allow(clippy::too_many_arguments)]
->>>>>>> upstream/master
     fn search(
         &self,
         py: Python,
@@ -195,11 +184,7 @@ impl Searcher {
                 if let Some(order_by) = order_by_field {
                     let collector = TopDocs::with_limit(limit)
                         .and_offset(offset)
-<<<<<<< HEAD
-                        .order_by_fast_field(order_by, order.into());
-=======
                         .order_by_u64_field(order_by, order.into());
->>>>>>> upstream/master
                     let top_docs_handle =
                         multicollector.add_collector(collector);
                     let ret = self.inner.search(query.get(), &multicollector);
@@ -248,8 +233,6 @@ impl Searcher {
 
             Ok(SearchResult { hits, count })
         })
-<<<<<<< HEAD
-=======
     }
 
     #[pyo3(signature = (query, agg))]
@@ -279,7 +262,6 @@ impl Searcher {
         let agg_dict = agg_dict.downcast::<PyDict>()?;
 
         Ok(agg_dict.clone().unbind())
->>>>>>> upstream/master
     }
 
     /// Returns the overall number of documents in the index.

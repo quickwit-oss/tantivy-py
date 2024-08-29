@@ -1,47 +1,28 @@
 #![allow(clippy::new_ret_no_self)]
 
-<<<<<<< HEAD
-use pyo3::{
-    exceptions,
-    prelude::*,
-    types::{PyAny, PyDateAccess, PyDateTime, PyInt, PyTimeAccess},
-};
-=======
 use std::collections::HashMap;
 
 use pyo3::{exceptions, prelude::*, types::PyAny};
->>>>>>> upstream/master
 
-use crate::facet::Facet;
 use crate::{
     document::{extract_value, Document},
-    filters::get_stopwords_filter_en,
-    filters::outer_punctuation_filter::OuterPunctuationFilter,
-    filters::possessive_contraction_filter::PossessiveContractionFilter,
     get_field,
     parser_error::QueryParserErrorIntoPy,
     query::Query,
     schema::Schema,
     searcher::Searcher,
-    searcher_frame_document::StatSearcher,
     to_pyerr,
 };
-
-use chrono::{offset::TimeZone, Utc};
 use tantivy as tv;
 use tantivy::{
     directory::MmapDirectory,
-<<<<<<< HEAD
-    schema::{NamedFieldDocument, Term, Type, Value},
-=======
     schema::{
         document::TantivyDocument, NamedFieldDocument, OwnedValue as Value,
         Term,
     },
->>>>>>> upstream/master
     tokenizer::{
         Language, LowerCaser, RemoveLongFilter, SimpleTokenizer, Stemmer,
-        StopWordFilter, TextAnalyzer, WhitespaceTokenizer,
+        TextAnalyzer,
     },
 };
 
@@ -163,86 +144,6 @@ impl IndexWriter {
     }
 
     /// Delete all documents containing a given term.
-    /// This function checks the type of the field and then converts the given value to
-    /// that particular type, instead of the other way around.
-    ///
-    /// Args:
-    ///     field_name (str): The field name for which we want to filter deleted docs.
-    ///     field_value (PyAny): Python object with the value we want to filter.
-    ///
-    /// If the field_name is not on the schema raises ValueError exception.
-    /// If the field_value is not supported raises Exception.
-    fn delete_documents_kapiche(
-        &mut self,
-        field_name: &str,
-        field_value: &PyAny,
-    ) -> PyResult<u64> {
-        let field = get_field(&self.schema, field_name)?;
-        let field_value_type =
-            self.schema.get_field_entry(field).field_type().value_type();
-        let term = match field_value_type {
-            Type::U64 => {
-                let value: u64 = field_value.extract::<u64>()?;
-                Ok(Term::from_field_u64(field, value))
-            },
-            Type::I64 => {
-                let value: i64 = field_value.extract::<i64>()?;
-                Ok(Term::from_field_i64(field, value))
-            },
-            Type::Str => {
-                let value: String = field_value.extract::<String>()?;
-                Ok(Term::from_field_text(field, &value))
-            },
-            Type::F64 => {
-                let value: f64 = field_value.extract::<f64>()?;
-                Ok(Term::from_field_f64(field, value))
-            },
-            Type::Bool => {
-                Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{field_name}` is bytes type not deletable."
-                )))
-            },
-            Type::Date => {
-                let py_datetime = field_value.downcast::<PyDateTime>()?;
-                let datetime = Utc
-                    .with_ymd_and_hms(
-                        py_datetime.get_year(),
-                        py_datetime.get_month().into(),
-                        py_datetime.get_day().into(),
-                        py_datetime.get_hour().into(),
-                        py_datetime.get_minute().into(),
-                        py_datetime.get_second().into(),
-                    )
-                .single().unwrap();
-                let value = tv::DateTime::from_timestamp_secs(
-                datetime.timestamp(),
-                );
-                Ok(Term::from_field_date(field, value))
-            },
-            Type::Facet => {
-                let value: Facet = field_value.extract::<Facet>()?;
-                Ok(Term::from_facet(field, &value.inner))
-            },
-            Type::Bytes => {
-                Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{field_name}` is bytes type not deletable."
-                )))
-            },
-            Type::IpAddr => {
-                Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{field_name}` is IpAddr object type and hasn not been implemented yet."
-                )))
-            },
-            Type::Json => {
-                Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{field_name}` is json object type not deletable."
-                )))
-            },
-        };
-        Ok(self.inner_mut()?.delete_term(term?))
-    }
-
-    /// Delete all documents containing a given term.
     ///
     /// Args:
     ///     field_name (str): The field name for which we want to filter deleted docs.
@@ -351,16 +252,6 @@ impl Index {
 
         Index::register_custom_text_analyzers(&index);
 
-        // Register Kapiche Tokenizer
-        let kapiche_tokenizer = get_kapiche_tokenizer();
-        index
-            .tokenizers()
-            .register("kapiche_tokenizer", kapiche_tokenizer);
-        let kapiche_tokenizer_lower = get_kapiche_tokenizer_lower();
-        index
-            .tokenizers()
-            .register("kapiche_tokenizer_lower", kapiche_tokenizer_lower);
-
         let reader = index.reader().map_err(to_pyerr)?;
         Ok(Index { index, reader })
     }
@@ -386,16 +277,6 @@ impl Index {
         };
 
         Index::register_custom_text_analyzers(&index);
-
-        // Register Kapiche tokenizer
-        let kapiche_tokenizer = get_kapiche_tokenizer();
-        index
-            .tokenizers()
-            .register("kapiche_tokenizer", kapiche_tokenizer);
-        let kapiche_tokenizer_lower = get_kapiche_tokenizer_lower();
-        index
-            .tokenizers()
-            .register("kapiche_tokenizer_lower", kapiche_tokenizer_lower);
 
         let reader = index.reader().map_err(to_pyerr)?;
         Ok(Index { index, reader })
@@ -479,15 +360,6 @@ impl Index {
     fn searcher(&self) -> Searcher {
         Searcher {
             inner: self.reader.searcher(),
-<<<<<<< HEAD
-        }
-    }
-
-    fn stat_searcher(&self, py: Python) -> StatSearcher {
-        StatSearcher {
-            inner: py.allow_threads(|| self.reader.searcher()),
-=======
->>>>>>> upstream/master
         }
     }
 
@@ -565,15 +437,6 @@ impl Index {
     ///
     /// Args:
     ///     query: the query, following the tantivy query language.
-<<<<<<< HEAD
-    ///     default_fields_names (List[Field]): A list of fields used to search if no
-    ///         field is specified in the query.
-    ///
-    /// Returns a tuple containing the parsed query and a list of errors.
-    ///
-    /// Raises ValueError if a field in `default_field_names` is not defined or marked as indexed.
-    #[pyo3(signature = (query, default_field_names = None))]
-=======
     ///
     ///     default_fields_names (List[Field]): A list of fields used to search if no
     ///         field is specified in the query.
@@ -592,56 +455,10 @@ impl Index {
     ///
     /// Raises ValueError if a field in `default_field_names` is not defined or marked as indexed.
     #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new()))]
->>>>>>> upstream/master
     pub fn parse_query_lenient(
         &self,
         query: &str,
         default_field_names: Option<Vec<String>>,
-<<<<<<< HEAD
-    ) -> PyResult<(Query, Vec<PyObject>)> {
-        let schema = self.index.schema();
-
-        let default_fields = if let Some(default_field_names_vec) =
-            default_field_names
-        {
-            default_field_names_vec
-                .iter()
-                .map(|field_name| {
-                    schema
-                        .get_field(field_name)
-                        .map_err(|_err| {
-                            exceptions::PyValueError::new_err(format!(
-                                "Field `{field_name}` is not defined in the schema."
-                            ))
-                        })
-                        .and_then(|field| {
-                            schema.get_field_entry(field).is_indexed().then_some(field).ok_or(
-                                exceptions::PyValueError::new_err(
-                                    format!(
-                                        "Field `{field_name}` is not set as indexed in the schema."
-                                    ),
-                                ))
-                        })
-                }).collect::<Result<Vec<_>, _>>()?
-        } else {
-            self.index
-                .schema()
-                .fields()
-                .filter_map(|(f, fe)| fe.is_indexed().then_some(f))
-                .collect::<Vec<_>>()
-        };
-
-        let parser =
-            tv::query::QueryParser::for_index(&self.index, default_fields);
-        let (query, errors) = parser.parse_query_lenient(query);
-
-        Python::with_gil(|py| {
-            let errors =
-                errors.into_iter().map(|err| err.into_py(py)).collect();
-
-            Ok((Query { inner: query }, errors))
-        })
-=======
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
         py: Python,
@@ -656,7 +473,6 @@ impl Index {
         let errors = errors.into_iter().map(|err| err.into_py(py)).collect();
 
         Ok((Query { inner: query }, errors))
->>>>>>> upstream/master
     }
 }
 

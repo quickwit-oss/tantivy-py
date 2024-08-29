@@ -386,11 +386,7 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-<<<<<<< HEAD
-    ///     fast (str, optional): Set the bytes options as a fast field. A fast
-=======
     ///     fast (bool, optional): Set the bytes options as a fast field. A fast
->>>>>>> upstream/master
     ///         field is a column-oriented fashion storage for tantivy. It is
     ///         designed for the fast random access of some document fields
     ///         given a document id.
@@ -437,11 +433,7 @@ impl SchemaBuilder {
     ///         content of the field can be later restored from a Searcher.
     ///         Defaults to False.
     ///     indexed (bool, optional): If true sets the field to be indexed.
-<<<<<<< HEAD
-    ///     fast (str, optional): Set the IP address options as a fast field. A
-=======
     ///     fast (bool, optional): Set the IP address options as a fast field. A
->>>>>>> upstream/master
     ///         fast field is a column-oriented fashion storage for tantivy. It
     ///         is designed for the fast random access of some document fields
     ///         given a document id.

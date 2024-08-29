@@ -1,5 +1,2 @@
 mkdocs==1.4.3
-<<<<<<< HEAD
-=======
 mktestdocs==0.2.1
->>>>>>> upstream/master
