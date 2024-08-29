@@ -143,7 +143,6 @@ impl IndexWriter {
         Ok(self.inner()?.commit_opstamp())
     }
 
-
     /// Delete all documents containing a given term.
     /// This function checks the type of the field and then converts the given value to
     /// that particular type, instead of the other way around.
