@@ -17,7 +17,7 @@ jobs:
         platform: [ 'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu' ]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -67,7 +67,7 @@ jobs:
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
@@ -98,7 +98,7 @@ jobs:
       contents: write # To add assets to a release.
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.1.0
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c # v2.1.0
         with:
           disable-sudo: true
           egress-policy: block
