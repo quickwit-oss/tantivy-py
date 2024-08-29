@@ -112,7 +112,7 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
 
-      - uses: dtolnay/rust-toolchain@bb45937a053e097f8591208d8e74c90db1873d07
+      - uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
         with:
           toolchain: 1.73.0
 
