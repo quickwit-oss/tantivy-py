@@ -11,4 +11,8 @@ tantivy/tantivy.cpython*.so
 tantivy.egg-info/
 .venv
 .envrc
+<<<<<<< HEAD
 site/
+=======
+site/
+>>>>>>> upstream/master

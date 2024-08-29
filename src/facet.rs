@@ -16,7 +16,7 @@ use tantivy::schema;
 /// implicitely imply that a document belonging to a facet also belongs to the
 /// ancestor of its facet. In the example above, /electronics/tv_and_video/
 /// and /electronics.
-#[pyclass(frozen, module = "tantivy")]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 #[derive(Clone, Deserialize, PartialEq, Serialize)]
 pub(crate) struct Facet {
     pub(crate) inner: schema::Facet,
@@ -34,7 +34,7 @@ impl Facet {
 
     /// Create a new instance of the "root facet" Equivalent to /.
     #[classmethod]
-    fn root(_cls: &PyType) -> Facet {
+    fn root(_cls: &Bound<PyType>) -> Facet {
         Facet {
             inner: schema::Facet::root(),
         }
@@ -60,7 +60,7 @@ impl Facet {
     ///
     /// Returns the created Facet.
     #[classmethod]
-    fn from_string(_cls: &PyType, facet_string: &str) -> Facet {
+    fn from_string(_cls: &Bound<PyType>, facet_string: &str) -> Facet {
         Facet {
             inner: schema::Facet::from(facet_string),
         }
@@ -98,13 +98,13 @@ impl Facet {
     fn __reduce__<'a>(
         slf: PyRef<'a, Self>,
         py: Python<'a>,
-    ) -> PyResult<&'a PyTuple> {
+    ) -> PyResult<Bound<'a, PyTuple>> {
         let encoded_bytes = slf.inner.encoded_str().as_bytes().to_vec();
-        Ok(PyTuple::new(
+        Ok(PyTuple::new_bound(
             py,
             [
                 slf.into_py(py).getattr(py, "from_encoded")?,
-                PyTuple::new(py, [encoded_bytes]).to_object(py),
+                PyTuple::new_bound(py, [encoded_bytes]).to_object(py),
             ],
         ))
     }

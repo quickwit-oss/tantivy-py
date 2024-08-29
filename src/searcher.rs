@@ -1,15 +1,22 @@
 #![allow(clippy::new_ret_no_self)]
 
 use crate::{document::Document, query::Query, to_pyerr};
+use pyo3::types::PyDict;
 use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use serde::{Deserialize, Serialize};
 use tantivy as tv;
+use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
+use tantivy::TantivyDocument;
+// Bring the trait into scope. This is required for the `to_named_doc` method.
+// However, tantivy-py declares its own `Document` class, so we need to avoid
+// introduce the `Document` trait into the namespace.
+use tantivy::Document as _;
 
 /// Tantivy's Searcher class
 ///
 /// A Searcher is used to search the index given a prepared Query.
-#[pyclass]
+#[pyclass(module = "tantivy.tantivy")]
 pub(crate) struct Searcher {
     pub(crate) inner: tv::Searcher,
 }
@@ -40,7 +47,11 @@ impl ToPyObject for Fruit {
     }
 }
 
+<<<<<<< HEAD
 #[pyclass(frozen, module = "tantivy")]
+=======
+#[pyclass(frozen, module = "tantivy.tantivy")]
+>>>>>>> upstream/master
 #[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 /// Enum representing the direction in which something should be sorted.
 pub(crate) enum Order {
@@ -60,7 +71,11 @@ impl From<Order> for tv::Order {
     }
 }
 
+<<<<<<< HEAD
 #[pyclass(frozen, module = "tantivy")]
+=======
+#[pyclass(frozen, module = "tantivy.tantivy")]
+>>>>>>> upstream/master
 #[derive(Clone, Default, Deserialize, PartialEq, Serialize)]
 /// Object holding a results successful search.
 pub(crate) struct SearchResult {
@@ -153,6 +168,10 @@ impl Searcher {
     ///
     /// Raises a ValueError if there was an error with the search.
     #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0, order = Order::Desc))]
+<<<<<<< HEAD
+=======
+    #[allow(clippy::too_many_arguments)]
+>>>>>>> upstream/master
     fn search(
         &self,
         py: Python,
@@ -176,7 +195,11 @@ impl Searcher {
                 if let Some(order_by) = order_by_field {
                     let collector = TopDocs::with_limit(limit)
                         .and_offset(offset)
+<<<<<<< HEAD
                         .order_by_fast_field(order_by, order.into());
+=======
+                        .order_by_u64_field(order_by, order.into());
+>>>>>>> upstream/master
                     let top_docs_handle =
                         multicollector.add_collector(collector);
                     let ret = self.inner.search(query.get(), &multicollector);
@@ -225,6 +248,38 @@ impl Searcher {
 
             Ok(SearchResult { hits, count })
         })
+<<<<<<< HEAD
+=======
+    }
+
+    #[pyo3(signature = (query, agg))]
+    fn aggregate(
+        &self,
+        py: Python,
+        query: &Query,
+        agg: Py<PyDict>,
+    ) -> PyResult<Py<PyDict>> {
+        let py_json = py.import_bound("json")?;
+        let agg_query_str = py_json.call_method1("dumps", (agg,))?.to_string();
+
+        let agg_str = py.allow_threads(move || {
+            let agg_collector = AggregationCollector::from_aggs(
+                serde_json::from_str(&agg_query_str).map_err(to_pyerr)?,
+                Default::default(),
+            );
+            let agg_res = self
+                .inner
+                .search(query.get(), &agg_collector)
+                .map_err(to_pyerr)?;
+
+            serde_json::to_string(&agg_res).map_err(to_pyerr)
+        })?;
+
+        let agg_dict = py_json.call_method1("loads", (agg_str,))?;
+        let agg_dict = agg_dict.downcast::<PyDict>()?;
+
+        Ok(agg_dict.clone().unbind())
+>>>>>>> upstream/master
     }
 
     /// Returns the overall number of documents in the index.
@@ -247,9 +302,10 @@ impl Searcher {
     ///
     /// Returns the Document, raises ValueError if the document can't be found.
     fn doc(&self, doc_address: &DocAddress) -> PyResult<Document> {
-        let doc = self.inner.doc(doc_address.into()).map_err(to_pyerr)?;
-        let named_doc = self.inner.schema().to_named_doc(&doc);
-        Ok(Document {
+        let doc: TantivyDocument =
+            self.inner.doc(doc_address.into()).map_err(to_pyerr)?;
+        let named_doc = doc.to_named_doc(self.inner.schema());
+        Ok(crate::document::Document {
             field_values: named_doc.0,
         })
     }
@@ -269,7 +325,7 @@ impl Searcher {
 /// It consists in an id identifying its segment, and its segment-local DocId.
 /// The id used for the segment is actually an ordinal in the list of segment
 /// hold by a Searcher.
-#[pyclass(frozen, module = "tantivy")]
+#[pyclass(frozen, module = "tantivy.tantivy")]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub(crate) struct DocAddress {
     pub(crate) segment_ord: tv::SegmentOrdinal,

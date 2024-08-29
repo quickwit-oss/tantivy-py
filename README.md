@@ -7,7 +7,6 @@ tantivy-py
 
 Python bindings for [Tantivy](https://github.com/quickwit-oss/tantivy) the full-text search engine library written in Rust.
 
-
 # Installation
 
 The bindings can be installed using from pypi using pip:
@@ -18,9 +17,9 @@ If no binary wheel is present for your operating system the bindings will be
 build from source, this means that Rust needs to be installed before building
 can succeed.
 
-Note that the bindings are using [PyO3](https://github.com/PyO3/pyo3), which
-only supports python3.
+# Documentation
 
+<<<<<<< HEAD
 # Development
 
 For compiling Python module:
@@ -178,3 +177,6 @@ best_doc = searcher.doc(best_doc_address)
 Note: for integer search, the integer field should be indexed.
 
 For more possible query formats and possible query options, see [Tantivy Query Parser Docs.](https://docs.rs/tantivy/latest/tantivy/query/struct.QueryParser.html)
+=======
+Please see [the documentation](https://tantivy-py.readthedocs.io/en/latest/) for more information.
+>>>>>>> upstream/master
