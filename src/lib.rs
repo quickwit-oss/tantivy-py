@@ -91,6 +91,8 @@ fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<Occur>()?;
     m.add_class::<FieldType>()?;
 
+    m.add("__version__", tv::version_string())?;
+
     m.add_wrapped(wrap_pymodule!(query_parser_error))?;
 
     Ok(())
