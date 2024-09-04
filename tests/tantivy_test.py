@@ -990,7 +990,7 @@ class TestQuery(object):
         query1 = Query.fuzzy_term_query(index.schema, "title", "ice")
         query2 = Query.fuzzy_term_query(index.schema, "title", "mna")
         query = Query.boolean_query([
-            (Occur.Must, query1), 
+            (Occur.Must, query1),
             (Occur.Must, query2)
         ])
 
@@ -999,7 +999,7 @@ class TestQuery(object):
         assert len(result.hits) == 0
 
         query = Query.boolean_query([
-            (Occur.Should, query1), 
+            (Occur.Should, query1),
             (Occur.Should, query2)
         ])
 
@@ -1011,12 +1011,12 @@ class TestQuery(object):
         for _, doc_address in result.hits:
             titles.update(index.searcher().doc(doc_address)["title"])
         assert (
-            "The Old Man and the Sea" in titles and  
+            "The Old Man and the Sea" in titles and
             "Of Mice and Men" in titles
         )
 
         query = Query.boolean_query([
-            (Occur.MustNot, query1), 
+            (Occur.MustNot, query1),
             (Occur.Must, query1)
         ])
 
@@ -1025,7 +1025,7 @@ class TestQuery(object):
         assert len(result.hits) == 0
 
         query = Query.boolean_query((
-            (Occur.Should, query1), 
+            (Occur.Should, query1),
             (Occur.Should, query2)
         ))
 
@@ -1080,7 +1080,7 @@ class TestQuery(object):
 
         query2 = Query.fuzzy_term_query(index.schema, "title", "ice")
         combined_query = Query.boolean_query([
-            (Occur.Should, boosted_query), 
+            (Occur.Should, boosted_query),
             (Occur.Should, query2)
         ])
         boosted_query = Query.boost_query(combined_query, 2.0)
@@ -1109,7 +1109,7 @@ class TestQuery(object):
         result = index.searcher().search(boosted_query, 10)
         for _score, _ in result.hits:
             # the score should be 0.0
-            assert _score == pytest.approx(0.0)  
+            assert _score == pytest.approx(0.0)
 
         boosted_query = Query.boost_query(
             Query.boost_query(
@@ -1124,9 +1124,9 @@ class TestQuery(object):
         )
         result = index.searcher().search(boosted_query, 10)
         for _score, _ in result.hits:
-            # the score should be very small, due to 
+            # the score should be very small, due to
             # the unknown score of BM25, we can only check for the relative difference
-            assert _score == pytest.approx(0.01, rel = 1)  
+            assert _score == pytest.approx(0.01, rel = 1)
 
 
         boosted_query = Query.boost_query(
@@ -1157,7 +1157,7 @@ class TestQuery(object):
         # wrong boost type
         with pytest.raises(TypeError, match = r"argument 'boost': must be real number, not str"):
             Query.boost_query(query1, "0.1")
-        
+
         # no boost type error
         with pytest.raises(TypeError, match = r"Query.boost_query\(\) missing 1 required positional argument: 'boost'"):
             Query.boost_query(query1)
@@ -1243,32 +1243,32 @@ class TestQuery(object):
         score, _ = result.hits[0]
         # the score should be 1.0
         assert score == pytest.approx(1.0)
-        
+
         const_score_query = Query.const_score_query(
             Query.const_score_query(
                 query, score = 1.0
             ), score = 0.5
         )
-        
+
         result = index.searcher().search(const_score_query, 10)
         assert len(result.hits) == 1
         score, _ = result.hits[0]
-        # nested const score queries should retain the 
+        # nested const score queries should retain the
         # score of the outer query
         assert score == pytest.approx(0.5)
-        
+
         # wrong score type
         with pytest.raises(TypeError, match = r"argument 'score': must be real number, not str"):
             Query.const_score_query(query, "0.1")
 
     def test_range_query_numerics(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
-        
+
         # test integer field including both bounds
         query = Query.range_query(index.schema, "id", FieldType.Integer, 1, 2)
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
-        
+
         # test integer field excluding the lower bound
         query = Query.range_query(index.schema, "id", FieldType.Integer, 1, 2, include_lower=False)
         result = index.searcher().search(query, 10)
@@ -1284,156 +1284,156 @@ class TestQuery(object):
         _, doc_address = result.hits[0]
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["id"][0] == 1
-        
+
         # test float field excluding the lower bound
         query = Query.range_query(index.schema, "rating", FieldType.Float, 3.5, 4.0, include_lower=False)
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
         # test float field excluding the upper bound
         query = Query.range_query(index.schema, "rating", FieldType.Float, 3.0, 3.5, include_upper=False)
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
         # test if the lower bound is greater than the upper bound
         query = Query.range_query(index.schema, "rating", FieldType.Float, 4.0, 3.5)
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
     def test_range_query_dates(self, ram_index_with_date_field):
         index = ram_index_with_date_field
-        
+
         # test date field including both bounds
         query = Query.range_query(
-            index.schema, 
-            "date", 
-            FieldType.Date, 
-            datetime.datetime(2020, 1, 1), 
+            index.schema,
+            "date",
+            FieldType.Date,
+            datetime.datetime(2020, 1, 1),
             datetime.datetime(2022, 1, 1)
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
-        
+
         # test date field excluding the lower bound
         query = Query.range_query(
-            index.schema, "date", 
-            FieldType.Date, 
-            datetime.datetime(2020, 1, 1), 
-            datetime.datetime(2021, 1, 1), 
+            index.schema, "date",
+            FieldType.Date,
+            datetime.datetime(2020, 1, 1),
+            datetime.datetime(2021, 1, 1),
             include_lower=False
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
-        
+
         # test date field excluding the upper bound
         query = Query.range_query(
-            index.schema, 
-            "date", 
-            FieldType.Date, 
-            datetime.datetime(2020, 1, 1), 
-            datetime.datetime(2021, 1, 1), 
+            index.schema,
+            "date",
+            FieldType.Date,
+            datetime.datetime(2020, 1, 1),
+            datetime.datetime(2021, 1, 1),
             include_upper=False
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-    
+
     def test_range_query_ip_addrs(self, ram_index_with_ip_addr_field):
         index = ram_index_with_ip_addr_field
-        
+
         # test ip address field including both bounds
         query = Query.range_query(
-            index.schema, 
-            "ip_addr", 
-            FieldType.IpAddr, 
+            index.schema,
+            "ip_addr",
+            FieldType.IpAddr,
             "10.0.0.0",
             "10.0.255.255"
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
-        
+
         query = Query.range_query(
-            index.schema, 
-            "ip_addr", 
-            FieldType.IpAddr, 
+            index.schema,
+            "ip_addr",
+            FieldType.IpAddr,
             "0.0.0.0",
             "255.255.255.255"
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
-        
+
         # test ip address field excluding the lower bound
         query = Query.range_query(
-            index.schema, 
-            "ip_addr", 
-            FieldType.IpAddr, 
+            index.schema,
+            "ip_addr",
+            FieldType.IpAddr,
             "10.0.0.1",
             "10.0.0.255",
             include_lower=False
         )
-        
+
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
         # test ip address field excluding the upper bound
         query = Query.range_query(
-            index.schema, 
-            "ip_addr", 
-            FieldType.IpAddr, 
+            index.schema,
+            "ip_addr",
+            FieldType.IpAddr,
             "127.0.0.0",
             "127.0.0.1",
             include_upper=False
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
         # test loopback address
         query = Query.range_query(
-            index.schema, 
-            "ip_addr", 
-            FieldType.IpAddr, 
+            index.schema,
+            "ip_addr",
+            FieldType.IpAddr,
             "::1",
             "::1"
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
-    
+
     def test_range_query_invalid_types(
-        self, 
-        ram_index, 
-        ram_index_numeric_fields, 
-        ram_index_with_date_field, 
+        self,
+        ram_index,
+        ram_index_numeric_fields,
+        ram_index_with_date_field,
         ram_index_with_ip_addr_field
     ):
         index = ram_index
         query = Query.range_query(index.schema, "title", FieldType.Integer, 1, 2)
         with pytest.raises(ValueError, match="Create a range query of the type I64, when the field given was of type Str"):
             index.searcher().search(query, 10)
-        
+
         index = ram_index_numeric_fields
         query = Query.range_query(index.schema, "id", FieldType.Float, 1.0, 2.0)
         with pytest.raises(ValueError, match="Create a range query of the type F64, when the field given was of type I64"):
             index.searcher().search(query, 10)
-        
+
         index = ram_index_with_date_field
         query = Query.range_query(index.schema, "date", FieldType.Integer, 1, 2)
         with pytest.raises(ValueError, match="Create a range query of the type I64, when the field given was of type Date"):
             index.searcher().search(query, 10)
-        
+
         index = ram_index_with_ip_addr_field
         query = Query.range_query(index.schema, "ip_addr", FieldType.Integer, 1, 2)
         with pytest.raises(ValueError, match="Create a range query of the type I64, when the field given was of type IpAddr"):
             index.searcher().search(query, 10)
-    
+
     def test_range_query_unsupported_types(self, ram_index):
         index = ram_index
         with pytest.raises(ValueError, match="Text fields are not supported for range queries."):
             Query.range_query(index.schema, "title", FieldType.Text, 1, 2)
-        
+
         with pytest.raises(ValueError, match="Json fields are not supported for range queries."):
             Query.range_query(index.schema, "title", FieldType.Json, 1, 2)
-        
+
         with pytest.raises(ValueError, match="Bytes fields are not supported for range queries."):
             Query.range_query(index.schema, "title", FieldType.Bytes, 1, 2)
-        
+
         with pytest.raises(ValueError, match="Facet fields are not supported for range queries."):
             Query.range_query(index.schema, "title", FieldType.Facet, 1, 2)

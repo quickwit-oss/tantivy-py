@@ -1,3 +1,4 @@
 maturin
 pytest>=4.0
 mktestdocs==0.2.1
+psutil

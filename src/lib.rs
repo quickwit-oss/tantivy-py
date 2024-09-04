@@ -4,12 +4,15 @@ use pyo3::{exceptions, prelude::*, wrap_pymodule};
 
 mod document;
 mod facet;
+mod filters;
 mod index;
+mod more_collectors;
 mod parser_error;
 mod query;
 mod schema;
 mod schemabuilder;
 mod searcher;
+mod searcher_frame_document;
 mod snippet;
 
 use document::{extract_value, extract_value_for_type, Document};
