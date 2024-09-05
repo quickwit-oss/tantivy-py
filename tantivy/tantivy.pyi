@@ -337,6 +337,9 @@ class Searcher:
     def doc(self, doc_address: DocAddress) -> Document:
         pass
 
+    def doc_freq(self, field_name: str, field_value: Any) -> int:
+        pass
+
 class IndexWriter:
     def add_document(self, doc: Document) -> int:
         pass

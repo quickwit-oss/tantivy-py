@@ -64,6 +64,12 @@ class TestClass(object):
 
         assert len(result.hits) == 1
 
+    def test_doc_freq(self, ram_index):
+        index = ram_index
+        searcher = index.searcher()
+        doc_freq = searcher.doc_freq("body", "and")
+        assert doc_freq == 3
+
     def test_and_aggregate(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
         query = Query.all_query()
