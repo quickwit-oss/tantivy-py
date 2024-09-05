@@ -135,7 +135,7 @@ class Document:
         pass
 
     @staticmethod
-    def from_dict(py_dict: dict, schema: Optional[Schema]) -> Document:
+    def from_dict(py_dict: dict, schema: Optional[Schema] = None) -> Document:
         pass
 
     def to_dict(self) -> Any:
