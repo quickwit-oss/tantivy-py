@@ -436,3 +436,6 @@ class SnippetGenerator:
 
     def set_max_num_chars(self, max_num_chars: int) -> None:
         pass
+
+__version__: str
+
