@@ -276,6 +276,20 @@ impl Searcher {
         self.inner.segment_readers().len()
     }
 
+    /// Return the overall number of documents containing
+    /// the given term.
+    #[pyo3(signature = (field_name, field_value))]
+    fn doc_freq(
+        &self,
+        field_name: &str,
+        field_value: &Bound<PyAny>,
+    ) -> PyResult<u64> {
+        // Wrap the tantivy Searcher `doc_freq` method to return a PyResult.
+        let schema = self.inner.schema();
+        let term = crate::make_term(schema, field_name, field_value)?;
+        self.inner.doc_freq(&term).map_err(to_pyerr)
+    }
+
     /// Fetches a document from Tantivy's store given a DocAddress.
     ///
     /// Args:
