@@ -239,9 +239,14 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             .into_py(py)
         }
         Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
-        Value::Array(_arr) => {
+        Value::Array(arr) => {
+            let list = PyList::empty(py);
+            for v in arr {
+                list.append(value_to_py(py, v)?)?;
+            }
+            list.into()
             // TODO implement me
-            unimplemented!();
+            // unimplemented!();
         }
         Value::Object(obj) => object_to_py(py, obj)?,
         Value::Bool(b) => b.into_py(py),
