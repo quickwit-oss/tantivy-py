@@ -102,3 +102,5 @@ jobs:
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84  # 2.7.3
       - run: python3 -m pip install nox
       - run: nox -s test-${{ matrix.python-version }}
+        env:
+          PYO3_PRINT_CONFIG: 1
