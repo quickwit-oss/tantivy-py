@@ -34,9 +34,7 @@ def test_json_bug():
     print(f"Total hits: {top_docs}")
     for score, hit in top_docs.hits:
         doc = searcher.doc(hit)
-        # breakpoint()
-        # print(doc["data"])  # pyo3_runtime.PanicException: not implemented
-
+        print(doc["data"])
         assert doc["data"] == [{'age': 30,
              'email': 'john.doe@example.com',
              'interests': ['reading', 'hiking', 'coding'],
