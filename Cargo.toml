@@ -11,7 +11,7 @@ name = "tantivy"
 crate-type = ["cdylib"]
 
 [build-dependencies]
-pyo3-build-config = "0.22.2"
+pyo3-build-config = "0.22.3"
 
 [dependencies]
 base64 = "0.22"
