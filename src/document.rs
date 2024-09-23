@@ -239,9 +239,18 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             .into_py(py)
         }
         Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
-        Value::Array(_arr) => {
-            // TODO implement me
-            unimplemented!();
+        Value::Array(arr) => {
+            let mut list = PyList::empty_bound(py);
+            // Because `value_to_py` can return an error, we need to be able
+            // to handle those errors on demand. Also, we want to avoid
+            // collecting all the values into an intermediate `Vec` before
+            // creating the `PyList`. So, the loop below is the simplest
+            // solution. Another option might have been
+            // `arr.iter().try_for_each(...)` but it just looks more complex.
+            for v in arr {
+                list.append(value_to_py(py, v)?)?;
+            }
+            list.into()
         }
         Value::Object(obj) => object_to_py(py, obj)?,
         Value::Bool(b) => b.into_py(py),
