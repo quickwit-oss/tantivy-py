@@ -90,6 +90,8 @@ fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 
     m.add_wrapped(wrap_pymodule!(query_parser_error))?;
 
+    m.add("__version__", tv::version_string())?;
+
     Ok(())
 }
 
