@@ -199,7 +199,7 @@ jobs:
           merge-multiple: true
 
       - name: Publish package distributions to Test PyPI
-        uses: pypa/gh-action-pypi-publish@0ab0b79471669eb3a4d647e625009c62f9f3b241 # v1.10.1
+        uses: pypa/gh-action-pypi-publish@897895f1e160c830e369f9779632ebc134688e1b # v1.10.2
         with:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: wheels/
@@ -207,7 +207,7 @@ jobs:
 
       - name: Publish package distributions to PyPI
         if: always()
-        uses: pypa/gh-action-pypi-publish@0ab0b79471669eb3a4d647e625009c62f9f3b241 # v1.10.1
+        uses: pypa/gh-action-pypi-publish@897895f1e160c830e369f9779632ebc134688e1b # v1.10.2
         with:
           packages-dir: wheels/
           skip-existing: true
