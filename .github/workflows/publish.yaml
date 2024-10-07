@@ -60,7 +60,7 @@ jobs:
           args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11 3.12
 
       - name: Upload wheels
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874  # 4.4.0
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9  # 4.4.1
         with:
           name: wheels-linux-${{ matrix.platform }}
           path: dist
@@ -94,7 +94,7 @@ jobs:
           args: --release -o dist
 
       - name: Upload wheels
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874  # 4.4.0
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9  # 4.4.1
         with:
           name: wheels-windows-${{ matrix.python-version }}-${{ matrix.target }}
           path: dist
@@ -130,7 +130,7 @@ jobs:
           args: --release -o dist
 
       - name: Upload wheels
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874  # 4.4.0
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9  # 4.4.1
         with:
           name: wheels-macos-${{ matrix.python-version }}-${{ matrix.target }}
           path: dist
