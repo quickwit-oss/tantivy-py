@@ -57,7 +57,7 @@ jobs:
           manylinux: auto
           target: ${{ matrix.platform }}
           command: build
-          args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11 3.12
+          args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11 3.12 3.13
 
       - name: Upload wheels
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # 4.4.3
@@ -74,7 +74,7 @@ jobs:
     strategy:
       matrix:
         target: [x64]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7
@@ -107,7 +107,7 @@ jobs:
       attestations: write  # persist the attestation
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
@@ -160,7 +160,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a
         with:
-          toolchain: "1.73.0"
+          toolchain: "stable"
 
       - name: Set up Python 3.8
         uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
