@@ -49,7 +49,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b
         with:
-          python-version: 3.8
+          python-version: 3.9
           architecture: x64
 
       - uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab
@@ -57,7 +57,7 @@ jobs:
           manylinux: auto
           target: ${{ matrix.platform }}
           command: build
-          args: --release --sdist -o dist -i 3.8 3.9 3.10 3.11 3.12 3.13
+          args: --release --sdist -o dist -i 3.9 3.10 3.11 3.12 3.13
 
       - name: Upload wheels
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # 4.4.3
@@ -74,7 +74,7 @@ jobs:
     strategy:
       matrix:
         target: [x64]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f
@@ -107,7 +107,7 @@ jobs:
       attestations: write  # persist the attestation
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
@@ -162,10 +162,10 @@ jobs:
         with:
           toolchain: "stable"
 
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
-          python-version: 3.8
+          python-version: 3.9
 
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
