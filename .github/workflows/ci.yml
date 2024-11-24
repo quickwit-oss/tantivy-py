@@ -42,7 +42,6 @@ jobs:
         run: cargo fmt --check
 
   Test:
-    continue-on-error: ${{ matrix.python-version == '3.13' }}
     env:
       UNSAFE_PYO3_SKIP_VERSION_CHECK: ${{ matrix.unsafe-pyo3-skip-version-check }}
     strategy:
@@ -54,8 +53,11 @@ jobs:
         include:
           - os: ubuntu-latest
             python-version: "3.13"
-            allow-prereleases: true
+            allow-prereleases: false
             unsafe-pyo3-skip-version-check: 1
+          - os: ubuntu-latest
+            python-version: "3.12"
+            allow-prereleases: false
           - os: ubuntu-latest
             python-version: "3.11"
             allow-prereleases: false
@@ -64,9 +66,6 @@ jobs:
             allow-prereleases: false
           - os: ubuntu-latest
             python-version: 3.9
-            allow-prereleases: false
-          - os: ubuntu-latest
-            python-version: 3.8
             allow-prereleases: false
     runs-on: "${{ matrix.os }}"
     steps:
