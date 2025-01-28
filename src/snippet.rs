@@ -38,6 +38,10 @@ impl Snippet {
             .collect::<Vec<_>>();
         results
     }
+
+    pub fn fragment(&self) -> PyResult<String> {
+        Ok(self.inner.fragment().to_string())
+    }
 }
 
 #[pyclass(module = "tantivy.tantivy")]

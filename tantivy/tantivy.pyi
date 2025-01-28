@@ -427,6 +427,9 @@ class Snippet:
     def highlighted(self) -> list[Range]:
         pass
 
+    def fragment(self) -> str:
+        pass
+
 class SnippetGenerator:
     @staticmethod
     def create(
