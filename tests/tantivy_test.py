@@ -861,6 +861,8 @@ class TestSnippets(object):
             first = highlights[0]
             assert first.start == 20
             assert first.end == 23
+            snippet_fragment = snippet.fragment()
+            assert snippet_fragment == "The Old Man and the Sea"
             html_snippet = snippet.to_html()
             assert html_snippet == "The Old Man and the <b>Sea</b>"
 
