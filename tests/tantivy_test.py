@@ -8,7 +8,15 @@ import pytest
 
 import tantivy
 from conftest import schema, schema_numeric_fields
-from tantivy import Document, Index, SchemaBuilder, SnippetGenerator, Query, Occur, FieldType
+from tantivy import (
+    Document,
+    Index,
+    SchemaBuilder,
+    SnippetGenerator,
+    Query,
+    Occur,
+    FieldType,
+)
 
 
 class TestClass(object):
@@ -162,7 +170,9 @@ class TestClass(object):
         )
 
     def test_parse_query_fuzzy_fields(self, ram_index):
-        query = ram_index.parse_query("winter", fuzzy_fields={"title": (True, 1, False)})
+        query = ram_index.parse_query(
+            "winter", fuzzy_fields={"title": (True, 1, False)}
+        )
         assert (
             repr(query)
             == """Query(BooleanQuery { subqueries: [(Should, FuzzyTermQuery { term: Term(field=0, type=Str, "winter"), distance: 1, transposition_cost_one: false, prefix: true }), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
@@ -903,7 +913,9 @@ class TestQuery(object):
         assert len(result.hits) == 0
 
         # Should fail to create the query due to the invalid list object in the terms list
-        with pytest.raises(ValueError, match = r"Can't create a term for Field `title` with value `\[\]`"):
+        with pytest.raises(
+            ValueError, match=r"Can't create a term for Field `title` with value `\[\]`"
+        ):
             terms = ["old", [], "man"]
             query = Query.term_set_query(index.schema, "title", terms)
 
@@ -943,7 +955,7 @@ class TestQuery(object):
         result = searcher.search(query, 10)
         assert len(result.hits) == 1
 
-        with pytest.raises(ValueError, match = "words must not be empty."):
+        with pytest.raises(ValueError, match="words must not be empty."):
             Query.phrase_query(index.schema, "title", [])
 
     def test_fuzzy_term_query(self, ram_index):
@@ -965,12 +977,16 @@ class TestQuery(object):
             titles.update(index.searcher().doc(doc_address)["title"])
         assert titles == {"The Old Man and the Sea"}
 
-        query = Query.fuzzy_term_query(index.schema, "title", "mna", transposition_cost_one=False)
+        query = Query.fuzzy_term_query(
+            index.schema, "title", "mna", transposition_cost_one=False
+        )
         # the query "mna" should not match any doc since the default distance is 1 and transposition cost is set to 2.
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
-        query = Query.fuzzy_term_query(index.schema, "title", "mna", distance=2, transposition_cost_one=False)
+        query = Query.fuzzy_term_query(
+            index.schema, "title", "mna", distance=2, transposition_cost_one=False
+        )
         # the query "mna" should match both "man" and "men" since distance is set to 2.
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
@@ -997,19 +1013,13 @@ class TestQuery(object):
         index = ram_index
         query1 = Query.fuzzy_term_query(index.schema, "title", "ice")
         query2 = Query.fuzzy_term_query(index.schema, "title", "mna")
-        query = Query.boolean_query([
-            (Occur.Must, query1), 
-            (Occur.Must, query2)
-        ])
+        query = Query.boolean_query([(Occur.Must, query1), (Occur.Must, query2)])
 
         # no document should match both queries
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
-        query = Query.boolean_query([
-            (Occur.Should, query1), 
-            (Occur.Should, query2)
-        ])
+        query = Query.boolean_query([(Occur.Should, query1), (Occur.Should, query2)])
 
         # two documents should match, one for each query
         result = index.searcher().search(query, 10)
@@ -1018,40 +1028,39 @@ class TestQuery(object):
         titles = set()
         for _, doc_address in result.hits:
             titles.update(index.searcher().doc(doc_address)["title"])
-        assert (
-            "The Old Man and the Sea" in titles and  
-            "Of Mice and Men" in titles
-        )
+        assert "The Old Man and the Sea" in titles and "Of Mice and Men" in titles
 
-        query = Query.boolean_query([
-            (Occur.MustNot, query1), 
-            (Occur.Must, query1)
-        ])
+        query = Query.boolean_query([(Occur.MustNot, query1), (Occur.Must, query1)])
 
         # must not should take precedence over must
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
-        query = Query.boolean_query((
-            (Occur.Should, query1), 
-            (Occur.Should, query2)
-        ))
+        query = Query.boolean_query(((Occur.Should, query1), (Occur.Should, query2)))
 
         # the Vec signature should fit the tuple signature
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
 
         # test invalid queries
-        with pytest.raises(ValueError, match = "expected tuple of length 2, but got tuple of length 3"):
-            Query.boolean_query([
-                (Occur.Must, Occur.Must, query1),
-            ])
+        with pytest.raises(
+            ValueError, match="expected tuple of length 2, but got tuple of length 3"
+        ):
+            Query.boolean_query(
+                [
+                    (Occur.Must, Occur.Must, query1),
+                ]
+            )
 
         # test swapping the order of the tuple
-        with pytest.raises(TypeError, match = r"'Query' object cannot be converted to 'Occur'"):
-            Query.boolean_query([
-                (query1, Occur.Must),
-            ])
+        with pytest.raises(
+            TypeError, match=r"'Query' object cannot be converted to 'Occur'"
+        ):
+            Query.boolean_query(
+                [
+                    (query1, Occur.Must),
+                ]
+            )
 
     def test_disjunction_max_query(self, ram_index):
         index = ram_index
@@ -1071,9 +1080,12 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
 
-        with pytest.raises(TypeError, match = r"'str' object cannot be converted to 'Query'"):
-            query = Query.disjunction_max_query([query1, "not a query"], tie_breaker=0.5)
-
+        with pytest.raises(
+            TypeError, match=r"'str' object cannot be converted to 'Query'"
+        ):
+            query = Query.disjunction_max_query(
+                [query1, "not a query"], tie_breaker=0.5
+            )
 
     def test_boost_query(self, ram_index):
         index = ram_index
@@ -1087,10 +1099,9 @@ class TestQuery(object):
         )
 
         query2 = Query.fuzzy_term_query(index.schema, "title", "ice")
-        combined_query = Query.boolean_query([
-            (Occur.Should, boosted_query), 
-            (Occur.Should, query2)
-        ])
+        combined_query = Query.boolean_query(
+            [(Occur.Should, boosted_query), (Occur.Should, query2)]
+        )
         boosted_query = Query.boost_query(combined_query, 2.0)
 
         # Boosted boolean query
@@ -1102,7 +1113,7 @@ class TestQuery(object):
         boosted_query = Query.boost_query(query1, 0.1)
 
         # Check for decimal boost values
-        assert(
+        assert (
             repr(boosted_query)
             == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0.1))"""
         )
@@ -1110,39 +1121,32 @@ class TestQuery(object):
         boosted_query = Query.boost_query(query1, 0.0)
 
         # Check for zero boost values
-        assert(
+        assert (
             repr(boosted_query)
             == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0))"""
         )
         result = index.searcher().search(boosted_query, 10)
         for _score, _ in result.hits:
             # the score should be 0.0
-            assert _score == pytest.approx(0.0)  
+            assert _score == pytest.approx(0.0)
 
-        boosted_query = Query.boost_query(
-            Query.boost_query(
-                query1, 0.1
-            ), 0.1
-        )
+        boosted_query = Query.boost_query(Query.boost_query(query1, 0.1), 0.1)
 
         # Check for nested boost queries
-        assert(
+        assert (
             repr(boosted_query)
             == """Query(Boost(query=Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=0.1), boost=0.1))"""
         )
         result = index.searcher().search(boosted_query, 10)
         for _score, _ in result.hits:
-            # the score should be very small, due to 
+            # the score should be very small, due to
             # the unknown score of BM25, we can only check for the relative difference
-            assert _score == pytest.approx(0.01, rel = 1)  
+            assert _score == pytest.approx(0.01, rel=1)
 
-
-        boosted_query = Query.boost_query(
-            query1, -0.1
-        )
+        boosted_query = Query.boost_query(query1, -0.1)
 
         # Check for negative boost values
-        assert(
+        assert (
             repr(boosted_query)
             == """Query(Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=-0.1))"""
         )
@@ -1152,24 +1156,29 @@ class TestQuery(object):
         assert len(result.hits) == 1
         titles = set()
         for _score, doc_address in result.hits:
-
             # the score should be negative
             assert _score < 0
             titles.update(index.searcher().doc(doc_address)["title"])
         assert titles == {"The Old Man and the Sea"}
 
         # wrong query type
-        with pytest.raises(TypeError, match = r"'int' object cannot be converted to 'Query'"):
+        with pytest.raises(
+            TypeError, match=r"'int' object cannot be converted to 'Query'"
+        ):
             Query.boost_query(1, 0.1)
 
         # wrong boost type
-        with pytest.raises(TypeError, match = r"argument 'boost': must be real number, not str"):
+        with pytest.raises(
+            TypeError, match=r"argument 'boost': must be real number, not str"
+        ):
             Query.boost_query(query1, "0.1")
-        
-        # no boost type error
-        with pytest.raises(TypeError, match = r"Query.boost_query\(\) missing 1 required positional argument: 'boost'"):
-            Query.boost_query(query1)
 
+        # no boost type error
+        with pytest.raises(
+            TypeError,
+            match=r"Query.boost_query\(\) missing 1 required positional argument: 'boost'",
+        ):
+            Query.boost_query(query1)
 
     def test_regex_query(self, ram_index):
         index = ram_index
@@ -1198,9 +1207,7 @@ class TestQuery(object):
             Query.regex_query(index.schema, "unknown_field", "fish")
 
         # invalid regex pattern
-        with pytest.raises(
-            ValueError, match=r"An invalid argument was passed"
-        ):
+        with pytest.raises(ValueError, match=r"An invalid argument was passed"):
             Query.regex_query(index.schema, "body", "fish(")
 
     def test_more_like_this_query(self, ram_index):
@@ -1232,53 +1239,55 @@ class TestQuery(object):
             min_word_length=2,
             max_word_length=20,
             boost_factor=2.0,
-            stop_words=["fish"])
+            stop_words=["fish"],
+        )
         assert (
             repr(mlt_query)
-            == "Query(MoreLikeThisQuery { mlt: MoreLikeThis { min_doc_frequency: Some(2), max_doc_frequency: Some(10), min_term_frequency: Some(1), max_query_terms: Some(10), min_word_length: Some(2), max_word_length: Some(20), boost_factor: Some(2.0), stop_words: [\"fish\"] }, target: DocumentAddress(DocAddress { segment_ord: 0, doc_id: 0 }) })"
+            == 'Query(MoreLikeThisQuery { mlt: MoreLikeThis { min_doc_frequency: Some(2), max_doc_frequency: Some(10), min_term_frequency: Some(1), max_query_terms: Some(10), min_word_length: Some(2), max_word_length: Some(20), boost_factor: Some(2.0), stop_words: ["fish"] }, target: DocumentAddress(DocAddress { segment_ord: 0, doc_id: 0 }) })'
         )
         result = index.searcher().search(mlt_query, 10)
         assert len(result.hits) > 0
+
     def test_const_score_query(self, ram_index):
         index = ram_index
 
         query = Query.regex_query(index.schema, "body", "fish")
-        const_score_query = Query.const_score_query(
-            query, score = 1.0
-        )
+        const_score_query = Query.const_score_query(query, score=1.0)
         result = index.searcher().search(const_score_query, 10)
         assert len(result.hits) == 1
         score, _ = result.hits[0]
         # the score should be 1.0
         assert score == pytest.approx(1.0)
-        
+
         const_score_query = Query.const_score_query(
-            Query.const_score_query(
-                query, score = 1.0
-            ), score = 0.5
+            Query.const_score_query(query, score=1.0), score=0.5
         )
-        
+
         result = index.searcher().search(const_score_query, 10)
         assert len(result.hits) == 1
         score, _ = result.hits[0]
-        # nested const score queries should retain the 
+        # nested const score queries should retain the
         # score of the outer query
         assert score == pytest.approx(0.5)
-        
+
         # wrong score type
-        with pytest.raises(TypeError, match = r"argument 'score': must be real number, not str"):
+        with pytest.raises(
+            TypeError, match=r"argument 'score': must be real number, not str"
+        ):
             Query.const_score_query(query, "0.1")
 
     def test_range_query_numerics(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
-        
+
         # test integer field including both bounds
         query = Query.range_query(index.schema, "id", FieldType.Integer, 1, 2)
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
-        
+
         # test integer field excluding the lower bound
-        query = Query.range_query(index.schema, "id", FieldType.Integer, 1, 2, include_lower=False)
+        query = Query.range_query(
+            index.schema, "id", FieldType.Integer, 1, 2, include_lower=False
+        )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
         _, doc_address = result.hits[0]
@@ -1292,156 +1301,263 @@ class TestQuery(object):
         _, doc_address = result.hits[0]
         searched_doc = index.searcher().doc(doc_address)
         assert searched_doc["id"][0] == 1
-        
+
         # test float field excluding the lower bound
-        query = Query.range_query(index.schema, "rating", FieldType.Float, 3.5, 4.0, include_lower=False)
+        query = Query.range_query(
+            index.schema, "rating", FieldType.Float, 3.5, 4.0, include_lower=False
+        )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
         # test float field excluding the upper bound
-        query = Query.range_query(index.schema, "rating", FieldType.Float, 3.0, 3.5, include_upper=False)
+        query = Query.range_query(
+            index.schema, "rating", FieldType.Float, 3.0, 3.5, include_upper=False
+        )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
         # test if the lower bound is greater than the upper bound
         query = Query.range_query(index.schema, "rating", FieldType.Float, 4.0, 3.5)
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
     def test_range_query_dates(self, ram_index_with_date_field):
         index = ram_index_with_date_field
-        
+
         # test date field including both bounds
         query = Query.range_query(
-            index.schema, 
-            "date", 
-            FieldType.Date, 
-            datetime.datetime(2020, 1, 1), 
-            datetime.datetime(2022, 1, 1)
+            index.schema,
+            "date",
+            FieldType.Date,
+            datetime.datetime(2020, 1, 1),
+            datetime.datetime(2022, 1, 1),
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
-        
+
         # test date field excluding the lower bound
         query = Query.range_query(
-            index.schema, "date", 
-            FieldType.Date, 
-            datetime.datetime(2020, 1, 1), 
-            datetime.datetime(2021, 1, 1), 
-            include_lower=False
+            index.schema,
+            "date",
+            FieldType.Date,
+            datetime.datetime(2020, 1, 1),
+            datetime.datetime(2021, 1, 1),
+            include_lower=False,
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
-        
+
         # test date field excluding the upper bound
         query = Query.range_query(
-            index.schema, 
-            "date", 
-            FieldType.Date, 
-            datetime.datetime(2020, 1, 1), 
-            datetime.datetime(2021, 1, 1), 
-            include_upper=False
+            index.schema,
+            "date",
+            FieldType.Date,
+            datetime.datetime(2020, 1, 1),
+            datetime.datetime(2021, 1, 1),
+            include_upper=False,
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-    
+
     def test_range_query_ip_addrs(self, ram_index_with_ip_addr_field):
         index = ram_index_with_ip_addr_field
-        
+
         # test ip address field including both bounds
         query = Query.range_query(
-            index.schema, 
-            "ip_addr", 
-            FieldType.IpAddr, 
-            "10.0.0.0",
-            "10.0.255.255"
+            index.schema, "ip_addr", FieldType.IpAddr, "10.0.0.0", "10.0.255.255"
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
-        
+
         query = Query.range_query(
-            index.schema, 
-            "ip_addr", 
-            FieldType.IpAddr, 
-            "0.0.0.0",
-            "255.255.255.255"
+            index.schema, "ip_addr", FieldType.IpAddr, "0.0.0.0", "255.255.255.255"
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 2
-        
+
         # test ip address field excluding the lower bound
         query = Query.range_query(
-            index.schema, 
-            "ip_addr", 
-            FieldType.IpAddr, 
+            index.schema,
+            "ip_addr",
+            FieldType.IpAddr,
             "10.0.0.1",
             "10.0.0.255",
-            include_lower=False
+            include_lower=False,
         )
-        
+
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
         # test ip address field excluding the upper bound
         query = Query.range_query(
-            index.schema, 
-            "ip_addr", 
-            FieldType.IpAddr, 
+            index.schema,
+            "ip_addr",
+            FieldType.IpAddr,
             "127.0.0.0",
             "127.0.0.1",
-            include_upper=False
+            include_upper=False,
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
-        
+
         # test loopback address
         query = Query.range_query(
-            index.schema, 
-            "ip_addr", 
-            FieldType.IpAddr, 
-            "::1",
-            "::1"
+            index.schema, "ip_addr", FieldType.IpAddr, "::1", "::1"
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
-    
+
     def test_range_query_invalid_types(
-        self, 
-        ram_index, 
-        ram_index_numeric_fields, 
-        ram_index_with_date_field, 
-        ram_index_with_ip_addr_field
+        self,
+        ram_index,
+        ram_index_numeric_fields,
+        ram_index_with_date_field,
+        ram_index_with_ip_addr_field,
     ):
         index = ram_index
         query = Query.range_query(index.schema, "title", FieldType.Integer, 1, 2)
-        with pytest.raises(ValueError, match="Create a range query of the type I64, when the field given was of type Str"):
+        with pytest.raises(
+            ValueError,
+            match="Create a range query of the type I64, when the field given was of type Str",
+        ):
             index.searcher().search(query, 10)
-        
+
         index = ram_index_numeric_fields
         query = Query.range_query(index.schema, "id", FieldType.Float, 1.0, 2.0)
-        with pytest.raises(ValueError, match="Create a range query of the type F64, when the field given was of type I64"):
+        with pytest.raises(
+            ValueError,
+            match="Create a range query of the type F64, when the field given was of type I64",
+        ):
             index.searcher().search(query, 10)
-        
+
         index = ram_index_with_date_field
         query = Query.range_query(index.schema, "date", FieldType.Integer, 1, 2)
-        with pytest.raises(ValueError, match="Create a range query of the type I64, when the field given was of type Date"):
+        with pytest.raises(
+            ValueError,
+            match="Create a range query of the type I64, when the field given was of type Date",
+        ):
             index.searcher().search(query, 10)
-        
+
         index = ram_index_with_ip_addr_field
         query = Query.range_query(index.schema, "ip_addr", FieldType.Integer, 1, 2)
-        with pytest.raises(ValueError, match="Create a range query of the type I64, when the field given was of type IpAddr"):
+        with pytest.raises(
+            ValueError,
+            match="Create a range query of the type I64, when the field given was of type IpAddr",
+        ):
             index.searcher().search(query, 10)
-    
+
     def test_range_query_unsupported_types(self, ram_index):
         index = ram_index
-        with pytest.raises(ValueError, match="Text fields are not supported for range queries."):
+        with pytest.raises(
+            ValueError, match="Text fields are not supported for range queries."
+        ):
             Query.range_query(index.schema, "title", FieldType.Text, 1, 2)
-        
-        with pytest.raises(ValueError, match="Json fields are not supported for range queries."):
+
+        with pytest.raises(
+            ValueError, match="Json fields are not supported for range queries."
+        ):
             Query.range_query(index.schema, "title", FieldType.Json, 1, 2)
-        
-        with pytest.raises(ValueError, match="Bytes fields are not supported for range queries."):
+
+        with pytest.raises(
+            ValueError, match="Bytes fields are not supported for range queries."
+        ):
             Query.range_query(index.schema, "title", FieldType.Bytes, 1, 2)
-        
-        with pytest.raises(ValueError, match="Facet fields are not supported for range queries."):
+
+        with pytest.raises(
+            ValueError, match="Facet fields are not supported for range queries."
+        ):
             Query.range_query(index.schema, "title", FieldType.Facet, 1, 2)
+
+
+class TestTokenizers:
+    def test_build_and_register_simple_tokenizer(self):
+        custom_analyzer = (
+            tantivy.TextAnalyzerBuilder(tokenizer=tantivy.Tokenizer.whitespace())
+            .filter(tantivy.Filter.lowercase())
+            .build()
+        )
+
+        doc_text = "#03 8903 HELLO"
+        # Check that string is split on whitespace and lowercased.
+        assert ["#03", "8903", "hello"] == custom_analyzer.analyze(doc_text)
+
+        schema = (
+            tantivy.SchemaBuilder()
+            .add_text_field("content", tokenizer_name="custom_analyzer")
+            .build()
+        )
+
+        index = tantivy.Index(schema)
+        index.register_tokenizer("custom_analyzer", custom_analyzer)
+
+        writer = index.writer()
+        doc = Document(content=doc_text)
+        writer.add_document(doc)
+        writer.commit()
+        index.reload()  # Index must be reloaded for search to work.
+
+        query = Query.term_query(schema, field_name="content", field_value="#03")
+        result = index.searcher().search(query, 1)
+        assert len(result.hits) == 1
+
+        with pytest.raises(AssertionError):
+            # Uppercase term 'HELLO' should not be matchable,
+            # as 'HELLO' was lowercased to 'hello' by the analyzer.
+            query = Query.term_query(schema, field_name="content", field_value="HELLO")
+            result = index.searcher().search(query, 1)
+            assert len(result.hits) == 1
+
+    def test_build_regex_tokenizer_with_simple_pattern(self):
+        token_pattern = r"(?i)[a-z]+"
+        analyzer = tantivy.TextAnalyzerBuilder(
+            tokenizer=tantivy.Tokenizer.regex(token_pattern)
+        ).build()
+        doc_text = "all00of00these00words"
+        assert ["all", "of", "these", "words"] == analyzer.analyze(doc_text)
+
+    def test_build_regex_tokenizer_with_bad_pattern(self):
+        token_pattern = r"(?i)[a-z+"
+        with pytest.raises(ValueError, match="Invalid regex pattern"):
+            # Implementation detail: The invalid regex error arises
+            # within the Builder, not the wrapped Tokenizer.
+            tantivy.TextAnalyzerBuilder(
+                tokenizer=tantivy.Tokenizer.regex(token_pattern)
+            )
+
+    def test_build_ngram_tokenizer(self):
+        analyzer = tantivy.TextAnalyzerBuilder(
+            tokenizer=tantivy.Tokenizer.ngram(min_gram=2, max_gram=3)
+        ).build()
+        doc_text = "ferrous"
+        assert [
+            "fe",
+            "fer",
+            "er",
+            "err",
+            "rr",
+            "rro",
+            "ro",
+            "rou",
+            "ou",
+            "ous",
+            "us",
+        ] == analyzer.analyze(doc_text)
+
+    def test_build_tokenizer_w_stopword_filter(self):
+        analyzer = (
+            tantivy.TextAnalyzerBuilder(tokenizer=tantivy.Tokenizer.simple())
+            .filter(tantivy.Filter.stopword("english"))
+            .build()
+        )
+        doc_text = "the bad wolf buys an axe"
+        assert ["bad", "wolf", "buys", "axe"] == analyzer.analyze(doc_text)
+
+    def test_build_tokenizer_w_custom_stopwords_filter(self):
+        analyzer = (
+            tantivy.TextAnalyzerBuilder(tokenizer=tantivy.Tokenizer.simple())
+            .filter(tantivy.Filter.stopword("english"))
+            .filter(tantivy.Filter.custom_stopword(["like"]))
+            .build()
+        )
+        doc_text = "that is, like, such a weird way to, like, test"
+        assert ["weird", "way", "test"] == analyzer.analyze(doc_text)

@@ -12,6 +12,7 @@ use crate::{
     schema::Schema,
     searcher::Searcher,
     to_pyerr,
+    tokenizer::TextAnalyzer as PyTextAnalyzer,
 };
 use tantivy as tv;
 use tantivy::{
@@ -452,6 +453,15 @@ impl Index {
         let errors = errors.into_iter().map(|err| err.into_py(py)).collect();
 
         Ok((Query { inner: query }, errors))
+    }
+
+    /// Register a custom text analyzer by name. (Confusingly,
+    /// this is one of the places where Tantivy uses 'tokenizer' to refer to a
+    /// TextAnalyzer instance.)
+    ///
+    // Implementation notes: Skipped indirection of TokenizerManager.
+    pub fn register_tokenizer(&self, name: &str, analyzer: PyTextAnalyzer) {
+        self.index.tokenizers().register(name, analyzer.analyzer);
     }
 }
 
