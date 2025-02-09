@@ -269,8 +269,8 @@ We can check that our new analyzer is working as expected
 by passing some text to its `.analyze()` method.
 
 ```python
->>> my_analyzer.analyze('www.this1website1might1exist.com')
-['this', 'website', 'might', 'exist']
+# Will print: ['this', 'website', 'might', 'exist']
+my_analyzer.analyze('www.this1website1might1exist.com')
 ```
 
 The next step is to register our analyzer with an index. Let's
