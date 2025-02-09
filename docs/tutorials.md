@@ -214,3 +214,117 @@ assert html_snippet == (
 ```
 
 
+## Create a Custom Tokenizer (Text Analyzer)
+
+Tantivy provides several built-in tokenizers and filters that
+can be chained together to create new tokenizers (or
+'text analyzers') that better fit your needs.
+
+Tantivy-py lets you access these components, assemble them,
+and register the result with an index.
+
+Let's walk through creating and registering a custom text analyzer
+to see how everything fits together.
+
+### Example
+
+First, let's create a text analyzer. As explained further down,
+a text analyzer is a pipeline consisting of one tokenizer and
+any number of token filters.
+
+```python
+from tantivy import (
+    TextAnalyzer,
+    TextAnalyzerBuilder,
+    Tokenizer,
+    Filter,
+    Index,
+    SchemaBuilder
+)
+
+my_analyzer: TextAnalyzer = (
+    TextAnalyzerBuilder(
+        # Create a `Tokenizer` instance.
+        # It instructs the builder about which type of tokenizer
+        # to create internally and with which arguments.
+        Tokenizer.regex(r"(?i)([a-z]+)")
+    )
+    .filter(
+        # Create a `Filter` instance.
+        # Like `Tokenizer`, this object provides instructions
+        # to the builder.
+        Filter.lowercase()
+    )
+    .filter(
+        # Define custom words.
+        Filter.custom_stopword(["www", "com"])
+    )
+    # Finally, build a TextAnalyzer
+    # chaining all tokenizer > [filter, ...] steps together.
+    .build()
+)
+```
+
+We can check that our new analyzer is working as expected
+by passing some text to its `.analyze()` method.
+
+```python
+# Will print: ['this', 'website', 'might', 'exist']
+my_analyzer.analyze('www.this1website1might1exist.com')
+```
+
+The next step is to register our analyzer with an index. Let's
+assume we already have one.
+
+```python
+index.register_tokenizer("custom_analyzer", my_analyzer)
+```
+
+To link an analyzer to a field in the index, pass the
+analyzer name to the `tokenizer_name=` parameter of
+the `SchemaBuilder`'s `add_text_field()` method.
+
+Here is the schema that was used to construct our index:
+
+```python
+schema = (
+    tantivy.SchemaBuilder()
+    .add_text_field("content", tokenizer_name="custom_analyzer")
+    .build()
+)
+index = Index(schema)
+```
+
+Summary:
+
+1. Use `TextAnalyzerBuilder`, `Tokenizer`, and `Filter` to build a `TextAnalyzer`
+2. The analyzer's `.analyze()` method lets you use your analyzer as a tokenizer from Python.
+3. Refer to your analyzer's name when building the index schema.
+4. Use the same name when registering your analyzer on the index.
+
+
+### On terminology: Tokenizer vs. Text Analyzer
+
+Tantivy-py mimics Tantivy's interface as closely as possible.
+This includes minor terminological inconsistencies, one of
+which is how Tantivy distinguishes between 'tokenizers' and
+'text analyzers'.
+
+Quite simply, a 'tokenizer' segments text into tokens.
+A 'text analyzer' is a pipeline consisting of one tokenizer
+and zero or more token filters. The `TextAnalyzer` is the
+primary object of interest when talking about how to
+change Tantivy's tokenization behavior.
+
+Slightly confusingly, though, the `Index` and `SchemaBuilder`
+interfaces use 'tokenizer' to mean 'text analyzer'.
+
+This inconsistency can be observed in `SchemaBuilder.add_text_field`, e.g. --
+
+```
+SchemaBuilder.add_text_field(..., tokenizer_name=<analyzer name>)`
+```
+
+-- and in the name of the `Index.register_tokenizer(...)` method, which actually
+serves to register a *text analyzer*.
+

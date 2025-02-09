@@ -11,6 +11,7 @@ mod schema;
 mod schemabuilder;
 mod searcher;
 mod snippet;
+mod tokenizer;
 
 use document::{extract_value, extract_value_for_type, Document};
 use facet::Facet;
@@ -20,6 +21,7 @@ use schema::{FieldType, Schema};
 use schemabuilder::SchemaBuilder;
 use searcher::{DocAddress, Order, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
+use tokenizer::{Filter, TextAnalyzer, TextAnalyzerBuilder, Tokenizer};
 
 /// Python bindings for the search engine library Tantivy.
 ///
@@ -87,6 +89,10 @@ fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<SnippetGenerator>()?;
     m.add_class::<Occur>()?;
     m.add_class::<FieldType>()?;
+    m.add_class::<Tokenizer>()?;
+    m.add_class::<TextAnalyzerBuilder>()?;
+    m.add_class::<Filter>()?;
+    m.add_class::<TextAnalyzer>()?;
 
     m.add_wrapped(wrap_pymodule!(query_parser_error))?;
 
