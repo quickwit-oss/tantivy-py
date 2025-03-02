@@ -144,7 +144,7 @@ impl IndexWriter {
         Ok(self.inner()?.commit_opstamp())
     }
 
-    /// Delete all documents containing a given term.
+    /// Delete all documents containing a given value.
     ///
     /// Args:
     ///     field_name (str): The field name for which we want to filter deleted docs.
@@ -152,6 +152,14 @@ impl IndexWriter {
     ///
     /// If the field_name is not on the schema raises ValueError exception.
     /// If the field_value is not supported raises Exception.
+    ///
+    /// Text fields have special behaviour. The `field_value` parameter can be
+    /// given as if it were a query string, and all matching documents will be
+    /// deleted. It is important to understand that this can delete more
+    /// documents than expected, depending on how the tokenizer for the field is
+    /// configured. If you intend to delete documents based on a text field
+    /// with literal values, you should consider using the "raw" tokenizer for
+    /// that field.
     fn delete_documents(
         &mut self,
         field_name: &str,
