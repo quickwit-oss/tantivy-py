@@ -159,18 +159,71 @@ impl IndexWriter {
     ) -> PyResult<u64> {
         let field = get_field(&self.schema, field_name)?;
         let value = extract_value(field_value)?;
-        let term = match value {
+        match value {
             Value::Null => {
                 return Err(exceptions::PyValueError::new_err(format!(
                     "Field `{field_name}` is null type not deletable."
                 )))
             },
-            Value::Str(text) => Term::from_field_text(field, &text),
-            Value::U64(num) => Term::from_field_u64(field, num),
-            Value::I64(num) => Term::from_field_i64(field, num),
-            Value::F64(num) => Term::from_field_f64(field, num),
-            Value::Date(d) => Term::from_field_date(field, d),
-            Value::Facet(facet) => Term::from_facet(field, &facet),
+            Value::Str(text) => {
+                // Deletion against a text field is a bit more complex, because
+                // the text field is tokenized. We're going to fall back on the
+                // query parser here. The `field_value` parameter can be given
+                // as if it were a query string, and all matching documents will
+                // be deleted. It is important to understand that this can delete
+                // more documents than expected, depending on how the tokenizer
+                // for the field is configured.
+                //
+                // A good example is the use of hypens. Consider a schema like
+                // this:
+                //
+                //     schema_builder = SchemaBuilder()
+                //     schema_builder.add_text_field("name")
+                //     schema = schema_builder.build()
+                //
+                //  The gotcha here is that the default tokenizer for text fields
+                //  will remove punctuation, and if the uuid string contains
+                //  hyphens they will be removed. So, for example, if both
+                //  "Jean-Paul" and "Jean Paul" are added in different documents,
+                //  then if you try to delete "Jean-Paul" you will also delete
+                //  "Jean Paul", since they are both tokenized to the same term.
+                let field_entry = &self.schema.get_field_entry(field);
+                let field_type = field_entry.field_type();
+                let index = self.inner()?.index();
+                let mut parser = tv::query::QueryParser::for_index(
+                    index,
+                    vec![field],
+                );
+                let query_text = format!("{}:{}", field_name, text);
+                // Fuzzy queries are not supported for deletion.
+                let query = parser.parse_query(&query_text)
+                    .map_err(|e|
+                        exceptions::PyValueError::new_err(e.to_string())
+                    )?;
+                self.inner()?.delete_query(query).map_err(
+                    |e| exceptions::PyValueError::new_err(e.to_string())
+                )
+            },
+            Value::U64(num) => {
+                let term = Term::from_field_u64(field, num);
+                Ok(self.inner()?.delete_term(term))
+            },
+            Value::I64(num) => {
+                let term = Term::from_field_i64(field, num);
+                Ok(self.inner()?.delete_term(term))
+            }
+            Value::F64(num) => {
+                let term = Term::from_field_f64(field, num);
+                Ok(self.inner()?.delete_term(term))
+            }
+            Value::Date(d) => {
+                let term = Term::from_field_date(field, d);
+                Ok(self.inner()?.delete_term(term))
+            }
+            Value::Facet(facet) => {
+                let term = Term::from_facet(field, &facet);
+                Ok(self.inner()?.delete_term(term))
+            }
             Value::Bytes(_) => {
                 return Err(exceptions::PyValueError::new_err(format!(
                     "Field `{field_name}` is bytes type not deletable."
@@ -191,10 +244,15 @@ impl IndexWriter {
                     "Field `{field_name}` is json object type not deletable."
                 )))
             },
-            Value::Bool(b) => Term::from_field_bool(field, b),
-            Value::IpAddr(i) => Term::from_field_ip_addr(field, i)
-        };
-        Ok(self.inner()?.delete_term(term))
+            Value::Bool(b) => {
+                let term = Term::from_field_bool(field, b);
+                Ok(self.inner()?.delete_term(term))
+            },
+            Value::IpAddr(i) => {
+                let term = Term::from_field_ip_addr(field, i);
+                Ok(self.inner()?.delete_term(term))
+            },
+        }
     }
 
     /// If there are some merging threads, blocks until they all finish
