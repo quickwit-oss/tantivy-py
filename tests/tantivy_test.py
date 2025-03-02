@@ -1561,3 +1561,30 @@ class TestTokenizers:
         )
         doc_text = "that is, like, such a weird way to, like, test"
         assert ["weird", "way", "test"] == analyzer.analyze(doc_text)
+
+    def test_delete_documents_uses_tokenizer_on_text_field(self):
+        schema_builder = SchemaBuilder()
+        schema_builder.add_text_field("id", fast=True)
+        schema = schema_builder.build()
+        index = Index(schema)
+        writer = index.writer()
+        id_str = "test-1"
+        source_doc = {
+            "id": id_str,
+        }
+        query = index.parse_query(f"id:{id_str}")
+        writer.add_json(json.dumps(source_doc))
+        writer.commit()
+        writer.wait_merging_threads()
+        index.reload()
+        result = index.searcher().search(query)
+        assert result.count == 1
+
+        writer = index.writer()
+        writer.delete_documents("id", id_str)
+        writer.commit()
+        writer.wait_merging_threads()
+        index.reload()
+        result = index.searcher().search(query)
+        index.reload()
+        assert result.count == 0
