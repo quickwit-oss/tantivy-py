@@ -8,6 +8,7 @@ version = "0.22.1"
 description = "Official Python bindings for the Tantivy search engine"
 requires-python = ">=3.9"
 authors = [
+    { name = "Damir Jelić", email="poljar@termina.org.uk" },
     { name = "Caleb Hattingh", email = "code@cjrh.info" },
     { name = "Cam Parry", email = "cam.parry@kapiche.com"}
 ]
