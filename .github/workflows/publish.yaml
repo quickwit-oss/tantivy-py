@@ -204,6 +204,7 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: wheels/
           skip-existing: true
+          attestations: false
 
       - name: Publish package distributions to PyPI
         if: always()
