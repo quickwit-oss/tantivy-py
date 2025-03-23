@@ -144,7 +144,9 @@ impl IndexWriter {
         Ok(self.inner()?.commit_opstamp())
     }
 
-    #[deprecated(note = "This method is deprecated and will be removed in the future. Use either delete_documents_by_tokenized_term, or delete_documents_by_query.")]
+    #[deprecated(
+        note = "This method is deprecated and will be removed in the future. Use either delete_documents_by_tokenized_term, or delete_documents_by_query."
+    )]
     fn delete_documents(
         &mut self,
         field_name: &str,
@@ -174,7 +176,7 @@ impl IndexWriter {
     ///
     /// If the field_name is not on the schema raises ValueError exception.
     /// If the field_value is not supported raises Exception.
-    fn delete_documents_by_tokenized_term(
+    fn delete_documents_by_term(
         &mut self,
         field_name: &str,
         field_value: &Bound<PyAny>,
@@ -249,7 +251,9 @@ impl IndexWriter {
     /// If the query is not valid raises ValueError exception.
     /// If the query is not supported raises Exception.
     fn delete_documents_by_query(&mut self, query: &Query) -> PyResult<u64> {
-        self.inner()?.delete_query(query.inner.box_clone()).map_err(to_pyerr)
+        self.inner()?
+            .delete_query(query.inner.box_clone())
+            .map_err(to_pyerr)
     }
 
     /// If there are some merging threads, blocks until they all finish
