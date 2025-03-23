@@ -144,7 +144,29 @@ impl IndexWriter {
         Ok(self.inner()?.commit_opstamp())
     }
 
+    #[deprecated(note = "This method is deprecated and will be removed in the future. Use either delete_documents_by_tokenized_term, or delete_documents_by_query.")]
+    fn delete_documents(
+        &mut self,
+        field_name: &str,
+        field_value: &Bound<PyAny>,
+    ) -> PyResult<u64> {
+        self.delete_documents_by_tokenized_term(field_name, field_value)
+    }
+
     /// Delete all documents containing a given term.
+    ///
+    /// This method does not parse the given term and it expects the term to be
+    /// already tokenized according to any tokenizers attached to the field. This
+    /// can often result in surprising behaviour. For example, if you want to store
+    /// UUIDs as text in a field, and those values have hyphens, and you use the
+    /// default tokenizer which removes punctuation, you will not be able to delete
+    /// a document added with particular UUID, by passing the same UUID to this
+    /// method. In such workflows where deletions are required, particularly with
+    /// string values, it is strongly recommended to use the
+    /// "raw" tokenizer as this will match exactly. In situations where you do
+    /// want tokenization to be applied, it is recommended to instead use the
+    /// `delete_documents_by_query` method instead, which will delete documents
+    /// matching the given query using the same query parser as used in search queries.
     ///
     /// Args:
     ///     field_name (str): The field name for which we want to filter deleted docs.
@@ -152,7 +174,7 @@ impl IndexWriter {
     ///
     /// If the field_name is not on the schema raises ValueError exception.
     /// If the field_value is not supported raises Exception.
-    fn delete_documents(
+    fn delete_documents_by_tokenized_term(
         &mut self,
         field_name: &str,
         field_value: &Bound<PyAny>,
@@ -195,6 +217,39 @@ impl IndexWriter {
             Value::IpAddr(i) => Term::from_field_ip_addr(field, i)
         };
         Ok(self.inner()?.delete_term(term))
+    }
+
+    /// Delete all documents matching a given query.
+    ///
+    /// Example:
+    ///
+    ///     ```python
+    ///     schema_builder = SchemaBuilder()
+    ///     schema_builder.add_text_field("title", fast=True)
+    ///     schema = schema_builder.build()
+    ///     index = Index(schema)
+    ///     writer = index.writer()
+    ///     source_doc = {
+    ///         "title": "Here is some text"
+    ///     }
+    ///     writer.add_json(json.dumps(source_doc))
+    ///     writer.commit()
+    ///     writer.wait_merging_threads()
+    ///
+    ///     query = index.parse_query("title:text")
+    ///     writer = index.writer()
+    ///     writer.delete_documents_by_query(query)
+    ///     writer.commit()
+    ///     writer.wait_merging_threads()
+    ///     ```
+    ///
+    /// Args:
+    ///    query (Query): The query to filter the deleted documents.
+    ///
+    /// If the query is not valid raises ValueError exception.
+    /// If the query is not supported raises Exception.
+    fn delete_documents_by_query(&mut self, query: &Query) -> PyResult<u64> {
+        self.inner()?.delete_query(query.inner.box_clone()).map_err(to_pyerr)
     }
 
     /// If there are some merging threads, blocks until they all finish
