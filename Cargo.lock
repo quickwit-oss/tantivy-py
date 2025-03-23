@@ -1108,22 +1108,6 @@ dependencies = [
 [[package]]
 name = "tantivy"
 version = "0.22.0"
-dependencies = [
- "base64",
- "chrono",
- "futures",
- "itertools 0.14.0",
- "pyo3",
- "pyo3-build-config 0.24.0",
- "pythonize",
- "serde",
- "serde_json",
- "tantivy 0.22.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tantivy"
-version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8d0582f186c0a6d55655d24543f15e43607299425c5ad8352c242b914b31856"
 dependencies = [
@@ -1170,6 +1154,22 @@ dependencies = [
  "time",
  "uuid",
  "winapi",
+]
+
+[[package]]
+name = "tantivy"
+version = "0.22.2"
+dependencies = [
+ "base64",
+ "chrono",
+ "futures",
+ "itertools 0.14.0",
+ "pyo3",
+ "pyo3-build-config 0.24.0",
+ "pythonize",
+ "serde",
+ "serde_json",
+ "tantivy 0.22.0",
 ]
 
 [[package]]
