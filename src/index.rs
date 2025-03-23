@@ -150,7 +150,7 @@ impl IndexWriter {
         field_name: &str,
         field_value: &Bound<PyAny>,
     ) -> PyResult<u64> {
-        self.delete_documents_by_tokenized_term(field_name, field_value)
+        self.delete_documents_by_term(field_name, field_value)
     }
 
     /// Delete all documents containing a given term.
