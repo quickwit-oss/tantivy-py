@@ -388,7 +388,7 @@ class IndexWriter:
     def delete_documents(self, field_name: str, field_value: Any) -> int:
         pass
 
-    def delete_documents_by_tokenized_term(self, field_name: str, field_value: Any) -> int:
+    def delete_documents_by_term(self, field_name: str, field_value: Any) -> int:
         pass
 
     def delete_documents_by_query(self, query: Query) -> int:

@@ -145,7 +145,7 @@ impl IndexWriter {
     }
 
     #[deprecated(
-        note = "This method is deprecated and will be removed in the future. Use either delete_documents_by_tokenized_term, or delete_documents_by_query."
+        note = "This method is deprecated and will be removed in the future. Use either delete_documents_by_term, or delete_documents_by_query."
     )]
     fn delete_documents(
         &mut self,
