@@ -424,12 +424,20 @@ class Index:
         pass
 
     def parse_query(
-        self, query: str, default_field_names: Optional[list[str]] = None
+        self,
+        query: str,
+        default_field_names: Optional[list[str]] = None,
+        field_boosts: Optional[dict[str, float]] = None,
+        fuzzy_fields: Optional[dict[str, tuple[bool, int, bool]]] = None,
     ) -> Query:
         pass
 
     def parse_query_lenient(
-        self, query: str, default_field_names: Optional[list[str]] = None
+        self,
+        query: str,
+        default_field_names: Optional[list[str]] = None,
+        field_boosts: Optional[dict[str, float]] = None,
+        fuzzy_fields: Optional[dict[str, tuple[bool, int, bool]]] = None,
     ) -> Query:
         pass
 
