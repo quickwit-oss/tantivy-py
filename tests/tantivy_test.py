@@ -565,12 +565,12 @@ class TestUpdateClass(object):
         writer = ram_index.writer()
 
         with pytest.raises(ValueError):
-            writer.delete_documents("fake_field", "frankenstein")
+            writer.delete_documents_by_term("fake_field", "frankenstein")
 
         with pytest.raises(ValueError):
-            writer.delete_documents("title", b"frankenstein")
+            writer.delete_documents_by_term("title", b"frankenstein")
 
-        writer.delete_documents("title", "frankenstein")
+        writer.delete_documents_by_term("title", "frankenstein")
         writer.commit()
         ram_index.reload()
 
@@ -1582,7 +1582,6 @@ class TestTokenizers:
         assert result.count == 1
 
         writer = index.writer()
-        # writer.delete_documents("id", id_str)
         writer.delete_documents_by_query(query)
         writer.commit()
         writer.wait_merging_threads()
