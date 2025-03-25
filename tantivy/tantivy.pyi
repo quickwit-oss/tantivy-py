@@ -388,6 +388,12 @@ class IndexWriter:
     def delete_documents(self, field_name: str, field_value: Any) -> int:
         pass
 
+    def delete_documents_by_term(self, field_name: str, field_value: Any) -> int:
+        pass
+
+    def delete_documents_by_query(self, query: Query) -> int:
+        pass
+
     def wait_merging_threads(self) -> None:
         pass
 
