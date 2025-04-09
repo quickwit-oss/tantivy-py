@@ -2,6 +2,8 @@ use std::mem;
 
 use tantivy::tokenizer::Tokenizer;
 use tantivy::tokenizer::{Token, TokenFilter, TokenStream};
+use unicode_properties::GeneralCategoryGroup;
+use unicode_properties::UnicodeGeneralCategory;
 
 // 'OuterPunctuationFilter' removes any leading or trailing punctuations from tokens.
 // An array of punctuation characters (leading_allow) can be provided
@@ -52,6 +54,22 @@ impl<T: Tokenizer> Tokenizer for OuterPunctuationFilterWrapper<T> {
     }
 }
 
+fn is_disallowed_category(c: &char) -> bool {
+    let category = c.general_category_group();
+    // The only categories allowed through are:
+    // GeneralCategoryGroup::Letter
+    // GeneralCategoryGroup::Number
+    // GeneralCategoryGroup::Symbol (includes emoji)
+
+    match category {
+        GeneralCategoryGroup::Mark => true,
+        GeneralCategoryGroup::Punctuation => true,
+        GeneralCategoryGroup::Separator => true,
+        GeneralCategoryGroup::Other => true,
+        _ => false,
+    }
+}
+
 pub struct OuterPunctuationFilterTokenStream<T> {
     leading_allow: Vec<char>,
     // buffer acts as temporary string memory to switch out token text.
@@ -59,37 +77,30 @@ pub struct OuterPunctuationFilterTokenStream<T> {
     tail: T,
 }
 
-pub fn trim_end(text: &str, output: &mut String) {
-    output.clear();
-    output.push_str(text.trim_end_matches(|c: char| !c.is_alphanumeric()));
-}
-
-pub fn trim_start(leading_allow: &Vec<char>, text: &str, output: &mut String) {
-    output.clear();
-    output.push_str(text.trim_start_matches(|c: char| {
-        !c.is_alphanumeric() && !leading_allow.contains(&c)
-    }));
-}
-
 // Trims the token stream of any leading/ trailing punctuations.
 impl<T: TokenStream> TokenStream for OuterPunctuationFilterTokenStream<T> {
     fn advance(&mut self) -> bool {
-        // stop if tail is empty
-        if !self.tail.advance() {
-            return false;
-        }
-        // trim the end of token text
-        trim_end(&self.tail.token().text, &mut self.buffer);
-        mem::swap(&mut self.tail.token_mut().text, &mut self.buffer);
+        while self.tail.advance() {
+            let token_text = &self.tail.token().text;
 
-        // trim start of the token text
-        trim_start(
-            &self.leading_allow,
-            &self.tail.token().text,
-            &mut self.buffer,
-        );
-        mem::swap(&mut self.tail.token_mut().text, &mut self.buffer);
-        true
+            // Strip leading punctuation
+            let token_text = token_text.trim_start_matches(|c: char| {
+                (c.is_ascii_punctuation() || is_disallowed_category(&c))
+                    && !self.leading_allow.contains(&c)
+            });
+
+            // Strip trailing punctuation
+            let token_text = token_text.trim_end_matches(|c: char| {
+                c.is_ascii_punctuation() || is_disallowed_category(&c)
+            });
+
+            self.buffer.clear();
+            self.buffer.push_str(token_text);
+            // Replace the token text with the trimmed word
+            mem::swap(&mut self.tail.token_mut().text, &mut self.buffer);
+            return true;
+        }
+        false
     }
 
     fn token(&self) -> &Token {
@@ -136,6 +147,7 @@ pub mod tests {
     #[test]
     fn test_to_outer_punctuation_filter() {
         let tokens = token_stream_helper("Tree**%^");
+        println!("tokens {:?}", tokens);
         assert_eq!(tokens.len(), 1);
         assert_token(&tokens[0], 0, "Tree", 0, 8);
 
@@ -151,6 +163,104 @@ pub mod tests {
         let tokens = token_stream_helper("@#Tree**%^");
         assert_eq!(tokens.len(), 1);
         assert_token(&tokens[0], 0, "@#Tree", 0, 10);
+    }
+
+    #[test]
+    fn test_to_outer_punctuation_filter_emoji() {
+        let tokens = token_stream_helper("🌳");
+        println!("emoji tokens {:?}", tokens);
+        assert_eq!(tokens.len(), 1);
+        assert_token(&tokens[0], 0, "🌳", 0, 4);
+    }
+
+    #[test]
+    fn test_to_outer_punctuation_filter_emoji2() {
+        let tokens = token_stream_helper("tree🌳");
+        println!("emoji tokens {:?}", tokens);
+        assert_eq!(tokens.len(), 1);
+        assert_token(&tokens[0], 0, "tree🌳", 0, 8);
+    }
+
+    #[test]
+    fn test_to_outer_punctuation_filter_emoji3() {
+        let tokens = token_stream_helper("tree ?🌳");
+        println!("emoji tokens {:?}", tokens);
+        assert_eq!(tokens.len(), 2);
+        assert_token(&tokens[0], 0, "tree", 0, 4);
+        assert_token(&tokens[1], 1, "🌳", 5, 10);
+    }
+
+    #[test]
+    fn test_to_outer_punctuation_filter_emoji4() {
+        let cases = vec![
+            // Plain text
+            ("tree", "tree"),
+            ("tree tree", "tree tree"),
+            ("tree tree tree", "tree tree tree"),
+            // Emoji only
+            ("🌳", "🌳"),
+            // Unicode flag test
+            ("🇦🇺", "🇦🇺"),
+            ("🇦🇺🌳", "🇦🇺🌳"),
+            ("🌳🇦🇺", "🌳🇦🇺"),
+            // Mixed text and emoji
+            ("tree🌳", "tree🌳"),
+            ("tree 🌳", "tree 🌳"),
+            ("tree🌳 tree", "tree🌳 tree"),
+            ("tree tree🌳", "tree tree🌳"),
+            // ASCII Punctuation
+            ("???🌳???", "🌳"),
+            ("...🌳...", "🌳"),
+            ("//tree ?🌳//", "tree 🌳"),
+            // Some punctuation must be let through
+            ("#tree🌳", "#tree🌳"),
+            ("@tree🌳", "@tree🌳"),
+            // But only if it is at the start. At the end still drops.
+            ("tree🌳#", "tree🌳"),
+            ("tree🌳@", "tree🌳"),
+            // Unicode Punctuation with odd characters and quotes
+            ("-tree 🌳", "tree 🌳"),
+            ("—tree 🌳", "tree 🌳"),
+            ("⸗tree 🌳", "tree 🌳"),
+            ("⸚tree 🌳", "tree 🌳"),
+            ("⸺tree 🌳", "tree 🌳"),
+            ("〜tree 🌳", "tree 🌳"),
+            ("〰tree 🌳", "tree 🌳"),
+            ("«tree 🌳»", "tree 🌳"),
+            ("‘tree 🌳", "tree 🌳"),
+            ("“tree 🌳", "tree 🌳"),
+            ("⸄tree 🌳", "tree 🌳"),
+            ("⸉tree 🌳", "tree 🌳"),
+            ("❨tree 🌳", "tree 🌳"),
+            ("⸦tree 🌳", "tree 🌳"),
+            ("『tree 🌳』", "tree 🌳"),
+            ("¿tree 🌳", "tree 🌳"),
+            // Greek question mark NOT semicolon
+            (";tree 🌳", "tree 🌳"),
+            ("‡tree 🌳", "tree 🌳"),
+            ("‥tree 🌳", "tree 🌳"),
+            ("‴tree 🌳", "tree 🌳"),
+            ("※tree 🌳", "tree 🌳"),
+            ("⁂tree 🌳", "tree 🌳"),
+            ("⁜tree 🌳", "tree 🌳"),
+            ("﹅tree 🌳", "tree 🌳"),
+        ];
+        for (input, expected) in cases {
+            let out = token_full_pipeline(input);
+            println!("out {:?}", out);
+            assert_eq!(out, expected);
+        }
+    }
+
+    fn token_full_pipeline(text: &str) -> String {
+        let tokens = token_stream_helper(text);
+        println!("emoji tokens {:?}", tokens);
+        let token_string = tokens
+            .iter()
+            .map(|token| token.text.clone())
+            .collect::<Vec<String>>()
+            .join(" ");
+        token_string
     }
 
     fn token_stream_helper(text: &str) -> Vec<Token> {
