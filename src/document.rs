@@ -202,7 +202,7 @@ fn extract_value_single_or_list_for_type(
 
 fn object_to_py(
     py: Python,
-    obj: &BTreeMap<String, Value>,
+    obj: &Vec<(String, Value)>,
 ) -> PyResult<PyObject> {
     let dict = PyDict::new_bound(py);
     for (k, v) in obj.iter() {
@@ -343,7 +343,7 @@ enum SerdeValue {
     /// Array
     Array(Vec<Value>),
     /// Object value.
-    Object(BTreeMap<String, Value>),
+    Object(Vec<(String, Value)>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(Ipv6Addr),
 }
@@ -416,7 +416,7 @@ enum BorrowedSerdeValue<'a> {
     /// Array
     Array(&'a Vec<Value>),
     /// Json object value.
-    Object(&'a BTreeMap<String, Value>),
+    Object(&'a Vec<(String, Value)>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(&'a Ipv6Addr),
 }

@@ -398,11 +398,9 @@ impl Query {
             OpsBound::Excluded(upper_bound_term)
         };
 
-        let inner = tv::query::RangeQuery::new_term_bounds(
-            field_name.to_string(),
-            field_type.into(),
-            &lower_bound,
-            &upper_bound,
+        let inner = tv::query::RangeQuery::new(
+            lower_bound,
+            upper_bound,
         );
 
         Ok(Query {
