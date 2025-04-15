@@ -52,9 +52,10 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
         return Ok(Value::Bytes(b));
     }
     if let Ok(dict) = any.downcast::<PyDict>() {
-        if let Ok(json) = pythonize::depythonize_bound(dict.clone().into_any())
+        if let Ok(json_dict) =
+            pythonize::depythonize_bound::<BTreeMap<String, Value>>(dict.clone().into_any())
         {
-            return Ok(Value::Object(json));
+            return Ok(Value::Object(json_dict.into_iter().collect()));
         }
     }
     Err(to_pyerr(format!("Value unsupported {any:?}")))
@@ -120,19 +121,19 @@ pub(crate) fn extract_value_for_type(
         ),
         tv::schema::Type::Json => {
             if let Ok(json_str) = any.extract::<&str>() {
-                return serde_json::from_str(json_str)
-                    .map(Value::Object)
+                return serde_json::from_str::<BTreeMap<String, Value>>(json_str)
+                    .map(|json_map| {
+                        Value::Object(json_map.into_iter().collect())
+                    })
                     .map_err(to_pyerr_for_type("Json", field_name, any));
             }
 
-            Value::Object(
-                any.downcast::<PyDict>()
-                    .map_err(to_pyerr_for_type("Json", field_name, any))
-                    .and_then(|dict| {
-                        pythonize::depythonize_bound(dict.clone().into_any())
-                            .map_err(to_pyerr_for_type("Json", field_name, any))
-                    })?,
-            )
+            let dict = any.downcast::<PyDict>()
+                .map_err(to_pyerr_for_type("Json", field_name, any))?;
+            let map = pythonize::depythonize_bound::<BTreeMap<String, Value>>(
+                dict.clone().into_any(),
+            )?;
+            Value::Object(map.into_iter().collect())
         }
         tv::schema::Type::IpAddr => {
             let val = any
@@ -202,7 +203,7 @@ fn extract_value_single_or_list_for_type(
 
 fn object_to_py(
     py: Python,
-    obj: &Vec<(String, Value)>,
+    obj: &BTreeMap<String, Value>,
 ) -> PyResult<PyObject> {
     let dict = PyDict::new_bound(py);
     for (k, v) in obj.iter() {
@@ -252,7 +253,9 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             }
             list.into()
         }
-        Value::Object(obj) => object_to_py(py, obj)?,
+        Value::Object(obj) => object_to_py(
+            py, &obj.iter().cloned().collect()
+        )?,
         Value::Bool(b) => b.into_py(py),
         Value::IpAddr(i) => (*i).to_string().into_py(py),
     })
@@ -343,7 +346,7 @@ enum SerdeValue {
     /// Array
     Array(Vec<Value>),
     /// Object value.
-    Object(Vec<(String, Value)>),
+    Object(BTreeMap<String, Value>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(Ipv6Addr),
 }
@@ -361,7 +364,7 @@ impl From<SerdeValue> for Value {
             SerdeValue::Facet(v) => Self::Facet(v),
             SerdeValue::Bytes(v) => Self::Bytes(v),
             SerdeValue::Array(v) => Self::Array(v),
-            SerdeValue::Object(v) => Self::Object(v),
+            SerdeValue::Object(v) => Self::Object(v.into_iter().collect()),
             SerdeValue::Bool(v) => Self::Bool(v),
             SerdeValue::IpAddr(v) => Self::IpAddr(v),
         }
@@ -381,7 +384,7 @@ impl From<Value> for SerdeValue {
             Value::Facet(v) => Self::Facet(v),
             Value::Bytes(v) => Self::Bytes(v),
             Value::Array(v) => Self::Array(v),
-            Value::Object(v) => Self::Object(v),
+            Value::Object(v) => Self::Object(v.into_iter().collect()),
             Value::Bool(v) => Self::Bool(v),
             Value::IpAddr(v) => Self::IpAddr(v),
         }
