@@ -398,10 +398,7 @@ impl Query {
             OpsBound::Excluded(upper_bound_term)
         };
 
-        let inner = tv::query::RangeQuery::new(
-            lower_bound,
-            upper_bound,
-        );
+        let inner = tv::query::RangeQuery::new(lower_bound, upper_bound);
 
         Ok(Query {
             inner: Box::new(inner),

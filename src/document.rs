@@ -52,8 +52,9 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
         return Ok(Value::Bytes(b));
     }
     if let Ok(dict) = any.downcast::<PyDict>() {
-        if let Ok(json_dict) =
-            pythonize::depythonize_bound::<BTreeMap<String, Value>>(dict.clone().into_any())
+        if let Ok(json_dict) = pythonize::depythonize_bound::<
+            BTreeMap<String, Value>,
+        >(dict.clone().into_any())
         {
             return Ok(Value::Object(json_dict.into_iter().collect()));
         }
@@ -121,14 +122,15 @@ pub(crate) fn extract_value_for_type(
         ),
         tv::schema::Type::Json => {
             if let Ok(json_str) = any.extract::<&str>() {
-                return serde_json::from_str::<BTreeMap<String, Value>>(json_str)
-                    .map(|json_map| {
-                        Value::Object(json_map.into_iter().collect())
-                    })
-                    .map_err(to_pyerr_for_type("Json", field_name, any));
+                return serde_json::from_str::<BTreeMap<String, Value>>(
+                    json_str,
+                )
+                .map(|json_map| Value::Object(json_map.into_iter().collect()))
+                .map_err(to_pyerr_for_type("Json", field_name, any));
             }
 
-            let dict = any.downcast::<PyDict>()
+            let dict = any
+                .downcast::<PyDict>()
                 .map_err(to_pyerr_for_type("Json", field_name, any))?;
             let map = pythonize::depythonize_bound::<BTreeMap<String, Value>>(
                 dict.clone().into_any(),
@@ -253,9 +255,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             }
             list.into()
         }
-        Value::Object(obj) => object_to_py(
-            py, &obj.iter().cloned().collect()
-        )?,
+        Value::Object(obj) => object_to_py(py, &obj.iter().cloned().collect())?,
         Value::Bool(b) => b.into_py(py),
         Value::IpAddr(i) => (*i).to_string().into_py(py),
     })

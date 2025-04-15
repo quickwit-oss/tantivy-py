@@ -64,9 +64,12 @@ impl SnippetGenerator {
             .get_field(field_name)
             .or(Err("field not found"))
             .map_err(to_pyerr)?;
-        let generator =
-            tv::snippet::SnippetGenerator::create(&searcher.inner, query.get(), field)
-                .map_err(to_pyerr)?;
+        let generator = tv::snippet::SnippetGenerator::create(
+            &searcher.inner,
+            query.get(),
+            field,
+        )
+        .map_err(to_pyerr)?;
 
         Ok(SnippetGenerator {
             field_name: field_name.to_string(),
