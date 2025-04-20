@@ -5,10 +5,11 @@ from tantivy import Query
 
 def test_escape_quote_parse_query(ram_index):
     index = ram_index
-    with pytest.raises(ValueError) as ex:
-        # This test to show that surrounding quotes are required to allow
-        # a single to be escaped the quote, otherwise it will raise `ValueError`.
-        _ = index.parse_query(r'sea\"', ["title", "body"])
+    # We verify only that `parse_query` doesn't raise. This was a change
+    # from tantivy versions prior to 0.24.0 in which the following would
+    # raise a `ValueError`.
+    q = index.parse_query(r'sea\"', ["title", "body"])
+    print(q)
 
 
 def test_escape_quote_parse_query_with_quotes(ram_index):

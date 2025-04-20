@@ -57,6 +57,10 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
         >(dict.clone().into_any())
         {
             return Ok(Value::Object(json_dict.into_iter().collect()));
+        } else {
+            return Err(to_pyerr(
+                "Invalid JSON object. Expected valid JSON string or Dict[str, Any].",
+            ));
         }
     }
     Err(to_pyerr(format!("Value unsupported {any:?}")))
@@ -203,10 +207,7 @@ fn extract_value_single_or_list_for_type(
     }
 }
 
-fn object_to_py(
-    py: Python,
-    obj: &BTreeMap<String, Value>,
-) -> PyResult<PyObject> {
+fn object_to_py(py: Python, obj: &Vec<(String, Value)>) -> PyResult<PyObject> {
     let dict = PyDict::new_bound(py);
     for (k, v) in obj.iter() {
         dict.set_item(k, value_to_py(py, v)?)?;
@@ -255,7 +256,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             }
             list.into()
         }
-        Value::Object(obj) => object_to_py(py, &obj.iter().cloned().collect())?,
+        Value::Object(obj) => object_to_py(py, obj)?,
         Value::Bool(b) => b.into_py(py),
         Value::IpAddr(i) => (*i).to_string().into_py(py),
     })
@@ -346,7 +347,7 @@ enum SerdeValue {
     /// Array
     Array(Vec<Value>),
     /// Object value.
-    Object(BTreeMap<String, Value>),
+    Object(Vec<(String, Value)>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(Ipv6Addr),
 }
@@ -364,7 +365,7 @@ impl From<SerdeValue> for Value {
             SerdeValue::Facet(v) => Self::Facet(v),
             SerdeValue::Bytes(v) => Self::Bytes(v),
             SerdeValue::Array(v) => Self::Array(v),
-            SerdeValue::Object(v) => Self::Object(v.into_iter().collect()),
+            SerdeValue::Object(v) => Self::Object(v),
             SerdeValue::Bool(v) => Self::Bool(v),
             SerdeValue::IpAddr(v) => Self::IpAddr(v),
         }
@@ -384,7 +385,7 @@ impl From<Value> for SerdeValue {
             Value::Facet(v) => Self::Facet(v),
             Value::Bytes(v) => Self::Bytes(v),
             Value::Array(v) => Self::Array(v),
-            Value::Object(v) => Self::Object(v.into_iter().collect()),
+            Value::Object(v) => Self::Object(v),
             Value::Bool(v) => Self::Bool(v),
             Value::IpAddr(v) => Self::IpAddr(v),
         }

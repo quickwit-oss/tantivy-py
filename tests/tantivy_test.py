@@ -1415,36 +1415,32 @@ class TestQuery(object):
         ram_index_with_ip_addr_field,
     ):
         index = ram_index
-        query = Query.range_query(index.schema, "title", FieldType.Integer, 1, 2)
         with pytest.raises(
             ValueError,
-            match="Create a range query of the type I64, when the field given was of type Str",
+            match="Field type mismatch: field 'title' is type Str, but got I64",
         ):
-            index.searcher().search(query, 10)
+            _ = Query.range_query(index.schema, "title", FieldType.Integer, 1, 2)
 
         index = ram_index_numeric_fields
-        query = Query.range_query(index.schema, "id", FieldType.Float, 1.0, 2.0)
         with pytest.raises(
             ValueError,
-            match="Create a range query of the type F64, when the field given was of type I64",
+            match="Field type mismatch: field 'id' is type I64, but got F64",
         ):
-            index.searcher().search(query, 10)
+            _ = Query.range_query(index.schema, "id", FieldType.Float, 1.0, 2.0)
 
         index = ram_index_with_date_field
-        query = Query.range_query(index.schema, "date", FieldType.Integer, 1, 2)
         with pytest.raises(
             ValueError,
-            match="Create a range query of the type I64, when the field given was of type Date",
+            match="Field type mismatch: field 'date' is type Date, but got I64",
         ):
-            index.searcher().search(query, 10)
+            _ = Query.range_query(index.schema, "date", FieldType.Integer, 1, 2)
 
         index = ram_index_with_ip_addr_field
-        query = Query.range_query(index.schema, "ip_addr", FieldType.Integer, 1, 2)
         with pytest.raises(
             ValueError,
-            match="Create a range query of the type I64, when the field given was of type IpAddr",
+            match="Field type mismatch: field 'ip_addr' is type IpAddr, but got I64",
         ):
-            index.searcher().search(query, 10)
+            _ = Query.range_query(index.schema, "ip_addr", FieldType.Integer, 1, 2)
 
     def test_range_query_unsupported_types(self, ram_index):
         index = ram_index
