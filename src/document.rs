@@ -52,7 +52,7 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
         return Ok(Value::Bytes(b));
     }
     if let Ok(dict) = any.downcast::<PyDict>() {
-        if let Ok(json) = pythonize::depythonize_bound(dict.clone().into_any())
+        if let Ok(json) = pythonize::depythonize(&dict.clone().into_any())
         {
             return Ok(Value::Object(json));
         }
@@ -129,7 +129,7 @@ pub(crate) fn extract_value_for_type(
                 any.downcast::<PyDict>()
                     .map_err(to_pyerr_for_type("Json", field_name, any))
                     .and_then(|dict| {
-                        pythonize::depythonize_bound(dict.clone().into_any())
+                        pythonize::depythonize(&dict.clone().into_any())
                             .map_err(to_pyerr_for_type("Json", field_name, any))
                     })?,
             )
@@ -716,7 +716,7 @@ impl Document {
             self.add_value(field_name, json_map);
             Ok(())
         } else if let Ok(json_map) =
-            pythonize::depythonize_bound::<JsonMap>(value.clone())
+            pythonize::depythonize::<JsonMap>(&value.clone())
         {
             self.add_value(field_name, json_map);
             Ok(())
@@ -822,7 +822,7 @@ impl Document {
 
     #[staticmethod]
     fn _internal_from_pythonized(serialized: &Bound<PyAny>) -> PyResult<Self> {
-        pythonize::depythonize_bound(serialized.clone()).map_err(to_pyerr)
+        pythonize::depythonize(&serialized.clone()).map_err(to_pyerr)
     }
 
     fn __reduce__<'a>(
