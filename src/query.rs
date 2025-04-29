@@ -373,6 +373,20 @@ impl Query {
             _ => {}
         }
 
+        // Look up the field in the schema. The given type must match the
+        // field type in the schema.
+        let field = get_field(&schema.inner, field_name)?;
+        let actual_field_entry = schema.inner.get_field_entry(field);
+        let actual_field_type = actual_field_entry.field_type().value_type(); // Convert tv::schema::FieldType to local FieldType
+        let given_field_type: tv::schema::Type = field_type.clone().into(); // Convert local FieldType to tv::schema::FieldType
+
+        if actual_field_type != given_field_type {
+            return Err(exceptions::PyValueError::new_err(format!(
+                "Field type mismatch: field '{}' is type {:?}, but got {:?}",
+                field_name, actual_field_type, given_field_type
+            )));
+        }
+
         let lower_bound_term = make_term_for_type(
             &schema.inner,
             field_name,
@@ -398,12 +412,7 @@ impl Query {
             OpsBound::Excluded(upper_bound_term)
         };
 
-        let inner = tv::query::RangeQuery::new_term_bounds(
-            field_name.to_string(),
-            field_type.into(),
-            &lower_bound,
-            &upper_bound,
-        );
+        let inner = tv::query::RangeQuery::new(lower_bound, upper_bound);
 
         Ok(Query {
             inner: Box::new(inner),

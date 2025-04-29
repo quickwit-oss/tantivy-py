@@ -159,14 +159,14 @@ class TestClass(object):
         query = ram_index.parse_query("winter")
         assert (
             repr(query)
-            == """Query(BooleanQuery { subqueries: [(Should, TermQuery(Term(field=0, type=Str, "winter"))), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
-        )
+            == """Query(BooleanQuery { subqueries: [(Should, TermQuery(Term(field=0, type=Str, "winter"))), (Should, TermQuery(Term(field=1, type=Str, "winter")))], minimum_number_should_match: 1 })"""
+        ), repr(query)
 
     def test_parse_query_field_boosts(self, ram_index):
         query = ram_index.parse_query("winter", field_boosts={"title": 2.3})
         assert (
             repr(query)
-            == """Query(BooleanQuery { subqueries: [(Should, Boost(query=TermQuery(Term(field=0, type=Str, "winter")), boost=2.3)), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
+            == """Query(BooleanQuery { subqueries: [(Should, Boost(query=TermQuery(Term(field=0, type=Str, "winter")), boost=2.3)), (Should, TermQuery(Term(field=1, type=Str, "winter")))], minimum_number_should_match: 1 })"""
         )
 
     def test_parse_query_fuzzy_fields(self, ram_index):
@@ -175,7 +175,7 @@ class TestClass(object):
         )
         assert (
             repr(query)
-            == """Query(BooleanQuery { subqueries: [(Should, FuzzyTermQuery { term: Term(field=0, type=Str, "winter"), distance: 1, transposition_cost_one: false, prefix: true }), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
+            == """Query(BooleanQuery { subqueries: [(Should, FuzzyTermQuery { term: Term(field=0, type=Str, "winter"), distance: 1, transposition_cost_one: false, prefix: true }), (Should, TermQuery(Term(field=1, type=Str, "winter")))], minimum_number_should_match: 1 })"""
         )
 
     def test_query_errors(self, ram_index):
@@ -205,7 +205,7 @@ class TestClass(object):
         assert isinstance(errors[1], query_parser_error.ExpectedFloatError)
         assert (
             repr(query)
-            == """Query(BooleanQuery { subqueries: [(Should, BooleanQuery { subqueries: [(Must, TermQuery(Term(field=3, type=Str, "hello")))] })] })"""
+            == """Query(BooleanQuery { subqueries: [(Should, BooleanQuery { subqueries: [(Must, TermQuery(Term(field=3, type=Str, "hello")))], minimum_number_should_match: 0 })], minimum_number_should_match: 1 })"""
         )
 
     def test_order_by_search(self):
@@ -1107,7 +1107,7 @@ class TestQuery(object):
         # Boosted boolean query
         assert (
             repr(boosted_query)
-            == """Query(Boost(query=BooleanQuery { subqueries: [(Should, Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=2)), (Should, FuzzyTermQuery { term: Term(field=0, type=Str, "ice"), distance: 1, transposition_cost_one: true, prefix: false })] }, boost=2))"""
+            == """Query(Boost(query=BooleanQuery { subqueries: [(Should, Boost(query=TermQuery(Term(field=0, type=Str, "sea")), boost=2)), (Should, FuzzyTermQuery { term: Term(field=0, type=Str, "ice"), distance: 1, transposition_cost_one: true, prefix: false })], minimum_number_should_match: 1 }, boost=2))"""
         )
 
         boosted_query = Query.boost_query(query1, 0.1)
@@ -1415,36 +1415,32 @@ class TestQuery(object):
         ram_index_with_ip_addr_field,
     ):
         index = ram_index
-        query = Query.range_query(index.schema, "title", FieldType.Integer, 1, 2)
         with pytest.raises(
             ValueError,
-            match="Create a range query of the type I64, when the field given was of type Str",
+            match="Field type mismatch: field 'title' is type Str, but got I64",
         ):
-            index.searcher().search(query, 10)
+            _ = Query.range_query(index.schema, "title", FieldType.Integer, 1, 2)
 
         index = ram_index_numeric_fields
-        query = Query.range_query(index.schema, "id", FieldType.Float, 1.0, 2.0)
         with pytest.raises(
             ValueError,
-            match="Create a range query of the type F64, when the field given was of type I64",
+            match="Field type mismatch: field 'id' is type I64, but got F64",
         ):
-            index.searcher().search(query, 10)
+            _ = Query.range_query(index.schema, "id", FieldType.Float, 1.0, 2.0)
 
         index = ram_index_with_date_field
-        query = Query.range_query(index.schema, "date", FieldType.Integer, 1, 2)
         with pytest.raises(
             ValueError,
-            match="Create a range query of the type I64, when the field given was of type Date",
+            match="Field type mismatch: field 'date' is type Date, but got I64",
         ):
-            index.searcher().search(query, 10)
+            _ = Query.range_query(index.schema, "date", FieldType.Integer, 1, 2)
 
         index = ram_index_with_ip_addr_field
-        query = Query.range_query(index.schema, "ip_addr", FieldType.Integer, 1, 2)
         with pytest.raises(
             ValueError,
-            match="Create a range query of the type I64, when the field given was of type IpAddr",
+            match="Field type mismatch: field 'ip_addr' is type IpAddr, but got I64",
         ):
-            index.searcher().search(query, 10)
+            _ = Query.range_query(index.schema, "ip_addr", FieldType.Integer, 1, 2)
 
     def test_range_query_unsupported_types(self, ram_index):
         index = ram_index

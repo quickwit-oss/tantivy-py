@@ -10,7 +10,7 @@ use tantivy::schema::Value;
 /// parts inside it.
 #[pyclass(module = "tantivy.tantivy")]
 pub(crate) struct Snippet {
-    pub(crate) inner: tv::Snippet,
+    pub(crate) inner: tv::snippet::Snippet,
 }
 
 #[pyclass(module = "tantivy.tantivy")]
@@ -47,7 +47,7 @@ impl Snippet {
 #[pyclass(module = "tantivy.tantivy")]
 pub(crate) struct SnippetGenerator {
     pub(crate) field_name: String,
-    pub(crate) inner: tv::SnippetGenerator,
+    pub(crate) inner: tv::snippet::SnippetGenerator,
 }
 
 #[pymethods]
@@ -64,9 +64,12 @@ impl SnippetGenerator {
             .get_field(field_name)
             .or(Err("field not found"))
             .map_err(to_pyerr)?;
-        let generator =
-            tv::SnippetGenerator::create(&searcher.inner, query.get(), field)
-                .map_err(to_pyerr)?;
+        let generator = tv::snippet::SnippetGenerator::create(
+            &searcher.inner,
+            query.get(),
+            field,
+        )
+        .map_err(to_pyerr)?;
 
         Ok(SnippetGenerator {
             field_name: field_name.to_string(),
