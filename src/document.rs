@@ -52,10 +52,12 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
         return Ok(Value::Bytes(b));
     }
     if let Ok(dict) = any.downcast::<PyDict>() {
-        if let Ok(json) = pythonize::depythonize(&dict.clone().into_any())
-        {
-            return Ok(Value::Object(json));
+        if let Ok(json_dict) = pythonize::depythonize::<BTreeMap<String, Value>>(
+            &dict.clone().into_any(),
+        ) {
+            return Ok(Value::Object(json_dict.into_iter().collect()));
         }
+        return Err(to_pyerr("Invalid JSON object. Expected valid JSON string or Dict[str, Any]."));
     }
     Err(to_pyerr(format!("Value unsupported {any:?}")))
 }
@@ -120,19 +122,20 @@ pub(crate) fn extract_value_for_type(
         ),
         tv::schema::Type::Json => {
             if let Ok(json_str) = any.extract::<&str>() {
-                return serde_json::from_str(json_str)
-                    .map(Value::Object)
-                    .map_err(to_pyerr_for_type("Json", field_name, any));
+                return serde_json::from_str::<BTreeMap<String, Value>>(
+                    json_str,
+                )
+                .map(|json_map| Value::Object(json_map.into_iter().collect()))
+                .map_err(to_pyerr_for_type("Json", field_name, any));
             }
 
-            Value::Object(
-                any.downcast::<PyDict>()
-                    .map_err(to_pyerr_for_type("Json", field_name, any))
-                    .and_then(|dict| {
-                        pythonize::depythonize(&dict.clone().into_any())
-                            .map_err(to_pyerr_for_type("Json", field_name, any))
-                    })?,
-            )
+            let dict = any
+                .downcast::<PyDict>()
+                .map_err(to_pyerr_for_type("Json", field_name, any))?;
+            let map = pythonize::depythonize::<BTreeMap<String, Value>>(
+                &dict.clone().into_any(),
+            )?;
+            Value::Object(map.into_iter().collect())
         }
         tv::schema::Type::IpAddr => {
             let val = any
@@ -200,10 +203,7 @@ fn extract_value_single_or_list_for_type(
     }
 }
 
-fn object_to_py(
-    py: Python,
-    obj: &BTreeMap<String, Value>,
-) -> PyResult<PyObject> {
+fn object_to_py(py: Python, obj: &Vec<(String, Value)>) -> PyResult<PyObject> {
     let dict = PyDict::new_bound(py);
     for (k, v) in obj.iter() {
         dict.set_item(k, value_to_py(py, v)?)?;
@@ -343,7 +343,7 @@ enum SerdeValue {
     /// Array
     Array(Vec<Value>),
     /// Object value.
-    Object(BTreeMap<String, Value>),
+    Object(Vec<(String, Value)>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(Ipv6Addr),
 }
@@ -416,7 +416,7 @@ enum BorrowedSerdeValue<'a> {
     /// Array
     Array(&'a Vec<Value>),
     /// Json object value.
-    Object(&'a BTreeMap<String, Value>),
+    Object(&'a Vec<(String, Value)>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(&'a Ipv6Addr),
 }
