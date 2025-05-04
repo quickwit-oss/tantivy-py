@@ -52,9 +52,8 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
         return Ok(Value::Bytes(b));
     }
     if let Ok(dict) = any.downcast::<PyDict>() {
-        if let Ok(json_dict) = pythonize::depythonize_bound::<
-            BTreeMap<String, Value>,
-        >(dict.clone().into_any())
+        if let Ok(json_dict) =
+            pythonize::depythonize::<BTreeMap<String, Value>>(&dict.as_ref())
         {
             return Ok(Value::Object(json_dict.into_iter().collect()));
         } else {
@@ -136,8 +135,8 @@ pub(crate) fn extract_value_for_type(
             let dict = any
                 .downcast::<PyDict>()
                 .map_err(to_pyerr_for_type("Json", field_name, any))?;
-            let map = pythonize::depythonize_bound::<BTreeMap<String, Value>>(
-                dict.clone().into_any(),
+            let map = pythonize::depythonize::<BTreeMap<String, Value>>(
+                &dict.as_ref(),
             )?;
             Value::Object(map.into_iter().collect())
         }
@@ -774,9 +773,7 @@ impl Document {
                 serde_json::from_str(json_str).map_err(to_pyerr)?;
             self.add_value(field_name, json_map);
             Ok(())
-        } else if let Ok(json_map) =
-            pythonize::depythonize_bound::<JsonMap>(value.clone())
-        {
+        } else if let Ok(json_map) = pythonize::depythonize::<JsonMap>(value) {
             self.add_value(field_name, json_map);
             Ok(())
         } else {
@@ -881,7 +878,7 @@ impl Document {
 
     #[staticmethod]
     fn _internal_from_pythonized(serialized: &Bound<PyAny>) -> PyResult<Self> {
-        pythonize::depythonize_bound(serialized.clone()).map_err(to_pyerr)
+        pythonize::depythonize(&serialized).map_err(to_pyerr)
     }
 
     fn __reduce__<'a>(
