@@ -312,6 +312,60 @@ where
     i64::deserialize(deserializer).map(tv::DateTime::from_timestamp_nanos)
 }
 
+fn deserialize_json_object_as_i64<'de, D>(
+    deserializer: D,
+) -> Result<Vec<(String, Value)>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let raw_object = Vec::deserialize(deserializer)?;
+    let converted_object = raw_object
+        .into_iter()
+        .map(|(key, value)| {
+            let converted_value = match value {
+                serde_json::Value::Number(num) => {
+                    if let Some(i) = num.as_i64() {
+                        Value::I64(i)
+                    } else {
+                        Value::F64(num.as_f64().unwrap())
+                    }
+                }
+                serde_json::Value::Object(obj) => {
+                    Value::Object(deserialize_json_object_as_i64_inner(obj))
+                }
+                _ => Value::from(value),
+            };
+            (key, converted_value)
+        })
+        .collect();
+
+    Ok(converted_object)
+}
+
+fn deserialize_json_object_as_i64_inner(
+    raw_object: serde_json::Map<String, serde_json::Value>,
+) -> Vec<(String, Value)> {
+    raw_object
+        .into_iter()
+        .map(|(key, value)| {
+            let converted_value = match value {
+                serde_json::Value::Number(num) => {
+                    if let Some(i) = num.as_i64() {
+                        Value::I64(i)
+                    } else {
+                        Value::F64(num.as_f64().unwrap())
+                    }
+                }
+                serde_json::Value::Object(obj) => {
+                    Value::Object(deserialize_json_object_as_i64_inner(obj))
+                }
+                _ => Value::from(value),
+            };
+            (key, converted_value)
+        })
+        .collect()
+}
+
 /// An equivalent type to [`tantivy::schema::Value`], but unlike the tantivy crate's serialization
 /// implementation, it uses tagging in its serialization and deserialization to differentiate
 /// between different integer types.
@@ -347,6 +401,7 @@ enum SerdeValue {
     /// Array
     Array(Vec<Value>),
     /// Object value.
+    #[serde(deserialize_with = "deserialize_json_object_as_i64")]
     Object(Vec<(String, Value)>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(Ipv6Addr),
