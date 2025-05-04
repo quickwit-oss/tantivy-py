@@ -635,6 +635,7 @@ impl Document {
     }
 
     #[staticmethod]
+    #[pyo3(signature = (py_dict, schema=None))]
     fn from_dict(
         py_dict: &Bound<PyDict>,
         schema: Option<&Schema>,

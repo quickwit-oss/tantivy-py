@@ -221,6 +221,7 @@ impl Query {
 
     /// Construct a Tantivy's DisjunctionMaxQuery
     #[staticmethod]
+    #[pyo3(signature = (subqueries, tie_breaker=None))]
     pub(crate) fn disjunction_max_query(
         subqueries: Vec<Query>,
         tie_breaker: Option<Bound<PyFloat>>,
