@@ -63,7 +63,7 @@ impl Schema {
 
     #[staticmethod]
     fn _internal_from_pythonized(serialized: &Bound<PyAny>) -> PyResult<Self> {
-        pythonize::depythonize_bound(serialized.clone()).map_err(to_pyerr)
+        pythonize::depythonize(&serialized).map_err(to_pyerr)
     }
 
     fn __reduce__<'a>(
