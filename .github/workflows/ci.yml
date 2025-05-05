@@ -49,12 +49,10 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12"]
         allow-prereleases: [false]
-        unsafe-pyo3-skip-version-check: [0]
         include:
           - os: ubuntu-latest
             python-version: "3.13"
             allow-prereleases: false
-            unsafe-pyo3-skip-version-check: 1
           - os: ubuntu-latest
             python-version: "3.12"
             allow-prereleases: false
