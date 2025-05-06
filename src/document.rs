@@ -243,7 +243,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
         }
         Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
         Value::Array(arr) => {
-            let mut list = PyList::empty_bound(py);
+            let list = PyList::empty(py);
             // Because `value_to_py` can return an error, we need to be able
             // to handle those errors on demand. Also, we want to avoid
             // collecting all the values into an intermediate `Vec` before
