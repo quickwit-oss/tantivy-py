@@ -1,6 +1,6 @@
 use crate::to_pyerr;
-use pyo3::{basic::CompareOp, prelude::*, types::PyTuple};
 use pyo3::IntoPyObjectExt;
+use pyo3::{basic::CompareOp, prelude::*, types::PyTuple};
 use serde::{Deserialize, Serialize};
 use tantivy as tv;
 

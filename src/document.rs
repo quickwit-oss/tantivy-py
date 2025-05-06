@@ -9,8 +9,7 @@ use pyo3::{
         PyAny, PyBool, PyDateAccess, PyDateTime, PyDict, PyInt, PyList,
         PyTimeAccess, PyTuple,
     },
-    Python,
-    IntoPyObjectExt,
+    IntoPyObjectExt, Python,
 };
 
 use chrono::{offset::TimeZone, NaiveDateTime, Utc};

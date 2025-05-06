@@ -323,7 +323,9 @@ impl Searcher {
 /// The id used for the segment is actually an ordinal in the list of segment
 /// hold by a Searcher.
 #[pyclass(frozen, module = "tantivy.tantivy")]
-#[derive(Clone, Debug, Deserialize, PartialEq, PartialOrd, Eq, Ord, Serialize)]
+#[derive(
+    Clone, Debug, Deserialize, PartialEq, PartialOrd, Eq, Ord, Serialize,
+)]
 pub(crate) struct DocAddress {
     pub(crate) segment_ord: tv::SegmentOrdinal,
     pub(crate) doc: tv::DocId,
