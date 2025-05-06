@@ -5,7 +5,7 @@ use pyo3::{
     types::{PyTuple, PyType},
     IntoPyObjectExt,
 };
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Serialize};
 use tantivy::schema;
 
 /// A Facet represent a point in a given hierarchy.
@@ -101,12 +101,12 @@ impl Facet {
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyTuple>> {
         let encoded_bytes = slf.inner.encoded_str().as_bytes().to_vec();
-        Ok(PyTuple::new_bound(
+        let deserializer = slf
+            .into_pyobject(py)?
+            .getattr("from_encoded")?;
+        PyTuple::new(
             py,
-            [
-                slf.into_py(py).getattr(py, "from_encoded")?,
-                PyTuple::new_bound(py, [encoded_bytes]).to_object(py),
-            ],
-        ))
+            [deserializer, PyTuple::new(py, [encoded_bytes])?.into_any()],
+        )
     }
 }

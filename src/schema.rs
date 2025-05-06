@@ -72,13 +72,12 @@ impl Schema {
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyTuple>> {
         let serialized = pythonize::pythonize(py, &*slf).map_err(to_pyerr)?;
-
-        Ok(PyTuple::new_bound(
+        let deserializer = slf
+            .into_pyobject(py)?
+            .getattr("_internal_from_pythonized")?;
+        PyTuple::new(
             py,
-            [
-                slf.into_py(py).getattr(py, "_internal_from_pythonized")?,
-                PyTuple::new_bound(py, [serialized]).to_object(py),
-            ],
-        ))
+            [deserializer, PyTuple::new(py, [serialized])?.into_any()],
+        )
     }
 }
