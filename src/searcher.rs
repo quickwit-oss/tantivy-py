@@ -243,7 +243,7 @@ impl Searcher {
         query: &Query,
         agg: Py<PyDict>,
     ) -> PyResult<Py<PyDict>> {
-        let py_json = py.import_bound("json")?;
+        let py_json = py.import("json")?;
         let agg_query_str = py_json.call_method1("dumps", (agg,))?.to_string();
 
         let agg_str = py.allow_threads(move || {

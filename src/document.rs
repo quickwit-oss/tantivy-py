@@ -10,6 +10,7 @@ use pyo3::{
         PyTimeAccess, PyTuple,
     },
     Python,
+    IntoPyObjectExt,
 };
 
 use chrono::{offset::TimeZone, NaiveDateTime, Utc};
@@ -206,8 +207,8 @@ fn extract_value_single_or_list_for_type(
     }
 }
 
-fn object_to_py(py: Python, obj: &Vec<(String, Value)>) -> PyResult<PyObject> {
-    let dict = PyDict::new_bound(py);
+fn object_to_py(py: Python, obj: &[(String, Value)]) -> PyResult<PyObject> {
+    let dict = PyDict::new(py);
     for (k, v) in obj.iter() {
         dict.set_item(k, value_to_py(py, v)?)?;
     }
@@ -217,10 +218,10 @@ fn object_to_py(py: Python, obj: &Vec<(String, Value)>) -> PyResult<PyObject> {
 fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
     Ok(match value {
         Value::Null => py.None(),
-        Value::Str(text) => text.into_py(py),
-        Value::U64(num) => (*num).into_py(py),
-        Value::I64(num) => (*num).into_py(py),
-        Value::F64(num) => (*num).into_py(py),
+        Value::Str(text) => text.into_py_any(py)?,
+        Value::U64(num) => (*num).into_py_any(py)?,
+        Value::I64(num) => (*num).into_py_any(py)?,
+        Value::F64(num) => (*num).into_py_any(py)?,
         Value::Bytes(b) => b.to_object(py),
         Value::PreTokStr(_pretoken) => {
             // TODO implement me
@@ -241,7 +242,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             )?
             .into_py(py)
         }
-        Value::Facet(f) => Facet { inner: f.clone() }.into_py(py),
+        Value::Facet(f) => Facet { inner: f.clone() }.into_py_any(py)?,
         Value::Array(arr) => {
             let list = PyList::empty(py);
             // Because `value_to_py` can return an error, we need to be able
@@ -256,8 +257,8 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
             list.into()
         }
         Value::Object(obj) => object_to_py(py, obj)?,
-        Value::Bool(b) => b.into_py(py),
-        Value::IpAddr(i) => (*i).to_string().into_py(py),
+        Value::Bool(b) => b.into_py_any(py)?,
+        Value::IpAddr(i) => (*i).to_string().into_py_any(py)?,
     })
 }
 
