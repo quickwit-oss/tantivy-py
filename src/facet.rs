@@ -5,7 +5,7 @@ use pyo3::{
     types::{PyTuple, PyType},
     IntoPyObjectExt,
 };
-use serde::{de, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use tantivy::schema;
 
 /// A Facet represent a point in a given hierarchy.
