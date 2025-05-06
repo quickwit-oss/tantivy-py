@@ -22,7 +22,9 @@ pub(crate) struct Searcher {
     pub(crate) inner: tv::Searcher,
 }
 
-#[derive(Clone, Deserialize, FromPyObject, PartialEq, Serialize)]
+#[derive(
+    Clone, Deserialize, PartialEq, Serialize, FromPyObject, IntoPyObject,
+)]
 enum Fruit {
     #[pyo3(transparent)]
     Score(f32),
@@ -35,15 +37,6 @@ impl std::fmt::Debug for Fruit {
         match self {
             Fruit::Score(s) => f.write_str(&format!("{s}")),
             Fruit::Order(o) => f.write_str(&format!("{o}")),
-        }
-    }
-}
-
-impl ToPyObject for Fruit {
-    fn to_object(&self, py: Python) -> PyObject {
-        match self {
-            Fruit::Score(s) => s.to_object(py),
-            Fruit::Order(o) => o.to_object(py),
         }
     }
 }
@@ -129,11 +122,13 @@ impl SearchResult {
     /// The list of tuples that contains the scores and DocAddress of the
     /// search results.
     fn hits(&self, py: Python) -> PyResult<Vec<(PyObject, DocAddress)>> {
-        let ret: Vec<(PyObject, DocAddress)> = self
+        let ret = self
             .hits
             .iter()
-            .map(|(result, address)| (result.to_object(py), address.clone()))
-            .collect();
+            .map(|(result, address)| -> PyResult<_> {
+                Ok((result.clone().into_py_any(py)?, address.clone()))
+            })
+            .collect::<PyResult<_>>()?;
         Ok(ret)
     }
 }

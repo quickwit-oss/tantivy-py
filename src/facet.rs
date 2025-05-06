@@ -3,6 +3,7 @@ use pyo3::{
     basic::CompareOp,
     prelude::*,
     types::{PyTuple, PyType},
+    IntoPyObjectExt,
 };
 use serde::{Deserialize, Serialize};
 use tantivy::schema;
@@ -87,11 +88,11 @@ impl Facet {
         other: &Self,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyObject {
+    ) -> PyResult<PyObject> {
         match op {
-            CompareOp::Eq => (self == other).into_py(py),
-            CompareOp::Ne => (self != other).into_py(py),
-            _ => py.NotImplemented(),
+            CompareOp::Eq => (self == other).into_py_any(py),
+            CompareOp::Ne => (self != other).into_py_any(py),
+            _ => Ok(py.NotImplemented()),
         }
     }
 
