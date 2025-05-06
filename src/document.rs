@@ -52,9 +52,14 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
         return Ok(Value::Bytes(b));
     }
     if let Ok(dict) = any.downcast::<PyDict>() {
-        if let Ok(json) = pythonize::depythonize_bound(dict.clone().into_any())
+        if let Ok(json_dict) =
+            pythonize::depythonize::<BTreeMap<String, Value>>(&dict.as_ref())
         {
-            return Ok(Value::Object(json));
+            return Ok(Value::Object(json_dict.into_iter().collect()));
+        } else {
+            return Err(to_pyerr(
+                "Invalid JSON object. Expected valid JSON string or Dict[str, Any].",
+            ));
         }
     }
     Err(to_pyerr(format!("Value unsupported {any:?}")))
@@ -120,19 +125,20 @@ pub(crate) fn extract_value_for_type(
         ),
         tv::schema::Type::Json => {
             if let Ok(json_str) = any.extract::<&str>() {
-                return serde_json::from_str(json_str)
-                    .map(Value::Object)
-                    .map_err(to_pyerr_for_type("Json", field_name, any));
+                return serde_json::from_str::<BTreeMap<String, Value>>(
+                    json_str,
+                )
+                .map(|json_map| Value::Object(json_map.into_iter().collect()))
+                .map_err(to_pyerr_for_type("Json", field_name, any));
             }
 
-            Value::Object(
-                any.downcast::<PyDict>()
-                    .map_err(to_pyerr_for_type("Json", field_name, any))
-                    .and_then(|dict| {
-                        pythonize::depythonize_bound(dict.clone().into_any())
-                            .map_err(to_pyerr_for_type("Json", field_name, any))
-                    })?,
-            )
+            let dict = any
+                .downcast::<PyDict>()
+                .map_err(to_pyerr_for_type("Json", field_name, any))?;
+            let map = pythonize::depythonize::<BTreeMap<String, Value>>(
+                &dict.as_ref(),
+            )?;
+            Value::Object(map.into_iter().collect())
         }
         tv::schema::Type::IpAddr => {
             let val = any
@@ -200,10 +206,7 @@ fn extract_value_single_or_list_for_type(
     }
 }
 
-fn object_to_py(
-    py: Python,
-    obj: &BTreeMap<String, Value>,
-) -> PyResult<PyObject> {
+fn object_to_py(py: Python, obj: &Vec<(String, Value)>) -> PyResult<PyObject> {
     let dict = PyDict::new_bound(py);
     for (k, v) in obj.iter() {
         dict.set_item(k, value_to_py(py, v)?)?;
@@ -308,6 +311,60 @@ where
     i64::deserialize(deserializer).map(tv::DateTime::from_timestamp_nanos)
 }
 
+fn deserialize_json_object_as_i64<'de, D>(
+    deserializer: D,
+) -> Result<Vec<(String, Value)>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let raw_object = Vec::deserialize(deserializer)?;
+    let converted_object = raw_object
+        .into_iter()
+        .map(|(key, value)| {
+            let converted_value = match value {
+                serde_json::Value::Number(num) => {
+                    if let Some(i) = num.as_i64() {
+                        Value::I64(i)
+                    } else {
+                        Value::F64(num.as_f64().unwrap())
+                    }
+                }
+                serde_json::Value::Object(obj) => {
+                    Value::Object(deserialize_json_object_as_i64_inner(obj))
+                }
+                _ => Value::from(value),
+            };
+            (key, converted_value)
+        })
+        .collect();
+
+    Ok(converted_object)
+}
+
+fn deserialize_json_object_as_i64_inner(
+    raw_object: serde_json::Map<String, serde_json::Value>,
+) -> Vec<(String, Value)> {
+    raw_object
+        .into_iter()
+        .map(|(key, value)| {
+            let converted_value = match value {
+                serde_json::Value::Number(num) => {
+                    if let Some(i) = num.as_i64() {
+                        Value::I64(i)
+                    } else {
+                        Value::F64(num.as_f64().unwrap())
+                    }
+                }
+                serde_json::Value::Object(obj) => {
+                    Value::Object(deserialize_json_object_as_i64_inner(obj))
+                }
+                _ => Value::from(value),
+            };
+            (key, converted_value)
+        })
+        .collect()
+}
+
 /// An equivalent type to [`tantivy::schema::Value`], but unlike the tantivy crate's serialization
 /// implementation, it uses tagging in its serialization and deserialization to differentiate
 /// between different integer types.
@@ -343,7 +400,8 @@ enum SerdeValue {
     /// Array
     Array(Vec<Value>),
     /// Object value.
-    Object(BTreeMap<String, Value>),
+    #[serde(deserialize_with = "deserialize_json_object_as_i64")]
+    Object(Vec<(String, Value)>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(Ipv6Addr),
 }
@@ -416,7 +474,7 @@ enum BorrowedSerdeValue<'a> {
     /// Array
     Array(&'a Vec<Value>),
     /// Json object value.
-    Object(&'a BTreeMap<String, Value>),
+    Object(&'a Vec<(String, Value)>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(&'a Ipv6Addr),
 }
@@ -577,6 +635,7 @@ impl Document {
     }
 
     #[staticmethod]
+    #[pyo3(signature = (py_dict, schema=None))]
     fn from_dict(
         py_dict: &Bound<PyDict>,
         schema: Option<&Schema>,
@@ -715,9 +774,7 @@ impl Document {
                 serde_json::from_str(json_str).map_err(to_pyerr)?;
             self.add_value(field_name, json_map);
             Ok(())
-        } else if let Ok(json_map) =
-            pythonize::depythonize_bound::<JsonMap>(value.clone())
-        {
+        } else if let Ok(json_map) = pythonize::depythonize::<JsonMap>(value) {
             self.add_value(field_name, json_map);
             Ok(())
         } else {
@@ -822,7 +879,7 @@ impl Document {
 
     #[staticmethod]
     fn _internal_from_pythonized(serialized: &Bound<PyAny>) -> PyResult<Self> {
-        pythonize::depythonize_bound(serialized.clone()).map_err(to_pyerr)
+        pythonize::depythonize(&serialized).map_err(to_pyerr)
     }
 
     fn __reduce__<'a>(
