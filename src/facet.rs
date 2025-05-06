@@ -101,9 +101,7 @@ impl Facet {
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyTuple>> {
         let encoded_bytes = slf.inner.encoded_str().as_bytes().to_vec();
-        let deserializer = slf
-            .into_pyobject(py)?
-            .getattr("from_encoded")?;
+        let deserializer = slf.into_pyobject(py)?.getattr("from_encoded")?;
         PyTuple::new(
             py,
             [deserializer, PyTuple::new(py, [encoded_bytes])?.into_any()],

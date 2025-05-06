@@ -887,7 +887,9 @@ impl Document {
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyTuple>> {
         let serialized = pythonize::pythonize(py, &*slf).map_err(to_pyerr)?;
-        let deserializer = slf.into_pyobject(py)?.getattr("_internal_from_pythonized")?;
+        let deserializer = slf
+            .into_pyobject(py)?
+            .getattr("_internal_from_pythonized")?;
         PyTuple::new(
             py,
             [deserializer, PyTuple::new(py, [serialized])?.into_any()],
