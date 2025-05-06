@@ -229,7 +229,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
         }
         Value::Date(d) => {
             let utc = d.into_utc();
-            PyDateTime::new_bound(
+            PyDateTime::new(
                 py,
                 utc.year(),
                 utc.month() as u8,
@@ -240,7 +240,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
                 utc.microsecond(),
                 None,
             )?
-            .into_py(py)
+            .into_py_any(py)?
         }
         Value::Facet(f) => Facet { inner: f.clone() }.into_py_any(py)?,
         Value::Array(arr) => {
@@ -659,7 +659,7 @@ impl Document {
     /// For this reason, the dictionary, will associate
     /// a list of value for every field.
     fn to_dict(&self, py: Python) -> PyResult<PyObject> {
-        let dict = PyDict::new_bound(py);
+        let dict = PyDict::new(py);
         for (key, values) in &self.field_values {
             let values_py: Vec<PyObject> = values
                 .iter()
@@ -870,17 +870,17 @@ impl Document {
         other: &Self,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyObject {
+    ) -> PyResult<PyObject> {
         match op {
-            CompareOp::Eq => (self == other).into_py(py),
-            CompareOp::Ne => (self != other).into_py(py),
-            _ => py.NotImplemented(),
+            CompareOp::Eq => (self == other).into_py_any(py),
+            CompareOp::Ne => (self != other).into_py_any(py),
+            _ => Ok(py.NotImplemented()),
         }
     }
 
     #[staticmethod]
     fn _internal_from_pythonized(serialized: &Bound<PyAny>) -> PyResult<Self> {
-        pythonize::depythonize(&serialized).map_err(to_pyerr)
+        pythonize::depythonize(serialized).map_err(to_pyerr)
     }
 
     fn __reduce__<'a>(
