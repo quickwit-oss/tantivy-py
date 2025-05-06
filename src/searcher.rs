@@ -2,6 +2,7 @@
 
 use crate::{document::Document, query::Query, to_pyerr};
 use pyo3::types::PyDict;
+use pyo3::IntoPyObjectExt;
 use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use serde::{Deserialize, Serialize};
 use tantivy as tv;
@@ -109,11 +110,11 @@ impl SearchResult {
         other: &Self,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyObject {
+    ) -> PyResult<PyObject> {
         match op {
-            CompareOp::Eq => (self == other).into_py(py),
-            CompareOp::Ne => (self != other).into_py(py),
-            _ => py.NotImplemented(),
+            CompareOp::Eq => (self == other).into_py_any(py),
+            CompareOp::Ne => (self != other).into_py_any(py),
+            _ => Ok(py.NotImplemented()),
         }
     }
 
@@ -322,7 +323,7 @@ impl Searcher {
 /// The id used for the segment is actually an ordinal in the list of segment
 /// hold by a Searcher.
 #[pyclass(frozen, module = "tantivy.tantivy")]
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, PartialOrd, Eq, Ord, Serialize)]
 pub(crate) struct DocAddress {
     pub(crate) segment_ord: tv::SegmentOrdinal,
     pub(crate) doc: tv::DocId,
@@ -352,13 +353,9 @@ impl DocAddress {
         &self,
         other: &Self,
         op: CompareOp,
-        py: Python<'_>,
-    ) -> PyObject {
-        match op {
-            CompareOp::Eq => (self == other).into_py(py),
-            CompareOp::Ne => (self != other).into_py(py),
-            _ => py.NotImplemented(),
-        }
+        _py: Python<'_>,
+    ) -> bool {
+        op.matches(self.cmp(other))
     }
 
     fn __getnewargs__(&self) -> PyResult<(tv::SegmentOrdinal, tv::DocId)> {
