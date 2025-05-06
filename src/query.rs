@@ -6,7 +6,7 @@ use core::ops::Bound as OpsBound;
 use pyo3::{
     exceptions,
     prelude::*,
-    types::{PyAny, PyFloat, PyString, PyTuple},
+    types::{PyAny, PyFloat, PyString},
 };
 use tantivy as tv;
 

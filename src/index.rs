@@ -509,7 +509,14 @@ impl Index {
         )?;
 
         let (query, errors) = parser.parse_query_lenient(query);
-        let errors = errors.into_iter().map(|err| err.into_py(py)).collect();
+        let errors = errors
+            .into_iter()
+            .map(|err| err.into_py(py))
+            // This is a rust idiom, but just in case you're not familiar
+            // with it, we're converting from an iterator of PyResult<PyObject>
+            // into a PyResult<Vec<PyObject>>, by specifying the `PyResult`
+            // on the outside of the turbofish type signature.
+            .collect::<PyResult<_>>()?;
 
         Ok((Query { inner: query }, errors))
     }
