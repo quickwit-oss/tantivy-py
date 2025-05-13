@@ -136,6 +136,9 @@ class Document:
     def __new__(cls, **kwargs) -> Document:
         pass
 
+    def __getitem__(self, key: str) -> list[Any]:
+        pass
+
     def extend(self, py_dict: dict, schema: Optional[Schema]) -> None:
         pass
 
@@ -143,7 +146,7 @@ class Document:
     def from_dict(py_dict: dict, schema: Optional[Schema] = None) -> Document:
         pass
 
-    def to_dict(self) -> Any:
+    def to_dict(self) -> dict[str, list[Any]]:
         pass
 
     def add_text(self, field_name: str, text: str) -> None:
@@ -445,7 +448,7 @@ class Index:
         default_field_names: Optional[list[str]] = None,
         field_boosts: Optional[dict[str, float]] = None,
         fuzzy_fields: Optional[dict[str, tuple[bool, int, bool]]] = None,
-    ) -> Query:
+    ) -> tuple[Query, list[Any]]:
         pass
 
     def register_tokenizer(
