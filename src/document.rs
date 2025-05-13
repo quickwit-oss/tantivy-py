@@ -5,10 +5,7 @@ use itertools::Itertools;
 use pyo3::{
     basic::CompareOp,
     prelude::*,
-    types::{
-        PyAny, PyBool, PyDateAccess, PyDateTime, PyDict, PyInt, PyList,
-        PyTimeAccess, PyTuple,
-    },
+    types::{PyAny, PyBool, PyDateTime, PyDict, PyInt, PyList, PyTuple},
     IntoPyObjectExt, Python,
 };
 
