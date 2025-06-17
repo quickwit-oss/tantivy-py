@@ -23,7 +23,7 @@ jobs:
         platform: [ 'x86_64-unknown-linux-gnu', 'aarch64-unknown-linux-gnu' ]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
+        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -78,7 +78,7 @@ jobs:
         python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
+        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863
         with:
           egress-policy: audit
 
@@ -112,7 +112,7 @@ jobs:
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
+        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
@@ -145,7 +145,7 @@ jobs:
       packages: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.1.0
+        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863 # v2.1.0
         with:
           disable-sudo: true
           egress-policy: block
@@ -189,7 +189,7 @@ jobs:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0
+        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863
         with:
           egress-policy: audit
 
