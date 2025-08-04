@@ -555,6 +555,19 @@ class TestClass(object):
 
         assert len(result.hits) == 0
 
+    def test_index_writer_context_block(self, schema):
+        index = Index(schema)
+        with index.writer() as writer:
+            writer.add_document(Document(
+                doc_id=1,
+                title=["The Old Man and the Sea"],
+                body=["""He was an old man who fished alone in a skiff in the Gulf Stream and he had gone eighty-four days now without taking a fish."""],
+        ))
+
+        index.reload()
+        result = index.searcher().search(Query.all_query())
+        assert len(result.hits) == 1
+
 
 class TestUpdateClass(object):
     def test_delete_update(self, ram_index):
