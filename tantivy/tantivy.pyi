@@ -1,6 +1,8 @@
 import datetime
 from enum import Enum
+from types import TracebackType
 from typing import Any, Optional, Sequence, TypeVar, Union
+from typing_extensions import Self
 
 
 class Schema:
@@ -400,6 +402,17 @@ class IndexWriter:
     def wait_merging_threads(self) -> None:
         pass
 
+    def __enter__(self: Self) -> Self:
+        pass
+
+    def __exit__(
+        self: Self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        pass
+
 
 class Index:
     def __new__(
@@ -476,6 +489,7 @@ class Snippet:
     def fragment(self) -> str:
         pass
 
+
 class SnippetGenerator:
     @staticmethod
     def create(
@@ -519,7 +533,6 @@ class Tokenizer:
 
 
 class Filter:
-
     @staticmethod
     def alphanum_only() -> Filter:
         pass
@@ -551,16 +564,14 @@ class Filter:
     @staticmethod
     def split_compound(constituent_words: list[str]) -> Filter:
         pass
-    
+
 
 class TextAnalyzer:
-
     def analyze(self, text: str) -> list[str]:
         pass
 
 
 class TextAnalyzerBuilder:
-
     def __init__(self, tokenizer: Tokenizer):
         pass
 
