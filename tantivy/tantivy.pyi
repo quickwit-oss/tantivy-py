@@ -306,6 +306,14 @@ class Query:
     ) -> Query:
         pass
 
+    def explain(self, searcher: Searcher, doc_address: DocAddress) -> Explanation:
+        pass
+
+
+class Explanation:
+    def to_json(self) -> str:
+        pass
+
 
 class Order(Enum):
     Asc = 1

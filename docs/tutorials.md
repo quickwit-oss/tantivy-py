@@ -171,6 +171,48 @@ complex_query = Query.boolean_query(
 
 <!--TODO: Update the reference link to the query parser docs when available.-->
 
+## Debugging Queries with explain()
+
+When working with search queries, it's often useful to understand why a particular document matched a query and how its score was calculated. The `explain()` method provides detailed information about the scoring process.
+
+```python
+# Continuing from the previous example, let's search and get the top result
+result = searcher.search(complex_query, 10)
+if result.hits:
+    score, doc_address = result.hits[0]
+    
+    # Get an explanation for why this document matched
+    explanation = complex_query.explain(searcher, doc_address)
+    
+    # The explanation provides a JSON representation of the scoring details
+    explanation_json = explanation.to_json()
+    print(explanation_json)
+```
+
+The `to_json()` method returns a pretty-printed JSON string that shows the final score value,
+a breakdown of the score was calculated, details about which query clauses matched, and the contribution
+of individual terms.
+
+This is particularly useful when debugging why certain documents rank higher than others.
+
+Example output might look like:
+```json
+{
+  "value": 2.5,
+  "description": "sum of:",
+  "details": [
+    {
+      "value": 2.0,
+      "description": "weight(title:fish) with boost 2.0"
+    },
+    {
+      "value": 0.5,
+      "description": "weight(body:days)"
+    }
+  ]
+}
+```
+
 ## Using the snippet generator
 
 Let's revisit the query `"fish days"` in our [example](#building-and-executing-queries-with-the-query-parser):
