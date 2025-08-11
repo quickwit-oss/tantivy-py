@@ -420,15 +420,14 @@ impl Query {
 
     /// Explain how this query matches a given document.
     ///
-    /// Args:
-    ///     searcher (Searcher): The searcher used to perform the search.
-    ///     doc_address (DocAddress): The address of the document to explain.
+    /// # Arguments
+    /// * `searcher` (Searcher): The searcher used to perform the search.
+    /// * `doc_address` (DocAddress): The address of the document to explain.
     ///
-    /// Returns:
-    ///     Explanation: An object containing detailed information about how 
+    /// # Returns
+    /// * `Explanation`: An object containing detailed information about how
     ///                  the document matched the query, with a to_json() method.
     ///
-    /// Raises a ValueError if there was an error with the explanation.
     pub(crate) fn explain(
         &self,
         searcher: &Searcher,
