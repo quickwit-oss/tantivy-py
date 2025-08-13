@@ -17,6 +17,7 @@ from tantivy import (
     Occur,
     FieldType,
 )
+from tantivy.tantivy import DocAddress, SearchResult, Searcher
 
 
 class TestClass(object):
@@ -302,6 +303,29 @@ class TestClass(object):
         result = searcher.search(query, 10, order_by_field="order")
         assert len(result.hits) == 0
 
+    def test_query_explain(self, ram_index):
+        index: Index = ram_index
+        # Search for something that will actually return results
+        query: Query = index.parse_query(
+            "title:sea OR body:fish", default_field_names=["title", "body"]
+        )
+        searcher: Searcher = index.searcher()
+        result: SearchResult = searcher.search(query, 10)
+
+        # Should have at least one result (The Old Man and the Sea)
+        assert len(result.hits) > 0
+
+        hit1_doc_address: DocAddress
+        _, hit1_doc_address = result.hits[0]
+
+        # Test the explain() method
+        explanation = query.explain(searcher, hit1_doc_address)
+        json_output = explanation.to_json()
+        assert isinstance(json_output, str)
+        assert len(json_output) > 0
+        # The JSON should contain score information
+        assert '"value"' in json_output or "value" in json_output
+
     def test_order_by_search_date(self):
         schema = (
             SchemaBuilder()
@@ -554,6 +578,7 @@ class TestClass(object):
         result = index.searcher().search(query, 10)
 
         assert len(result.hits) == 0
+
 
 
 class TestUpdateClass(object):
