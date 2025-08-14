@@ -70,6 +70,19 @@ writer.wait_merging_threads()
 Note that `wait_merging_threads()` must come at the end, because
 the `writer` object will not be usable after this call.
 
+Alternatively `writer` can be used as a context manager. The same block of code can then be written as
+
+```python
+with index.writer() as writer:
+    writer.add_document(tantivy.Document(
+        doc_id=1,
+        title=["The Old Man and the Sea"],
+        body=["""He was an old man who fished alone in a skiff in the Gulf Stream and he had gone eighty-four days now without taking a fish."""],
+))
+```
+
+Both `commit()` and `wait_merging_threads()` is called when the with-block is exited.
+
 ## Building and Executing Queries with the Query Parser
 
 With the Query Parser, you can easily build simple queries for your index.
