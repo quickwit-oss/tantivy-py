@@ -16,13 +16,13 @@ pyo3-build-config = "0.25.1"
 [dependencies]
 base64 = "0.22"
 chrono = "0.4.41"
-tantivy = "0.24.2"
+tantivy = "0.25.0"
 itertools = "0.14.0"
 futures = "0.3.31"
-pythonize = "0.24.0"
+pythonize = "0.25.0"
 serde = "1.0"
 serde_json = "1.0.142"
 
 [dependencies.pyo3]
-version = "0.24.2"
+version = "0.25.0"
 features = ["chrono", "extension-module"]
