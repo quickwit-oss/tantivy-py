@@ -264,6 +264,20 @@ impl IndexWriter {
     pub fn wait_merging_threads(&mut self) -> PyResult<()> {
         self.take_inner()?.wait_merging_threads().map_err(to_pyerr)
     }
+
+    pub fn __enter__(slf: Py<Self>) -> Py<Self> {
+        slf
+    }
+
+    pub fn __exit__(
+        &mut self,
+        _exc_type: PyObject,
+        _exc_value: PyObject,
+        _traceback: PyObject,
+    ) {
+        self.commit();
+        self.wait_merging_threads();
+    }
 }
 
 /// Create a new index object.
