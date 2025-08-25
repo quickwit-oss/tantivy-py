@@ -269,11 +269,15 @@ impl IndexWriter {
         slf
     }
 
-    pub fn __exit__(&mut self, _exc_type: PyObject, _exc_value: PyObject, _traceback: PyObject) {
+    pub fn __exit__(
+        &mut self,
+        _exc_type: PyObject,
+        _exc_value: PyObject,
+        _traceback: PyObject,
+    ) {
         self.commit();
         self.wait_merging_threads();
     }
-
 }
 
 /// Create a new index object.
