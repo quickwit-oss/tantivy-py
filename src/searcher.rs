@@ -260,6 +260,46 @@ impl Searcher {
         Ok(agg_dict.clone().unbind())
     }
 
+    /// Returns the cardinality of a query.
+    ///
+    /// Args:
+    ///     query (Query): The query that will be used for the search.
+    ///     field_name (str): The field for which to compute the cardinality.
+    ///
+    /// Returns the cardinality.
+    #[pyo3(signature = (query, field_name))]
+    fn cardinality(
+        &self,
+        py: Python,
+        query: &Query,
+        field_name: &str,
+    ) -> PyResult<f64> {
+        let py_json = py.import("json")?;
+        let agg_query = serde_json::json!({
+            "cardinality": {
+                "cardinality": {
+                    "field": field_name,
+                }
+            }
+        });
+        let agg_query_str = serde_json::to_string(&agg_query).map_err(to_pyerr)?;
+        let agg_query_dict: Py<PyDict> = py_json.call_method1("loads", (agg_query_str,))?.extract()?;
+
+        let agg_res = self.aggregate(py, query, agg_query_dict)?;
+        let agg_res: &Bound<PyDict> = agg_res.bind(py);
+
+        let res = agg_res
+            .get_item("cardinality")?
+            .ok_or_else(|| PyValueError::new_err("Unexpected aggregation result"))?;
+        let res_dict: &Bound<PyDict> = res.downcast()?;
+        let value = res_dict
+            .get_item("value")?
+            .ok_or_else(|| PyValueError::new_err("Unexpected aggregation result"))?;
+        let res = value.extract::<f64>()?;
+
+        Ok(res)
+    }
+
     /// Returns the overall number of documents in the index.
     #[getter]
     fn num_docs(&self) -> u64 {
