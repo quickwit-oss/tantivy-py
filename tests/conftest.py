@@ -4,7 +4,7 @@ import pytest
 from tantivy import SchemaBuilder, Index, Document
 
 
-def build_schema():
+def schema():
     return (
         SchemaBuilder()
         .add_text_field("title", stored=True)
@@ -13,7 +13,7 @@ def build_schema():
     )
 
 
-def build_schema_numeric_fields():
+def schema_numeric_fields():
     return (
         SchemaBuilder()
         .add_integer_field("id", stored=True, indexed=True, fast=True)
@@ -23,8 +23,7 @@ def build_schema_numeric_fields():
         .build()
     )
 
-
-def build_schema_with_date_field():
+def schema_with_date_field():
     return (
         SchemaBuilder()
         .add_integer_field("id", stored=True, indexed=True)
@@ -33,8 +32,7 @@ def build_schema_with_date_field():
         .build()
     )
 
-
-def build_schema_with_ip_addr_field():
+def schema_with_ip_addr_field():
     return (
         SchemaBuilder()
         .add_integer_field("id", stored=True, indexed=True)
@@ -43,11 +41,10 @@ def build_schema_with_ip_addr_field():
         .build()
     )
 
-
 def create_index(dir=None):
     # assume all tests will use the same documents for now
     # other methods may set up function-local indexes
-    index = Index(build_schema(), dir)
+    index = Index(schema(), dir)
     writer = index.writer(15_000_000, 1)
 
     # 2 ways of adding documents
@@ -100,7 +97,7 @@ def create_index(dir=None):
 
 
 def create_index_with_numeric_fields(dir=None):
-    index = Index(build_schema_numeric_fields(), dir)
+    index = Index(schema_numeric_fields(), dir)
     writer = index.writer(15_000_000, 1)
 
     doc = Document()
@@ -143,9 +140,8 @@ def create_index_with_numeric_fields(dir=None):
     index.reload()
     return index
 
-
 def create_index_with_date_field(dir=None):
-    index = Index(build_schema_with_date_field(), dir)
+    index = Index(schema_with_date_field(), dir)
     writer = index.writer(15_000_000, 1)
 
     doc = Document()
@@ -167,9 +163,8 @@ def create_index_with_date_field(dir=None):
     index.reload()
     return index
 
-
 def create_index_with_ip_addr_field(dir=None):
-    schema = build_schema_with_ip_addr_field()
+    schema = schema_with_ip_addr_field()
     index = Index(schema, dir)
     writer = index.writer(15_000_000, 1)
 
@@ -185,7 +180,7 @@ def create_index_with_ip_addr_field(dir=None):
             "rating": 4.5,
             "ip_addr": "127.0.0.1",
         },
-        schema,
+        schema
     )
     writer.add_document(doc)
     doc = Document.from_dict(
@@ -194,14 +189,13 @@ def create_index_with_ip_addr_field(dir=None):
             "rating": 4.5,
             "ip_addr": "::1",
         },
-        schema,
+        schema
     )
     writer.add_document(doc)
     writer.commit()
     writer.wait_merging_threads()
     index.reload()
     return index
-
 
 def spanish_schema():
     return (
@@ -268,22 +262,14 @@ def ram_index():
 def ram_index_numeric_fields():
     return create_index_with_numeric_fields()
 
-
 @pytest.fixture(scope="class")
 def ram_index_with_date_field():
     return create_index_with_date_field()
-
 
 @pytest.fixture(scope="class")
 def ram_index_with_ip_addr_field():
     return create_index_with_ip_addr_field()
 
-
 @pytest.fixture(scope="class")
 def spanish_index():
     return create_spanish_index()
-
-
-@pytest.fixture(scope="class")
-def schema():
-    return build_schema()

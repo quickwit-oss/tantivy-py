@@ -144,17 +144,6 @@ impl IndexWriter {
         Ok(self.inner()?.commit_opstamp())
     }
 
-    #[deprecated(
-        note = "This method is deprecated and will be removed in the future. Use either delete_documents_by_term, or delete_documents_by_query."
-    )]
-    fn delete_documents(
-        &mut self,
-        field_name: &str,
-        field_value: &Bound<PyAny>,
-    ) -> PyResult<u64> {
-        self.delete_documents_by_term(field_name, field_value)
-    }
-
     /// Delete all documents containing a given term.
     ///
     /// This method does not parse the given term and it expects the term to be
@@ -263,20 +252,6 @@ impl IndexWriter {
     /// object will result in an error.
     pub fn wait_merging_threads(&mut self) -> PyResult<()> {
         self.take_inner()?.wait_merging_threads().map_err(to_pyerr)
-    }
-
-    pub fn __enter__(slf: Py<Self>) -> Py<Self> {
-        slf
-    }
-
-    pub fn __exit__(
-        &mut self,
-        _exc_type: PyObject,
-        _exc_value: PyObject,
-        _traceback: PyObject,
-    ) {
-        self.commit();
-        self.wait_merging_threads();
     }
 }
 

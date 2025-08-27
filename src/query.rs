@@ -12,15 +12,7 @@ use tantivy as tv;
 
 /// Custom Tuple struct to represent a pair of Occur and Query
 /// for the BooleanQuery
-struct OccurQueryPair(Occur, Query);
-
-impl<'source> FromPyObject<'source> for OccurQueryPair {
-    fn extract_bound(ob: &Bound<'source, PyAny>) -> PyResult<Self> {
-        let (occur, query): (Occur, Query) = ob.extract()?;
-
-        Ok(OccurQueryPair(occur, query))
-    }
-}
+type OccurQueryPair = (Occur, Query);
 
 /// Tantivy's Occur
 #[pyclass(frozen, module = "tantivy.tantivy")]
@@ -205,7 +197,7 @@ impl Query {
     #[staticmethod]
     #[pyo3(signature = (subqueries))]
     pub(crate) fn boolean_query(
-        subqueries: Vec<(Occur, Query)>,
+        subqueries: Vec<OccurQueryPair>,
     ) -> PyResult<Query> {
         let dyn_subqueries = subqueries
             .into_iter()
