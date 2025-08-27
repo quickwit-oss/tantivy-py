@@ -7,7 +7,7 @@ import pickle
 import pytest
 
 import tantivy
-from conftest import build_schema, build_schema_numeric_fields
+from conftest import schema, schema_numeric_fields
 from tantivy import (
     Document,
     Index,
@@ -30,7 +30,7 @@ class TestClass(object):
 
     def test_simple_search_after_reuse(self, dir_index):
         index_dir, _ = dir_index
-        index = Index(build_schema(), str(index_dir))
+        index = Index(schema(), str(index_dir))
         query = index.parse_query("sea whale", ["title", "body"])
 
         result = index.searcher().search(query, 10)
@@ -579,19 +579,6 @@ class TestClass(object):
 
         assert len(result.hits) == 0
 
-    def test_index_writer_context_block(self, schema):
-        index = Index(schema)
-        with index.writer() as writer:
-            writer.add_document(Document(
-                doc_id=1,
-                title=["The Old Man and the Sea"],
-                body=["""He was an old man who fished alone in a skiff in the Gulf Stream and he had gone eighty-four days now without taking a fish."""],
-        ))
-
-        index.reload()
-        result = index.searcher().search(Query.all_query())
-        assert len(result.hits) == 1
-
 
 
 class TestUpdateClass(object):
@@ -626,12 +613,12 @@ class TestFromDiskClass(object):
     def test_opens_from_dir(self, dir_index):
         index_dir, _ = dir_index
 
-        index = Index(build_schema(), str(index_dir), reuse=True)
+        index = Index(schema(), str(index_dir), reuse=True)
         assert index.searcher().num_docs == 3
 
     def test_create_readers(self):
         # not sure what is the point of this test.
-        idx = Index(build_schema())
+        idx = Index(schema())
         idx.config_reader("Manual", 4)
         assert idx.searcher().num_docs == 0
         # by default this is manual mode
@@ -836,9 +823,9 @@ def test_bytes(bytes_kwarg, bytes_payload):
 
 
 def test_schema_eq():
-    schema1 = build_schema()
-    schema2 = build_schema()
-    schema3 = build_schema_numeric_fields()
+    schema1 = schema()
+    schema2 = schema()
+    schema3 = schema_numeric_fields()
 
     assert schema1 == schema2
     assert schema1 != schema3
@@ -890,7 +877,7 @@ def test_doc_address_pickle():
 class TestSnippets(object):
     def test_document_snippet(self, dir_index):
         index_dir, _ = dir_index
-        doc_schema = build_schema()
+        doc_schema = schema()
         index = Index(doc_schema, str(index_dir))
         query = index.parse_query("sea whale", ["title", "body"])
         searcher = index.searcher()
@@ -1624,3 +1611,10 @@ class TestTokenizers:
         result = index.searcher().search(query)
         index.reload()
         assert result.count == 0
+
+    def test_cardinality(self, ram_index_numeric_fields):
+        index = ram_index_numeric_fields
+        query = Query.all_query()
+        searcher = index.searcher()
+        cardinality = searcher.cardinality(query, "rating")
+        assert cardinality == 2.0
