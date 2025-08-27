@@ -386,7 +386,7 @@ import tantivy
 # Create a schema with a numeric field
 schema_builder = tantivy.SchemaBuilder()
 schema_builder.add_integer_field("id", stored=True)
-schema_builder.add_float_field("rating", stored=True)
+schema_builder.add_float_field("rating", stored=True, fast=True)
 schema = schema_builder.build()
 
 # Create an index in RAM
