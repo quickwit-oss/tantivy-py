@@ -85,6 +85,7 @@ jobs:
             index.crates.io:443
             static.rust-lang.org:443
             objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -99,7 +100,7 @@ jobs:
         with:
           toolchain: "stable"
 
-      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0  # 2.8.0
+      - uses: step-security/rust-cache@94e3ae6a5bdb04807deb1cb2274adab839828881 # v2.8.0
       - run: python3 -m pip install nox
       - run: nox -s test-${{ matrix.python-version }}
       - run: cargo test
