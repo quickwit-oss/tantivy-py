@@ -81,7 +81,7 @@ impl IndexWriter {
         doc: &Document,
     ) -> PyResult<u64> {
         let named_doc = NamedFieldDocument(doc.field_values.clone());
-        py.allow_threads(move || {
+        py.detach(|| {
             let doc =
                 TantivyDocument::convert_named_doc(&self.schema, named_doc)
                     .map_err(to_pyerr)?;
@@ -100,7 +100,7 @@ impl IndexWriter {
     pub fn add_json(&mut self, py: Python, json: &str) -> PyResult<u64> {
         let doc = TantivyDocument::parse_json(&self.schema, json)
             .map_err(to_pyerr)?;
-        py.allow_threads(move || {
+        py.detach(|| {
             let opstamp = self.inner()?.add_document(doc);
             opstamp.map_err(to_pyerr)
         })
@@ -116,7 +116,7 @@ impl IndexWriter {
     ///
     /// Returns the `opstamp` of the last document that made it in the commit.
     fn commit(&mut self, py: Python) -> PyResult<u64> {
-        py.allow_threads(move || self.inner_mut()?.commit().map_err(to_pyerr))
+        py.detach(|| self.inner_mut()?.commit().map_err(to_pyerr))
     }
 
     /// Rollback to the last commit
@@ -125,12 +125,12 @@ impl IndexWriter {
     /// commit. After calling rollback, the index is in the same state as it
     /// was after the last commit.
     fn rollback(&mut self, py: Python) -> PyResult<u64> {
-        py.allow_threads(move || self.inner_mut()?.rollback().map_err(to_pyerr))
+        py.detach(|| self.inner_mut()?.rollback().map_err(to_pyerr))
     }
 
     /// Detect and removes the files that are not used by the index anymore.
     fn garbage_collect_files(&mut self, py: Python) -> PyResult<()> {
-        py.allow_threads(move || {
+        py.detach(|| {
             use futures::executor::block_on;
             block_on(self.inner()?.garbage_collect_files())
                 .map_err(to_pyerr)?;
@@ -140,7 +140,7 @@ impl IndexWriter {
 
     /// Deletes all documents from the index.
     fn delete_all_documents(&mut self, py: Python) -> PyResult<()> {
-        py.allow_threads(move || {
+        py.detach(|| {
             self.inner()?.delete_all_documents().map_err(to_pyerr)?;
             Ok(())
         })
@@ -155,7 +155,7 @@ impl IndexWriter {
     /// for searchers.
     #[getter]
     fn commit_opstamp(&self, py: Python) -> PyResult<u64> {
-        py.allow_threads(move || Ok(self.inner()?.commit_opstamp()))
+        py.detach(|| Ok(self.inner()?.commit_opstamp()))
     }
 
     #[deprecated(
@@ -199,7 +199,7 @@ impl IndexWriter {
     ) -> PyResult<u64> {
         let field = get_field(&self.schema, field_name)?;
         let value = extract_value(field_value)?;
-        py.allow_threads(move || {
+        py.detach(|| {
             let term = match value {
                 Value::Null => {
                     return Err(exceptions::PyValueError::new_err(format!(
@@ -274,9 +274,7 @@ impl IndexWriter {
         query: &Query,
     ) -> PyResult<u64> {
         let q = query.inner.box_clone();
-        py.allow_threads(move || {
-            self.inner()?.delete_query(q).map_err(to_pyerr)
-        })
+        py.detach(|| self.inner()?.delete_query(q).map_err(to_pyerr))
     }
 
     /// If there are some merging threads, blocks until they all finish
@@ -285,7 +283,7 @@ impl IndexWriter {
     /// This will consume the `IndexWriter`. Further accesses to the
     /// object will result in an error.
     pub fn wait_merging_threads(&mut self, py: Python) -> PyResult<()> {
-        py.allow_threads(move || {
+        py.detach(|| {
             self.take_inner()?.wait_merging_threads().map_err(to_pyerr)
         })
     }
@@ -328,7 +326,7 @@ impl Index {
     #[staticmethod]
     fn open(py: Python, path: &str) -> PyResult<Index> {
         let path = path.to_string();
-        py.allow_threads(move || {
+        py.detach(|| {
             let index = tv::Index::open_in_dir(path).map_err(to_pyerr)?;
 
             Index::register_custom_text_analyzers(&index);
@@ -348,7 +346,7 @@ impl Index {
     ) -> PyResult<Self> {
         let path = path.map(|p| p.to_string());
         let s = schema.inner.clone();
-        py.allow_threads(move || {
+        py.detach(|| {
             let index = match path {
                 Some(p) => {
                     let directory = MmapDirectory::open(p).map_err(to_pyerr)?;
@@ -398,7 +396,7 @@ impl Index {
         heap_size: usize,
         num_threads: usize,
     ) -> PyResult<IndexWriter> {
-        py.allow_threads(move || {
+        py.detach(|| {
             let writer = match num_threads {
                 0 => self.index.writer(heap_size),
                 _ => self.index.writer_with_num_threads(num_threads, heap_size),
@@ -427,7 +425,7 @@ impl Index {
         num_warmers: usize,
     ) -> Result<(), PyErr> {
         let reload_policy = reload_policy.to_lowercase();
-        py.allow_threads(move || {
+        py.detach(|| {
             let reload_policy = match reload_policy.as_ref() {
                 "commit" => tv::ReloadPolicy::OnCommitWithDelay,
                 "on-commit" => tv::ReloadPolicy::OnCommitWithDelay,
@@ -455,7 +453,7 @@ impl Index {
     /// This method should be called every single time a search query is performed.
     /// The same searcher must be used for a given query, as it ensures the use of a consistent segment set.
     fn searcher(&self, py: Python) -> Searcher {
-        py.allow_threads(move || Searcher {
+        py.detach(|| Searcher {
             inner: self.reader.searcher(),
         })
     }
@@ -470,7 +468,7 @@ impl Index {
     #[staticmethod]
     fn exists(py: Python, path: &str) -> PyResult<bool> {
         let path = path.to_string();
-        py.allow_threads(move || {
+        py.detach(|| {
             let directory = MmapDirectory::open(path).map_err(to_pyerr)?;
             tv::Index::exists(&directory).map_err(to_pyerr)
         })
@@ -479,7 +477,7 @@ impl Index {
     /// The schema of the current index.
     #[getter]
     fn schema(&self, py: Python) -> Schema {
-        py.allow_threads(move || {
+        py.detach(|| {
             let schema = self.index.schema();
             Schema { inner: schema }
         })
@@ -491,7 +489,7 @@ impl Index {
     /// default) every commit should be rapidly reflected on your IndexReader
     /// and you should not need to call reload() at all.
     fn reload(&self, py: Python) -> PyResult<()> {
-        py.allow_threads(move || self.reader.reload().map_err(to_pyerr))
+        py.detach(|| self.reader.reload().map_err(to_pyerr))
     }
 
     /// Parse a query
@@ -524,7 +522,7 @@ impl Index {
         let default_field_names = default_field_names.clone();
         let field_boosts = field_boosts.clone();
         let fuzzy_fields = fuzzy_fields.clone();
-        py.allow_threads(move || {
+        py.detach(|| {
             let parser = self.prepare_query_parser(
                 default_field_names,
                 field_boosts,
@@ -580,8 +578,7 @@ impl Index {
 
         let query = query.to_string();
 
-        let (query, errors) =
-            py.allow_threads(move || parser.parse_query_lenient(&query));
+        let (query, errors) = py.detach(|| parser.parse_query_lenient(&query));
 
         let errors = errors
             .into_iter()
@@ -608,7 +605,7 @@ impl Index {
     ) {
         let name = name.to_string();
         let analyzer = analyzer.analyzer.clone();
-        py.allow_threads(move || {
+        py.detach(|| {
             self.index.tokenizers().register(&name, analyzer);
         });
     }
