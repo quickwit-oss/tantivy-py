@@ -167,7 +167,7 @@ impl Searcher {
         offset: usize,
         order: Order,
     ) -> PyResult<SearchResult> {
-        py.detach(|| {
+        py.detach(move || {
             let mut multicollector = MultiCollector::new();
 
             let count_handle = if count {
@@ -241,7 +241,7 @@ impl Searcher {
         let py_json = py.import("json")?;
         let agg_query_str = py_json.call_method1("dumps", (agg,))?.to_string();
 
-        let agg_str = py.detach(|| {
+        let agg_str = py.detach(move || {
             let agg_collector = AggregationCollector::from_aggs(
                 serde_json::from_str(&agg_query_str).map_err(to_pyerr)?,
                 Default::default(),
