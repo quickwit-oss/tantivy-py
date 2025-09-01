@@ -295,9 +295,9 @@ impl IndexWriter {
     pub fn __exit__(
         &mut self,
         py: Python,
-        _exc_type: PyObject,
-        _exc_value: PyObject,
-        _traceback: PyObject,
+        _exc_type: Py<PyAny>,
+        _exc_value: Py<PyAny>,
+        _traceback: Py<PyAny>,
     ) {
         let _ = self.commit(py);
         let _ = self.wait_merging_threads(py);
@@ -569,7 +569,7 @@ impl Index {
         default_field_names: Option<Vec<String>>,
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
-    ) -> PyResult<(Query, Vec<PyObject>)> {
+    ) -> PyResult<(Query, Vec<Py<PyAny>>)> {
         let parser = self.prepare_query_parser(
             default_field_names.clone(),
             field_boosts.clone(),
@@ -584,8 +584,8 @@ impl Index {
             .into_iter()
             .map(|err| err.into_py(py))
             // This is a rust idiom, but just in case you're not familiar
-            // with it, we're converting from an iterator of PyResult<PyObject>
-            // into a PyResult<Vec<PyObject>>, by specifying the `PyResult`
+            // with it, we're converting from an iterator of PyResult<Py<PyAny>>
+            // into a PyResult<Vec<Py<PyAny>>>, by specifying the `PyResult`
             // on the outside of the turbofish type signature.
             .collect::<PyResult<_>>()?;
 

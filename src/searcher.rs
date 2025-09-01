@@ -77,7 +77,7 @@ impl SearchResult {
     #[new]
     fn new(
         py: Python,
-        hits: Vec<(PyObject, DocAddress)>,
+        hits: Vec<(Py<PyAny>, DocAddress)>,
         count: Option<usize>,
     ) -> PyResult<Self> {
         let hits = hits
@@ -103,7 +103,7 @@ impl SearchResult {
         other: &Self,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         match op {
             CompareOp::Eq => (self == other).into_py_any(py),
             CompareOp::Ne => (self != other).into_py_any(py),
@@ -114,14 +114,14 @@ impl SearchResult {
     fn __getnewargs__(
         &self,
         py: Python,
-    ) -> PyResult<(Vec<(PyObject, DocAddress)>, Option<usize>)> {
+    ) -> PyResult<(Vec<(Py<PyAny>, DocAddress)>, Option<usize>)> {
         Ok((self.hits(py)?, self.count))
     }
 
     #[getter]
     /// The list of tuples that contains the scores and DocAddress of the
     /// search results.
-    fn hits(&self, py: Python) -> PyResult<Vec<(PyObject, DocAddress)>> {
+    fn hits(&self, py: Python) -> PyResult<Vec<(Py<PyAny>, DocAddress)>> {
         let ret = self
             .hits
             .iter()

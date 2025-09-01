@@ -18,11 +18,11 @@ pub(crate) trait QueryParserError {
 /// A crate local version of the [`IntoPy`] trait to implement for
 /// [`QueryParserError`](tv::query::QueryParserError).
 pub(crate) trait QueryParserErrorIntoPy {
-    fn into_py(self, py: Python) -> PyResult<PyObject>;
+    fn into_py(self, py: Python) -> PyResult<Py<PyAny>>;
 }
 
 impl QueryParserErrorIntoPy for tv::query::QueryParserError {
-    fn into_py(self, py: Python) -> PyResult<PyObject> {
+    fn into_py(self, py: Python) -> PyResult<Py<PyAny>> {
         match self {
             tv::query::QueryParserError::SyntaxError(message) => {
                 SyntaxError { message }.into_py_any(py)
