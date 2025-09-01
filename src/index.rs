@@ -75,11 +75,18 @@ impl IndexWriter {
     /// by the client to align commits with its own document queue.
     /// The `opstamp` represents the number of documents that have been added
     /// since the creation of the index.
-    pub fn add_document(&mut self, doc: &Document) -> PyResult<u64> {
-        let named_doc = NamedFieldDocument(doc.field_values.clone());
-        let doc = TantivyDocument::convert_named_doc(&self.schema, named_doc)
-            .map_err(to_pyerr)?;
-        self.inner()?.add_document(doc).map_err(to_pyerr)
+    pub fn add_document(
+        &mut self,
+        py: Python,
+        doc: &Document,
+    ) -> PyResult<u64> {
+        py.allow_threads(move || {
+            let named_doc = NamedFieldDocument(doc.field_values.clone());
+            let doc =
+                TantivyDocument::convert_named_doc(&self.schema, named_doc)
+                    .map_err(to_pyerr)?;
+            self.inner()?.add_document(doc).map_err(to_pyerr)
+        })
     }
 
     /// Helper for the `add_document` method, but passing a json string.
@@ -90,11 +97,13 @@ impl IndexWriter {
     /// by the client to align commits with its own document queue.
     /// The `opstamp` represents the number of documents that have been added
     /// since the creation of the index.
-    pub fn add_json(&mut self, json: &str) -> PyResult<u64> {
-        let doc = TantivyDocument::parse_json(&self.schema, json)
-            .map_err(to_pyerr)?;
-        let opstamp = self.inner()?.add_document(doc);
-        opstamp.map_err(to_pyerr)
+    pub fn add_json(&mut self, py: Python, json: &str) -> PyResult<u64> {
+        py.allow_threads(move || {
+            let doc = TantivyDocument::parse_json(&self.schema, json)
+                .map_err(to_pyerr)?;
+            let opstamp = self.inner()?.add_document(doc);
+            opstamp.map_err(to_pyerr)
+        })
     }
 
     /// Commits all of the pending changes
@@ -106,8 +115,8 @@ impl IndexWriter {
     /// spared), it will be possible to resume indexing from this point.
     ///
     /// Returns the `opstamp` of the last document that made it in the commit.
-    fn commit(&mut self) -> PyResult<u64> {
-        self.inner_mut()?.commit().map_err(to_pyerr)
+    fn commit(&mut self, py: Python) -> PyResult<u64> {
+        py.allow_threads(move || self.inner_mut()?.commit().map_err(to_pyerr))
     }
 
     /// Rollback to the last commit
@@ -115,21 +124,26 @@ impl IndexWriter {
     /// This cancels all of the update that happened before after the last
     /// commit. After calling rollback, the index is in the same state as it
     /// was after the last commit.
-    fn rollback(&mut self) -> PyResult<u64> {
-        self.inner_mut()?.rollback().map_err(to_pyerr)
+    fn rollback(&mut self, py: Python) -> PyResult<u64> {
+        py.allow_threads(move || self.inner_mut()?.rollback().map_err(to_pyerr))
     }
 
     /// Detect and removes the files that are not used by the index anymore.
-    fn garbage_collect_files(&mut self) -> PyResult<()> {
-        use futures::executor::block_on;
-        block_on(self.inner()?.garbage_collect_files()).map_err(to_pyerr)?;
-        Ok(())
+    fn garbage_collect_files(&mut self, py: Python) -> PyResult<()> {
+        py.allow_threads(move || {
+            use futures::executor::block_on;
+            block_on(self.inner()?.garbage_collect_files())
+                .map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Deletes all documents from the index.
-    fn delete_all_documents(&mut self) -> PyResult<()> {
-        self.inner()?.delete_all_documents().map_err(to_pyerr)?;
-        Ok(())
+    fn delete_all_documents(&mut self, py: Python) -> PyResult<()> {
+        py.allow_threads(move || {
+            self.inner()?.delete_all_documents().map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// The opstamp of the last successful commit.
@@ -140,8 +154,8 @@ impl IndexWriter {
     /// This is also the opstamp of the commit that is currently available
     /// for searchers.
     #[getter]
-    fn commit_opstamp(&self) -> PyResult<u64> {
-        Ok(self.inner()?.commit_opstamp())
+    fn commit_opstamp(&self, py: Python) -> PyResult<u64> {
+        py.allow_threads(move || Ok(self.inner()?.commit_opstamp()))
     }
 
     #[deprecated(
@@ -149,10 +163,11 @@ impl IndexWriter {
     )]
     fn delete_documents(
         &mut self,
+        py: Python,
         field_name: &str,
         field_value: &Bound<PyAny>,
     ) -> PyResult<u64> {
-        self.delete_documents_by_term(field_name, field_value)
+        self.delete_documents_by_term(py, field_name, field_value)
     }
 
     /// Delete all documents containing a given term.
@@ -178,47 +193,50 @@ impl IndexWriter {
     /// If the field_value is not supported raises Exception.
     fn delete_documents_by_term(
         &mut self,
+        py: Python,
         field_name: &str,
         field_value: &Bound<PyAny>,
     ) -> PyResult<u64> {
         let field = get_field(&self.schema, field_name)?;
         let value = extract_value(field_value)?;
-        let term = match value {
-            Value::Null => {
-                return Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{field_name}` is null type not deletable."
-                )))
-            },
-            Value::Str(text) => Term::from_field_text(field, &text),
-            Value::U64(num) => Term::from_field_u64(field, num),
-            Value::I64(num) => Term::from_field_i64(field, num),
-            Value::F64(num) => Term::from_field_f64(field, num),
-            Value::Date(d) => Term::from_field_date(field, d),
-            Value::Facet(facet) => Term::from_facet(field, &facet),
-            Value::Bytes(_) => {
-                return Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{field_name}` is bytes type not deletable."
-                )))
-            }
-            Value::PreTokStr(_pretok) => {
-                return Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{field_name}` is pretokenized. This is not authorized for delete."
-                )))
-            }
-            Value::Array(_) => {
-                return Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{field_name}` is array type not deletable."
-                )))
-            }
-            Value::Object(_) => {
-                return Err(exceptions::PyValueError::new_err(format!(
-                    "Field `{field_name}` is json object type not deletable."
-                )))
-            },
-            Value::Bool(b) => Term::from_field_bool(field, b),
-            Value::IpAddr(i) => Term::from_field_ip_addr(field, i)
-        };
-        Ok(self.inner()?.delete_term(term))
+        py.allow_threads(move || {
+            let term = match value {
+                Value::Null => {
+                    return Err(exceptions::PyValueError::new_err(format!(
+                        "Field `{field_name}` is null type not deletable."
+                    )))
+                },
+                Value::Str(text) => Term::from_field_text(field, &text),
+                Value::U64(num) => Term::from_field_u64(field, num),
+                Value::I64(num) => Term::from_field_i64(field, num),
+                Value::F64(num) => Term::from_field_f64(field, num),
+                Value::Date(d) => Term::from_field_date(field, d),
+                Value::Facet(facet) => Term::from_facet(field, &facet),
+                Value::Bytes(_) => {
+                    return Err(exceptions::PyValueError::new_err(format!(
+                        "Field `{field_name}` is bytes type not deletable."
+                    )))
+                }
+                Value::PreTokStr(_pretok) => {
+                    return Err(exceptions::PyValueError::new_err(format!(
+                        "Field `{field_name}` is pretokenized. This is not authorized for delete."
+                    )))
+                }
+                Value::Array(_) => {
+                    return Err(exceptions::PyValueError::new_err(format!(
+                        "Field `{field_name}` is array type not deletable."
+                    )))
+                }
+                Value::Object(_) => {
+                    return Err(exceptions::PyValueError::new_err(format!(
+                        "Field `{field_name}` is json object type not deletable."
+                    )))
+                },
+                Value::Bool(b) => Term::from_field_bool(field, b),
+                Value::IpAddr(i) => Term::from_field_ip_addr(field, i)
+            };
+            Ok(self.inner()?.delete_term(term))
+        })
     }
 
     /// Delete all documents matching a given query.
@@ -250,10 +268,16 @@ impl IndexWriter {
     ///
     /// If the query is not valid raises ValueError exception.
     /// If the query is not supported raises Exception.
-    fn delete_documents_by_query(&mut self, query: &Query) -> PyResult<u64> {
-        self.inner()?
-            .delete_query(query.inner.box_clone())
-            .map_err(to_pyerr)
+    fn delete_documents_by_query(
+        &mut self,
+        py: Python,
+        query: &Query,
+    ) -> PyResult<u64> {
+        py.allow_threads(move || {
+            self.inner()?
+                .delete_query(query.inner.box_clone())
+                .map_err(to_pyerr)
+        })
     }
 
     /// If there are some merging threads, blocks until they all finish
@@ -261,8 +285,10 @@ impl IndexWriter {
     ///
     /// This will consume the `IndexWriter`. Further accesses to the
     /// object will result in an error.
-    pub fn wait_merging_threads(&mut self) -> PyResult<()> {
-        self.take_inner()?.wait_merging_threads().map_err(to_pyerr)
+    pub fn wait_merging_threads(&mut self, py: Python) -> PyResult<()> {
+        py.allow_threads(move || {
+            self.take_inner()?.wait_merging_threads().map_err(to_pyerr)
+        })
     }
 
     pub fn __enter__(slf: Py<Self>) -> Py<Self> {
@@ -271,12 +297,13 @@ impl IndexWriter {
 
     pub fn __exit__(
         &mut self,
+        py: Python,
         _exc_type: PyObject,
         _exc_value: PyObject,
         _traceback: PyObject,
     ) {
-        self.commit();
-        self.wait_merging_threads();
+        let _ = self.commit(py);
+        let _ = self.wait_merging_threads(py);
     }
 }
 
@@ -300,39 +327,51 @@ pub(crate) struct Index {
 #[pymethods]
 impl Index {
     #[staticmethod]
-    fn open(path: &str) -> PyResult<Index> {
-        let index = tv::Index::open_in_dir(path).map_err(to_pyerr)?;
+    fn open(py: Python, path: &str) -> PyResult<Index> {
+        py.allow_threads(move || {
+            let index = tv::Index::open_in_dir(path).map_err(to_pyerr)?;
 
-        Index::register_custom_text_analyzers(&index);
+            Index::register_custom_text_analyzers(&index);
 
-        let reader = index.reader().map_err(to_pyerr)?;
-        Ok(Index { index, reader })
+            let reader = index.reader().map_err(to_pyerr)?;
+            Ok(Index { index, reader })
+        })
     }
 
     #[new]
     #[pyo3(signature = (schema, path = None, reuse = true))]
-    fn new(schema: &Schema, path: Option<&str>, reuse: bool) -> PyResult<Self> {
-        let index = match path {
-            Some(p) => {
-                let directory = MmapDirectory::open(p).map_err(to_pyerr)?;
-                if reuse {
-                    tv::Index::open_or_create(directory, schema.inner.clone())
-                } else {
-                    tv::Index::create(
-                        directory,
-                        schema.inner.clone(),
-                        tv::IndexSettings::default(),
-                    )
+    fn new(
+        py: Python,
+        schema: &Schema,
+        path: Option<&str>,
+        reuse: bool,
+    ) -> PyResult<Self> {
+        py.allow_threads(move || {
+            let index = match path {
+                Some(p) => {
+                    let directory = MmapDirectory::open(p).map_err(to_pyerr)?;
+                    if reuse {
+                        tv::Index::open_or_create(
+                            directory,
+                            schema.inner.clone(),
+                        )
+                    } else {
+                        tv::Index::create(
+                            directory,
+                            schema.inner.clone(),
+                            tv::IndexSettings::default(),
+                        )
+                    }
+                    .map_err(to_pyerr)?
                 }
-                .map_err(to_pyerr)?
-            }
-            None => tv::Index::create_in_ram(schema.inner.clone()),
-        };
+                None => tv::Index::create_in_ram(schema.inner.clone()),
+            };
 
-        Index::register_custom_text_analyzers(&index);
+            Index::register_custom_text_analyzers(&index);
 
-        let reader = index.reader().map_err(to_pyerr)?;
-        Ok(Index { index, reader })
+            let reader = index.reader().map_err(to_pyerr)?;
+            Ok(Index { index, reader })
+        })
     }
 
     /// Create a `IndexWriter` for the index.
@@ -356,18 +395,21 @@ impl Index {
     #[pyo3(signature = (heap_size = 128_000_000, num_threads = 0))]
     fn writer(
         &self,
+        py: Python,
         heap_size: usize,
         num_threads: usize,
     ) -> PyResult<IndexWriter> {
-        let writer = match num_threads {
-            0 => self.index.writer(heap_size),
-            _ => self.index.writer_with_num_threads(num_threads, heap_size),
-        }
-        .map_err(to_pyerr)?;
-        let schema = self.index.schema();
-        Ok(IndexWriter {
-            inner_index_writer: Some(writer),
-            schema,
+        py.allow_threads(move || {
+            let writer = match num_threads {
+                0 => self.index.writer(heap_size),
+                _ => self.index.writer_with_num_threads(num_threads, heap_size),
+            }
+            .map_err(to_pyerr)?;
+            let schema = self.index.schema();
+            Ok(IndexWriter {
+                inner_index_writer: Some(writer),
+                schema,
+            })
         })
     }
 
@@ -381,39 +423,42 @@ impl Index {
     #[pyo3(signature = (reload_policy = RELOAD_POLICY, num_warmers = 0))]
     fn config_reader(
         &mut self,
+        py: Python,
         reload_policy: &str,
         num_warmers: usize,
     ) -> Result<(), PyErr> {
-        let reload_policy = reload_policy.to_lowercase();
-        let reload_policy = match reload_policy.as_ref() {
-            "commit" => tv::ReloadPolicy::OnCommitWithDelay,
-            "on-commit" => tv::ReloadPolicy::OnCommitWithDelay,
-            "oncommit" => tv::ReloadPolicy::OnCommitWithDelay,
-            "manual" => tv::ReloadPolicy::Manual,
-            _ => return Err(exceptions::PyValueError::new_err(
-                "Invalid reload policy, valid choices are: 'manual' and 'OnCommit'"
-            ))
-        };
-        let builder = self.index.reader_builder();
-        let builder = builder.reload_policy(reload_policy);
-        let builder = if num_warmers > 0 {
-            builder.num_warming_threads(num_warmers)
-        } else {
-            builder
-        };
+        py.allow_threads(move || {
+            let reload_policy = reload_policy.to_lowercase();
+            let reload_policy = match reload_policy.as_ref() {
+                "commit" => tv::ReloadPolicy::OnCommitWithDelay,
+                "on-commit" => tv::ReloadPolicy::OnCommitWithDelay,
+                "oncommit" => tv::ReloadPolicy::OnCommitWithDelay,
+                "manual" => tv::ReloadPolicy::Manual,
+                _ => return Err(exceptions::PyValueError::new_err(
+                    "Invalid reload policy, valid choices are: 'manual' and 'OnCommit'"
+                ))
+            };
+            let builder = self.index.reader_builder();
+            let builder = builder.reload_policy(reload_policy);
+            let builder = if num_warmers > 0 {
+                builder.num_warming_threads(num_warmers)
+            } else {
+                builder
+            };
 
-        self.reader = builder.try_into().map_err(to_pyerr)?;
-        Ok(())
+            self.reader = builder.try_into().map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Returns a searcher
     ///
     /// This method should be called every single time a search query is performed.
     /// The same searcher must be used for a given query, as it ensures the use of a consistent segment set.
-    fn searcher(&self) -> Searcher {
-        Searcher {
+    fn searcher(&self, py: Python) -> Searcher {
+        py.allow_threads(move || Searcher {
             inner: self.reader.searcher(),
-        }
+        })
     }
 
     /// Check if the given path contains an existing index.
@@ -424,16 +469,20 @@ impl Index {
     ///
     /// Raises OSError if the directory cannot be opened.
     #[staticmethod]
-    fn exists(path: &str) -> PyResult<bool> {
-        let directory = MmapDirectory::open(path).map_err(to_pyerr)?;
-        tv::Index::exists(&directory).map_err(to_pyerr)
+    fn exists(py: Python, path: &str) -> PyResult<bool> {
+        py.allow_threads(move || {
+            let directory = MmapDirectory::open(path).map_err(to_pyerr)?;
+            tv::Index::exists(&directory).map_err(to_pyerr)
+        })
     }
 
     /// The schema of the current index.
     #[getter]
-    fn schema(&self) -> Schema {
-        let schema = self.index.schema();
-        Schema { inner: schema }
+    fn schema(&self, py: Python) -> Schema {
+        py.allow_threads(move || {
+            let schema = self.index.schema();
+            Schema { inner: schema }
+        })
     }
 
     /// Update searchers so that they reflect the state of the last .commit().
@@ -441,8 +490,8 @@ impl Index {
     /// If you set up the the reload policy to be on 'commit' (which is the
     /// default) every commit should be rapidly reflected on your IndexReader
     /// and you should not need to call reload() at all.
-    fn reload(&self) -> PyResult<()> {
-        self.reader.reload().map_err(to_pyerr)
+    fn reload(&self, py: Python) -> PyResult<()> {
+        py.allow_threads(move || self.reader.reload().map_err(to_pyerr))
     }
 
     /// Parse a query
@@ -465,20 +514,23 @@ impl Index {
     #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new()))]
     pub fn parse_query(
         &self,
+        py: Python,
         query: &str,
         default_field_names: Option<Vec<String>>,
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
     ) -> PyResult<Query> {
-        let parser = self.prepare_query_parser(
-            default_field_names,
-            field_boosts,
-            fuzzy_fields,
-        )?;
+        py.allow_threads(move || {
+            let parser = self.prepare_query_parser(
+                default_field_names,
+                field_boosts,
+                fuzzy_fields,
+            )?;
 
-        let query = parser.parse_query(query).map_err(to_pyerr)?;
+            let query = parser.parse_query(query).map_err(to_pyerr)?;
 
-        Ok(Query { inner: query })
+            Ok(Query { inner: query })
+        })
     }
 
     /// Parse a query leniently.
@@ -510,11 +562,11 @@ impl Index {
     #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new()))]
     pub fn parse_query_lenient(
         &self,
+        py: Python,
         query: &str,
         default_field_names: Option<Vec<String>>,
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
-        py: Python,
     ) -> PyResult<(Query, Vec<PyObject>)> {
         let parser = self.prepare_query_parser(
             default_field_names,
@@ -522,7 +574,9 @@ impl Index {
             fuzzy_fields,
         )?;
 
-        let (query, errors) = parser.parse_query_lenient(query);
+        let (query, errors) =
+            py.allow_threads(move || parser.parse_query_lenient(query));
+
         let errors = errors
             .into_iter()
             .map(|err| err.into_py(py))
@@ -540,8 +594,15 @@ impl Index {
     /// TextAnalyzer instance.)
     ///
     // Implementation notes: Skipped indirection of TokenizerManager.
-    pub fn register_tokenizer(&self, name: &str, analyzer: PyTextAnalyzer) {
-        self.index.tokenizers().register(name, analyzer.analyzer);
+    pub fn register_tokenizer(
+        &self,
+        py: Python,
+        name: &str,
+        analyzer: PyTextAnalyzer,
+    ) {
+        py.allow_threads(move || {
+            self.index.tokenizers().register(name, analyzer.analyzer);
+        });
     }
 }
 
