@@ -80,8 +80,8 @@ impl IndexWriter {
         py: Python,
         doc: &Document,
     ) -> PyResult<u64> {
-        let named_doc = NamedFieldDocument(doc.field_values.clone());
         py.detach(move || {
+            let named_doc = NamedFieldDocument(doc.field_values.clone());
             let doc =
                 TantivyDocument::convert_named_doc(&self.schema, named_doc)
                     .map_err(to_pyerr)?;
@@ -98,9 +98,9 @@ impl IndexWriter {
     /// The `opstamp` represents the number of documents that have been added
     /// since the creation of the index.
     pub fn add_json(&mut self, py: Python, json: &str) -> PyResult<u64> {
-        let doc = TantivyDocument::parse_json(&self.schema, json)
-            .map_err(to_pyerr)?;
         py.detach(move || {
+            let doc = TantivyDocument::parse_json(&self.schema, json)
+                .map_err(to_pyerr)?;
             let opstamp = self.inner()?.add_document(doc);
             opstamp.map_err(to_pyerr)
         })
@@ -325,7 +325,6 @@ pub(crate) struct Index {
 impl Index {
     #[staticmethod]
     fn open(py: Python, path: &str) -> PyResult<Index> {
-        let path = path.to_string();
         py.detach(move || {
             let index = tv::Index::open_in_dir(path).map_err(to_pyerr)?;
 
@@ -344,24 +343,25 @@ impl Index {
         path: Option<&str>,
         reuse: bool,
     ) -> PyResult<Self> {
-        let path = path.map(|p| p.to_string());
-        let s = schema.inner.clone();
         py.detach(move || {
             let index = match path {
                 Some(p) => {
                     let directory = MmapDirectory::open(p).map_err(to_pyerr)?;
                     if reuse {
-                        tv::Index::open_or_create(directory, s)
+                        tv::Index::open_or_create(
+                            directory,
+                            schema.inner.clone(),
+                        )
                     } else {
                         tv::Index::create(
                             directory,
-                            s,
+                            schema.inner.clone(),
                             tv::IndexSettings::default(),
                         )
                     }
                     .map_err(to_pyerr)?
                 }
-                None => tv::Index::create_in_ram(s),
+                None => tv::Index::create_in_ram(schema.inner.clone()),
             };
 
             Index::register_custom_text_analyzers(&index);
@@ -424,8 +424,8 @@ impl Index {
         reload_policy: &str,
         num_warmers: usize,
     ) -> Result<(), PyErr> {
-        let reload_policy = reload_policy.to_lowercase();
         py.detach(move || {
+            let reload_policy = reload_policy.to_lowercase();
             let reload_policy = match reload_policy.as_ref() {
                 "commit" => tv::ReloadPolicy::OnCommitWithDelay,
                 "on-commit" => tv::ReloadPolicy::OnCommitWithDelay,
@@ -467,7 +467,6 @@ impl Index {
     /// Raises OSError if the directory cannot be opened.
     #[staticmethod]
     fn exists(py: Python, path: &str) -> PyResult<bool> {
-        let path = path.to_string();
         py.detach(move || {
             let directory = MmapDirectory::open(path).map_err(to_pyerr)?;
             tv::Index::exists(&directory).map_err(to_pyerr)
@@ -518,10 +517,6 @@ impl Index {
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
     ) -> PyResult<Query> {
-        let query = query.to_string();
-        let default_field_names = default_field_names.clone();
-        let field_boosts = field_boosts.clone();
-        let fuzzy_fields = fuzzy_fields.clone();
         py.detach(move || {
             let parser = self.prepare_query_parser(
                 default_field_names,
@@ -571,12 +566,10 @@ impl Index {
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
     ) -> PyResult<(Query, Vec<Py<PyAny>>)> {
         let parser = self.prepare_query_parser(
-            default_field_names.clone(),
-            field_boosts.clone(),
-            fuzzy_fields.clone(),
+            default_field_names,
+            field_boosts,
+            fuzzy_fields,
         )?;
-
-        let query = query.to_string();
 
         let (query, errors) =
             py.detach(move || parser.parse_query_lenient(&query));
@@ -604,10 +597,8 @@ impl Index {
         name: &str,
         analyzer: PyTextAnalyzer,
     ) {
-        let name = name.to_string();
-        let analyzer = analyzer.analyzer.clone();
         py.detach(move || {
-            self.index.tokenizers().register(&name, analyzer);
+            self.index.tokenizers().register(&name, analyzer.analyzer);
         });
     }
 }
