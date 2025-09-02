@@ -77,7 +77,7 @@ impl SearchResult {
     #[new]
     fn new(
         py: Python,
-        hits: Vec<(PyObject, DocAddress)>,
+        hits: Vec<(Py<PyAny>, DocAddress)>,
         count: Option<usize>,
     ) -> PyResult<Self> {
         let hits = hits
@@ -103,7 +103,7 @@ impl SearchResult {
         other: &Self,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         match op {
             CompareOp::Eq => (self == other).into_py_any(py),
             CompareOp::Ne => (self != other).into_py_any(py),
@@ -114,14 +114,14 @@ impl SearchResult {
     fn __getnewargs__(
         &self,
         py: Python,
-    ) -> PyResult<(Vec<(PyObject, DocAddress)>, Option<usize>)> {
+    ) -> PyResult<(Vec<(Py<PyAny>, DocAddress)>, Option<usize>)> {
         Ok((self.hits(py)?, self.count))
     }
 
     #[getter]
     /// The list of tuples that contains the scores and DocAddress of the
     /// search results.
-    fn hits(&self, py: Python) -> PyResult<Vec<(PyObject, DocAddress)>> {
+    fn hits(&self, py: Python) -> PyResult<Vec<(Py<PyAny>, DocAddress)>> {
         let ret = self
             .hits
             .iter()
@@ -167,7 +167,7 @@ impl Searcher {
         offset: usize,
         order: Order,
     ) -> PyResult<SearchResult> {
-        py.allow_threads(move || {
+        py.detach(move || {
             let mut multicollector = MultiCollector::new();
 
             let count_handle = if count {
@@ -241,7 +241,7 @@ impl Searcher {
         let py_json = py.import("json")?;
         let agg_query_str = py_json.call_method1("dumps", (agg,))?.to_string();
 
-        let agg_str = py.allow_threads(move || {
+        let agg_str = py.detach(move || {
             let agg_collector = AggregationCollector::from_aggs(
                 serde_json::from_str(&agg_query_str).map_err(to_pyerr)?,
                 Default::default(),

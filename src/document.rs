@@ -206,7 +206,7 @@ fn extract_value_single_or_list_for_type(
     }
 }
 
-fn object_to_py(py: Python, obj: &[(String, Value)]) -> PyResult<PyObject> {
+fn object_to_py(py: Python, obj: &[(String, Value)]) -> PyResult<Py<PyAny>> {
     let dict = PyDict::new(py);
     for (k, v) in obj.iter() {
         dict.set_item(k, value_to_py(py, v)?)?;
@@ -214,7 +214,7 @@ fn object_to_py(py: Python, obj: &[(String, Value)]) -> PyResult<PyObject> {
     Ok(dict.into())
 }
 
-fn value_to_py(py: Python, value: &Value) -> PyResult<PyObject> {
+fn value_to_py(py: Python, value: &Value) -> PyResult<Py<PyAny>> {
     Ok(match value {
         Value::Null => py.None(),
         Value::Str(text) => text.into_py_any(py)?,
@@ -657,10 +657,10 @@ impl Document {
     ///
     /// For this reason, the dictionary, will associate
     /// a list of value for every field.
-    fn to_dict(&self, py: Python) -> PyResult<PyObject> {
+    fn to_dict(&self, py: Python) -> PyResult<Py<PyAny>> {
         let dict = PyDict::new(py);
         for (key, values) in &self.field_values {
-            let values_py: Vec<PyObject> = values
+            let values_py: Vec<Py<PyAny>> = values
                 .iter()
                 .map(|v| value_to_py(py, v))
                 .collect::<PyResult<_>>()?;
@@ -824,7 +824,7 @@ impl Document {
         &self,
         py: Python,
         fieldname: &str,
-    ) -> PyResult<Option<PyObject>> {
+    ) -> PyResult<Option<Py<PyAny>>> {
         if let Some(value) = self.iter_values_for_field(fieldname).next() {
             let py_value = value_to_py(py, value)?;
             Ok(Some(py_value))
@@ -840,14 +840,18 @@ impl Document {
     ///
     /// Returns a list of values.
     /// The type of the value depends on the field.
-    fn get_all(&self, py: Python, field_name: &str) -> PyResult<Vec<PyObject>> {
+    fn get_all(
+        &self,
+        py: Python,
+        field_name: &str,
+    ) -> PyResult<Vec<Py<PyAny>>> {
         self.iter_values_for_field(field_name)
             .map(|value| value_to_py(py, value))
             .collect::<PyResult<Vec<_>>>()
     }
 
-    fn __getitem__(&self, field_name: &str) -> PyResult<Vec<PyObject>> {
-        Python::with_gil(|py| -> PyResult<Vec<PyObject>> {
+    fn __getitem__(&self, field_name: &str) -> PyResult<Vec<Py<PyAny>>> {
+        Python::attach(|py| -> PyResult<Vec<Py<PyAny>>> {
             self.get_all(py, field_name)
         })
     }
@@ -869,7 +873,7 @@ impl Document {
         other: &Self,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         match op {
             CompareOp::Eq => (self == other).into_py_any(py),
             CompareOp::Ne => (self != other).into_py_any(py),
