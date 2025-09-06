@@ -59,6 +59,36 @@ impl Query {
     pub(crate) fn get(&self) -> &dyn tv::query::Query {
         &self.inner
     }
+
+    /// This is an internal helper method for the BooleanQuery
+    /// convenience methods (and_must_match, or_should_match, and_must_not_match).
+    fn combine_with(
+        &self,
+        other: Query,
+        self_occur: tv::query::Occur,
+        other_occur: tv::query::Occur,
+    ) -> Query {
+        type BooleanQuery = tv::query::BooleanQuery;
+
+        let inner: Box<dyn tv::query::Query> = if let Some(boolean_query) =
+            self.inner.downcast_ref::<BooleanQuery>()
+        {
+            let mut subqueries = boolean_query
+                .clauses()
+                .iter()
+                .map(|(occur, subquery)| (*occur, subquery.box_clone()))
+                .collect::<Vec<_>>();
+            subqueries.push((other_occur, other.inner.box_clone()));
+            Box::new(BooleanQuery::new(subqueries))
+        } else {
+            Box::new(BooleanQuery::new(vec![
+                (self_occur, self.inner.box_clone()),
+                (other_occur, other.inner.box_clone()),
+            ]))
+        };
+
+        Query { inner }
+    }
 }
 
 #[pymethods]
@@ -217,6 +247,45 @@ impl Query {
         Ok(Query {
             inner: Box::new(inner),
         })
+    }
+
+    /// Convenience method to combine two queries with AND (MUST) logic.
+    /// If the current query is already a BooleanQuery, it adds the new query
+    /// as an additional MUST clause. Otherwise, it creates a new BooleanQuery
+    /// with both the current and new queries as MUST clauses.
+    #[pyo3(signature = (query))]
+    pub(crate) fn and_must_match(&self, query: Query) -> PyResult<Query> {
+        Ok(self.combine_with(
+            query,
+            tv::query::Occur::Must,
+            tv::query::Occur::Must,
+        ))
+    }
+
+    /// Convenience method to combine two queries with AND (MUST NOT) logic.
+    /// If the current query is already a BooleanQuery, it adds the new query
+    /// as an additional MUST NOT clause. Otherwise, it creates a new BooleanQuery
+    /// with the current query as a MUST clause and the new query as a MUST NOT clause.
+    #[pyo3(signature = (query))]
+    pub(crate) fn and_must_not_match(&self, query: Query) -> PyResult<Query> {
+        Ok(self.combine_with(
+            query,
+            tv::query::Occur::Must,
+            tv::query::Occur::MustNot,
+        ))
+    }
+
+    /// Convenience method to combine two queries with OR (SHOULD) logic.
+    /// If the current query is already a BooleanQuery, it adds the new query
+    /// as an additional SHOULD clause. Otherwise, it creates a new BooleanQuery
+    /// with both the current and new queries as SHOULD clauses.
+    #[pyo3(signature = (query))]
+    pub(crate) fn or_should_match(&self, query: Query) -> PyResult<Query> {
+        Ok(self.combine_with(
+            query,
+            tv::query::Occur::Should,
+            tv::query::Occur::Should,
+        ))
     }
 
     /// Construct a Tantivy's DisjunctionMaxQuery
