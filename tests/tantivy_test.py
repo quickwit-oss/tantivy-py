@@ -596,6 +596,32 @@ class TestClass(object):
         result = index.searcher().search(Query.all_query())
         assert len(result.hits) == 1
 
+    def test_simple_search_facet(self):
+        schema = (
+            tantivy.SchemaBuilder()
+            .add_text_field("title", stored=True)
+            .add_facet_field("category")
+        )
+        index = Index(schema.build())
+        writer = index.writer(15_000_000, 1)
+        doc = Document()
+        doc.add_text("title", "Book about whales")
+        doc.add_facet(
+            "category",
+            tantivy.Facet.from_string("/books/fiction")
+        )
+        with writer:
+            writer.add_document(doc)
+
+        index.reload()
+
+        query = index.parse_query("+category:/books")
+        result = index.searcher().search(query, 10)
+
+        query = index.parse_query("about", ["title"])
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
 
 class TestUpdateClass(object):
     def test_delete_update(self, ram_index):
