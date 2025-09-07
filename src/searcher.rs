@@ -282,19 +282,21 @@ impl Searcher {
                 }
             }
         });
-        let agg_query_str = serde_json::to_string(&agg_query).map_err(to_pyerr)?;
-        let agg_query_dict: Py<PyDict> = py_json.call_method1("loads", (agg_query_str,))?.extract()?;
+        let agg_query_str =
+            serde_json::to_string(&agg_query).map_err(to_pyerr)?;
+        let agg_query_dict: Py<PyDict> =
+            py_json.call_method1("loads", (agg_query_str,))?.extract()?;
 
         let agg_res = self.aggregate(py, query, agg_query_dict)?;
         let agg_res: &Bound<PyDict> = agg_res.bind(py);
 
-        let res = agg_res
-            .get_item("cardinality")?
-            .ok_or_else(|| PyValueError::new_err("Unexpected aggregation result"))?;
+        let res = agg_res.get_item("cardinality")?.ok_or_else(|| {
+            PyValueError::new_err("Unexpected aggregation result")
+        })?;
         let res_dict: &Bound<PyDict> = res.downcast()?;
-        let value = res_dict
-            .get_item("value")?
-            .ok_or_else(|| PyValueError::new_err("Unexpected aggregation result"))?;
+        let value = res_dict.get_item("value")?.ok_or_else(|| {
+            PyValueError::new_err("Unexpected aggregation result")
+        })?;
         let res = value.extract::<f64>()?;
 
         Ok(res)

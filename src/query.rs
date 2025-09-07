@@ -12,7 +12,15 @@ use tantivy as tv;
 
 /// Custom Tuple struct to represent a pair of Occur and Query
 /// for the BooleanQuery
-type OccurQueryPair = (Occur, Query);
+struct OccurQueryPair(Occur, Query);
+
+impl<'source> FromPyObject<'source> for OccurQueryPair {
+    fn extract_bound(ob: &Bound<'source, PyAny>) -> PyResult<Self> {
+        let (occur, query): (Occur, Query) = ob.extract()?;
+
+        Ok(OccurQueryPair(occur, query))
+    }
+}
 
 /// Tantivy's Occur
 #[pyclass(frozen, module = "tantivy.tantivy")]
@@ -119,7 +127,7 @@ impl Query {
     /// * `schema` - Schema of the target index.
     /// * `field_name` - Field name to be searched.
     /// * `text` - String representation of the query term.
-    /// * `distance` - (Optional) Edit distance you are going to alow. When not specified, the default is 1.
+    /// * `distance` - (Optional) Edit distance you are going to allow. When not specified, the default is 1.
     /// * `transposition_cost_one` - (Optional) If true, a transposition (swapping) cost will be 1; otherwise it will be 2. When not specified, the default is true.
     /// * `prefix` - (Optional) If true, prefix levenshtein distance is applied. When not specified, the default is false.
     #[staticmethod]
@@ -197,7 +205,7 @@ impl Query {
     #[staticmethod]
     #[pyo3(signature = (subqueries))]
     pub(crate) fn boolean_query(
-        subqueries: Vec<OccurQueryPair>,
+        subqueries: Vec<(Occur, Query)>,
     ) -> PyResult<Query> {
         let dyn_subqueries = subqueries
             .into_iter()
