@@ -88,7 +88,7 @@ impl Facet {
         other: &Self,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyAny>> {
         match op {
             CompareOp::Eq => (self == other).into_py_any(py),
             CompareOp::Ne => (self != other).into_py_any(py),
