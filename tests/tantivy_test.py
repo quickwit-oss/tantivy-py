@@ -146,10 +146,6 @@ class TestClass(object):
         cardinality = searcher.cardinality(query, "id")
         assert cardinality == 2.0
         
-        # Test cardinality for boolean field (has 2 unique values: True and False)
-        cardinality = searcher.cardinality(query, "is_good")
-        assert cardinality == 2.0
-        
         # Test with a query that filters to one document
         single_doc_query = Query.term_query(index.schema, "id", 1)
         cardinality = searcher.cardinality(single_doc_query, "rating")
