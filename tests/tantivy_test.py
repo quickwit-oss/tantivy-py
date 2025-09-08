@@ -133,6 +133,24 @@ class TestClass(object):
 }
 """)
 
+    def test_cardinality(self, ram_index_numeric_fields):
+        index = ram_index_numeric_fields
+        query = Query.all_query()
+        searcher = index.searcher()
+        
+        # Test cardinality for rating field (has 2 unique values: 3.5 and 4.5)
+        cardinality = searcher.cardinality(query, "rating")
+        assert cardinality == 2.0
+        
+        # Test cardinality for id field (has 2 unique values: 1 and 2)
+        cardinality = searcher.cardinality(query, "id")
+        assert cardinality == 2.0
+        
+        # Test with a query that filters to one document
+        single_doc_query = Query.term_query(index.schema, "id", 1)
+        cardinality = searcher.cardinality(single_doc_query, "rating")
+        assert cardinality == 1.0
+
     def test_and_query_numeric_fields(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
         searcher = index.searcher()

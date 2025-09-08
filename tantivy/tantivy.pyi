@@ -374,6 +374,9 @@ class Searcher:
     def doc_freq(self, field_name: str, field_value: Any) -> int:
         pass
 
+    def cardinality(self, query: Query, field_name: str) -> float:
+        pass
+
 
 class IndexWriter:
     def add_document(self, doc: Document) -> int:

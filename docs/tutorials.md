@@ -383,3 +383,46 @@ SchemaBuilder.add_text_field(..., tokenizer_name=<analyzer name>)`
 -- and in the name of the `Index.register_tokenizer(...)` method, which actually
 serves to register a *text analyzer*.
 
+## How to use aggregations
+
+Aggregations summarize your data as metrics, statistics, or other analytics.
+Tantivy-py supports a subset of the aggregations available in Tantivy.
+
+### Cardinality Aggregation
+
+The cardinality aggregation allows you to get the number of unique values
+for a given field.
+
+```python
+import tantivy
+
+# Create a schema with a numeric field
+schema_builder = tantivy.SchemaBuilder()
+schema_builder.add_integer_field("id", stored=True)
+schema_builder.add_float_field("rating", stored=True, fast=True)
+schema = schema_builder.build()
+
+# Create an index in RAM
+index = tantivy.Index(schema)
+
+# Add some documents
+writer = index.writer()
+with writer:
+    writer.add_document(tantivy.Document(id=1, rating=3.5))
+    writer.add_document(tantivy.Document(id=2, rating=4.5))
+    writer.add_document(tantivy.Document(id=3, rating=3.5))
+
+# Reload the index to make the changes available for search
+index.reload()
+
+# Create a searcher
+searcher = index.searcher()
+
+# Create a query that matches all documents
+query = tantivy.Query.all_query()
+
+# Get the cardinality of the "rating" field
+cardinality = searcher.cardinality(query, "rating")
+
+assert cardinality == 2.0
+```
