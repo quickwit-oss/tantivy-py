@@ -407,10 +407,10 @@ index = tantivy.Index(schema)
 
 # Add some documents
 writer = index.writer()
-writer.add_document(tantivy.Document(id=1, rating=3.5))
-writer.add_document(tantivy.Document(id=2, rating=4.5))
-writer.add_document(tantivy.Document(id=3, rating=3.5))
-writer.commit()
+with writer:
+    writer.add_document(tantivy.Document(id=1, rating=3.5))
+    writer.add_document(tantivy.Document(id=2, rating=4.5))
+    writer.add_document(tantivy.Document(id=3, rating=3.5))
 
 # Reload the index to make the changes available for search
 index.reload()
