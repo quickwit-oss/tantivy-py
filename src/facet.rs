@@ -3,6 +3,7 @@ use pyo3::{
     basic::CompareOp,
     prelude::*,
     types::{PyTuple, PyType},
+    IntoPyObjectExt,
 };
 use serde::{Deserialize, Serialize};
 use tantivy::schema;
@@ -87,11 +88,11 @@ impl Facet {
         other: &Self,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyObject {
+    ) -> PyResult<Py<PyAny>> {
         match op {
-            CompareOp::Eq => (self == other).into_py(py),
-            CompareOp::Ne => (self != other).into_py(py),
-            _ => py.NotImplemented(),
+            CompareOp::Eq => (self == other).into_py_any(py),
+            CompareOp::Ne => (self != other).into_py_any(py),
+            _ => Ok(py.NotImplemented()),
         }
     }
 
@@ -100,12 +101,10 @@ impl Facet {
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyTuple>> {
         let encoded_bytes = slf.inner.encoded_str().as_bytes().to_vec();
-        Ok(PyTuple::new_bound(
+        let deserializer = slf.into_pyobject(py)?.getattr("from_encoded")?;
+        PyTuple::new(
             py,
-            [
-                slf.into_py(py).getattr(py, "from_encoded")?,
-                PyTuple::new_bound(py, [encoded_bytes]).to_object(py),
-            ],
-        ))
+            [deserializer, PyTuple::new(py, [encoded_bytes])?.into_any()],
+        )
     }
 }

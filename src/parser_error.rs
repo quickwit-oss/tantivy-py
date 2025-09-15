@@ -6,6 +6,7 @@ use std::{
 };
 
 use pyo3::prelude::*;
+use pyo3::IntoPyObjectExt;
 use tantivy::{self as tv, schema::FacetParseError};
 
 // TODO(https://github.com/PyO3/pyo3/issues/1190): Expose this to bindings once trait <-> ABC is
@@ -17,65 +18,65 @@ pub(crate) trait QueryParserError {
 /// A crate local version of the [`IntoPy`] trait to implement for
 /// [`QueryParserError`](tv::query::QueryParserError).
 pub(crate) trait QueryParserErrorIntoPy {
-    fn into_py(self, py: Python) -> PyObject;
+    fn into_py(self, py: Python) -> PyResult<Py<PyAny>>;
 }
 
 impl QueryParserErrorIntoPy for tv::query::QueryParserError {
-    fn into_py(self, py: Python) -> PyObject {
+    fn into_py(self, py: Python) -> PyResult<Py<PyAny>> {
         match self {
             tv::query::QueryParserError::SyntaxError(message) => {
-                SyntaxError { message }.into_py(py)
+                SyntaxError { message }.into_py_any(py)
             }
             tv::query::QueryParserError::UnsupportedQuery(message) => {
-                UnsupportedQueryError { message }.into_py(py)
+                UnsupportedQueryError { message }.into_py_any(py)
             }
             tv::query::QueryParserError::FieldDoesNotExist(field) => {
-                FieldDoesNotExistError { field }.into_py(py)
+                FieldDoesNotExistError { field }.into_py_any(py)
             }
             tv::query::QueryParserError::FieldDoesNotHavePositionsIndexed(
                 field,
-            ) => FieldDoesNotHavePositionsIndexedError { field }.into_py(py),
+            ) => FieldDoesNotHavePositionsIndexedError { field }.into_py_any(py),
             tv::query::QueryParserError::ExpectedInt(parse_int_error) => {
-                ExpectedIntError { parse_int_error }.into_py(py)
+                ExpectedIntError { parse_int_error }.into_py_any(py)
             }
             tv::query::QueryParserError::ExpectedFloat(parse_float_error) => {
-                ExpectedFloatError { parse_float_error }.into_py(py)
+                ExpectedFloatError { parse_float_error }.into_py_any(py)
             }
             tv::query::QueryParserError::ExpectedBool(parse_bool_error) => {
-                ExpectedBoolError { parse_bool_error }.into_py(py)
+                ExpectedBoolError { parse_bool_error }.into_py_any(py)
             }
             tv::query::QueryParserError::ExpectedBase64(decode_error) => {
-                ExpectedBase64Error { decode_error }.into_py(py)
+                ExpectedBase64Error { decode_error }.into_py_any(py)
             }
             tv::query::QueryParserError::AllButQueryForbidden => {
-                AllButQueryForbiddenError.into_py(py)
+                AllButQueryForbiddenError.into_py_any(py)
             }
             tv::query::QueryParserError::NoDefaultFieldDeclared => {
-                NoDefaultFieldDeclaredError.into_py(py)
+                NoDefaultFieldDeclaredError.into_py_any(py)
             }
             tv::query::QueryParserError::FieldNotIndexed(field) => {
-                FieldNotIndexedError { field }.into_py(py)
+                FieldNotIndexedError { field }.into_py_any(py)
             }
             tv::query::QueryParserError::PhrasePrefixRequiresAtLeastTwoTerms {
                 phrase,
                 tokenizer,
             } => {
-                PhrasePrefixRequiresAtLeastTwoTermsError { phrase, tokenizer }.into_py(py)
+                PhrasePrefixRequiresAtLeastTwoTermsError { phrase, tokenizer }.into_py_any(py)
             }
             tv::query::QueryParserError::UnknownTokenizer { tokenizer, field } => {
-                    UnknownTokenizerError { tokenizer, field }.into_py(py)
+                    UnknownTokenizerError { tokenizer, field }.into_py_any(py)
             }
             tv::query::QueryParserError::RangeMustNotHavePhrase => {
-                RangeMustNotHavePhraseError.into_py(py)
+                RangeMustNotHavePhraseError.into_py_any(py)
             }
             tv::query::QueryParserError::DateFormatError(_) => {
-                DateFormatError { inner: self }.into_py(py)
+                DateFormatError { inner: self }.into_py_any(py)
             }
             tv::query::QueryParserError::FacetFormatError(facet_parse_error) => {
-                FacetFormatError { facet_parse_error }.into_py(py)
+                FacetFormatError { facet_parse_error }.into_py_any(py)
             }
             tv::query::QueryParserError::IpFormatError(addr_parse_error) => {
-                IpFormatError { addr_parse_error }.into_py(py)
+                IpFormatError { addr_parse_error }.into_py_any(py)
             }
         }
     }

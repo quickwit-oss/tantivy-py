@@ -12,3 +12,5 @@ tantivy.egg-info/
 .venv
 .envrc
 site/
+
+/.claude

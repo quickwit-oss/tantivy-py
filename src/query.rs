@@ -1,12 +1,12 @@
 use crate::{
-    get_field, make_term, make_term_for_type, schema::FieldType, to_pyerr,
-    DocAddress, Schema,
+    explanation::Explanation, get_field, make_term, make_term_for_type,
+    schema::FieldType, searcher::Searcher, to_pyerr, DocAddress, Schema,
 };
 use core::ops::Bound as OpsBound;
 use pyo3::{
     exceptions,
     prelude::*,
-    types::{PyAny, PyFloat, PyString, PyTuple},
+    types::{PyAny, PyFloat, PyString},
 };
 use tantivy as tv;
 
@@ -15,10 +15,8 @@ use tantivy as tv;
 struct OccurQueryPair(Occur, Query);
 
 impl<'source> FromPyObject<'source> for OccurQueryPair {
-    fn extract(ob: &'source PyAny) -> PyResult<Self> {
-        let tuple = ob.downcast::<PyTuple>()?;
-        let occur = tuple.get_item(0)?.extract()?;
-        let query = tuple.get_item(1)?.extract()?;
+    fn extract_bound(ob: &Bound<'source, PyAny>) -> PyResult<Self> {
+        let (occur, query): (Occur, Query) = ob.extract()?;
 
         Ok(OccurQueryPair(occur, query))
     }
@@ -129,7 +127,7 @@ impl Query {
     /// * `schema` - Schema of the target index.
     /// * `field_name` - Field name to be searched.
     /// * `text` - String representation of the query term.
-    /// * `distance` - (Optional) Edit distance you are going to alow. When not specified, the default is 1.
+    /// * `distance` - (Optional) Edit distance you are going to allow. When not specified, the default is 1.
     /// * `transposition_cost_one` - (Optional) If true, a transposition (swapping) cost will be 1; otherwise it will be 2. When not specified, the default is true.
     /// * `prefix` - (Optional) If true, prefix levenshtein distance is applied. When not specified, the default is false.
     #[staticmethod]
@@ -223,6 +221,7 @@ impl Query {
 
     /// Construct a Tantivy's DisjunctionMaxQuery
     #[staticmethod]
+    #[pyo3(signature = (subqueries, tie_breaker=None))]
     pub(crate) fn disjunction_max_query(
         subqueries: Vec<Query>,
         tie_breaker: Option<Bound<PyFloat>>,
@@ -373,6 +372,20 @@ impl Query {
             _ => {}
         }
 
+        // Look up the field in the schema. The given type must match the
+        // field type in the schema.
+        let field = get_field(&schema.inner, field_name)?;
+        let actual_field_entry = schema.inner.get_field_entry(field);
+        let actual_field_type = actual_field_entry.field_type().value_type(); // Convert tv::schema::FieldType to local FieldType
+        let given_field_type: tv::schema::Type = field_type.clone().into(); // Convert local FieldType to tv::schema::FieldType
+
+        if actual_field_type != given_field_type {
+            return Err(exceptions::PyValueError::new_err(format!(
+                "Field type mismatch: field '{}' is type {:?}, but got {:?}",
+                field_name, actual_field_type, given_field_type
+            )));
+        }
+
         let lower_bound_term = make_term_for_type(
             &schema.inner,
             field_name,
@@ -398,15 +411,33 @@ impl Query {
             OpsBound::Excluded(upper_bound_term)
         };
 
-        let inner = tv::query::RangeQuery::new_term_bounds(
-            field_name.to_string(),
-            field_type.into(),
-            &lower_bound,
-            &upper_bound,
-        );
+        let inner = tv::query::RangeQuery::new(lower_bound, upper_bound);
 
         Ok(Query {
             inner: Box::new(inner),
         })
+    }
+
+    /// Explain how this query matches a given document.
+    ///
+    /// # Arguments
+    /// * `searcher` (Searcher): The searcher used to perform the search.
+    /// * `doc_address` (DocAddress): The address of the document to explain.
+    ///
+    /// # Returns
+    /// * `Explanation`: An object containing detailed information about how
+    ///                  the document matched the query, with a to_json() method.
+    ///
+    pub(crate) fn explain(
+        &self,
+        searcher: &Searcher,
+        doc_address: &DocAddress,
+    ) -> PyResult<Explanation> {
+        let tantivy_doc_address = doc_address.into();
+        let explanation = self
+            .inner
+            .explain(&searcher.inner, tantivy_doc_address)
+            .map_err(to_pyerr)?;
+        Ok(Explanation::new(explanation))
     }
 }

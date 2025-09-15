@@ -2,6 +2,7 @@
 
 use crate::{document::Document, query::Query, to_pyerr};
 use pyo3::types::PyDict;
+use pyo3::IntoPyObjectExt;
 use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use serde::{Deserialize, Serialize};
 use tantivy as tv;
@@ -21,7 +22,9 @@ pub(crate) struct Searcher {
     pub(crate) inner: tv::Searcher,
 }
 
-#[derive(Clone, Deserialize, FromPyObject, PartialEq, Serialize)]
+#[derive(
+    Clone, Deserialize, PartialEq, Serialize, FromPyObject, IntoPyObject,
+)]
 enum Fruit {
     #[pyo3(transparent)]
     Score(f32),
@@ -34,15 +37,6 @@ impl std::fmt::Debug for Fruit {
         match self {
             Fruit::Score(s) => f.write_str(&format!("{s}")),
             Fruit::Order(o) => f.write_str(&format!("{o}")),
-        }
-    }
-}
-
-impl ToPyObject for Fruit {
-    fn to_object(&self, py: Python) -> PyObject {
-        match self {
-            Fruit::Score(s) => s.to_object(py),
-            Fruit::Order(o) => o.to_object(py),
         }
     }
 }
@@ -83,7 +77,7 @@ impl SearchResult {
     #[new]
     fn new(
         py: Python,
-        hits: Vec<(PyObject, DocAddress)>,
+        hits: Vec<(Py<PyAny>, DocAddress)>,
         count: Option<usize>,
     ) -> PyResult<Self> {
         let hits = hits
@@ -109,30 +103,32 @@ impl SearchResult {
         other: &Self,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyObject {
+    ) -> PyResult<Py<PyAny>> {
         match op {
-            CompareOp::Eq => (self == other).into_py(py),
-            CompareOp::Ne => (self != other).into_py(py),
-            _ => py.NotImplemented(),
+            CompareOp::Eq => (self == other).into_py_any(py),
+            CompareOp::Ne => (self != other).into_py_any(py),
+            _ => Ok(py.NotImplemented()),
         }
     }
 
     fn __getnewargs__(
         &self,
         py: Python,
-    ) -> PyResult<(Vec<(PyObject, DocAddress)>, Option<usize>)> {
+    ) -> PyResult<(Vec<(Py<PyAny>, DocAddress)>, Option<usize>)> {
         Ok((self.hits(py)?, self.count))
     }
 
     #[getter]
     /// The list of tuples that contains the scores and DocAddress of the
     /// search results.
-    fn hits(&self, py: Python) -> PyResult<Vec<(PyObject, DocAddress)>> {
-        let ret: Vec<(PyObject, DocAddress)> = self
+    fn hits(&self, py: Python) -> PyResult<Vec<(Py<PyAny>, DocAddress)>> {
+        let ret = self
             .hits
             .iter()
-            .map(|(result, address)| (result.to_object(py), address.clone()))
-            .collect();
+            .map(|(result, address)| -> PyResult<_> {
+                Ok((result.clone().into_py_any(py)?, address.clone()))
+            })
+            .collect::<PyResult<_>>()?;
         Ok(ret)
     }
 }
@@ -171,7 +167,7 @@ impl Searcher {
         offset: usize,
         order: Order,
     ) -> PyResult<SearchResult> {
-        py.allow_threads(move || {
+        py.detach(move || {
             let mut multicollector = MultiCollector::new();
 
             let count_handle = if count {
@@ -242,10 +238,10 @@ impl Searcher {
         query: &Query,
         agg: Py<PyDict>,
     ) -> PyResult<Py<PyDict>> {
-        let py_json = py.import_bound("json")?;
+        let py_json = py.import("json")?;
         let agg_query_str = py_json.call_method1("dumps", (agg,))?.to_string();
 
-        let agg_str = py.allow_threads(move || {
+        let agg_str = py.detach(move || {
             let agg_collector = AggregationCollector::from_aggs(
                 serde_json::from_str(&agg_query_str).map_err(to_pyerr)?,
                 Default::default(),
@@ -264,6 +260,48 @@ impl Searcher {
         Ok(agg_dict.clone().unbind())
     }
 
+    /// Returns the cardinality of a query.
+    ///
+    /// Args:
+    ///     query (Query): The query that will be used for the search.
+    ///     field_name (str): The field for which to compute the cardinality.
+    ///
+    /// Returns the cardinality.
+    #[pyo3(signature = (query, field_name))]
+    fn cardinality(
+        &self,
+        py: Python,
+        query: &Query,
+        field_name: &str,
+    ) -> PyResult<f64> {
+        let py_json = py.import("json")?;
+        let agg_query = serde_json::json!({
+            "cardinality": {
+                "cardinality": {
+                    "field": field_name,
+                }
+            }
+        });
+        let agg_query_str =
+            serde_json::to_string(&agg_query).map_err(to_pyerr)?;
+        let agg_query_dict: Py<PyDict> =
+            py_json.call_method1("loads", (agg_query_str,))?.extract()?;
+
+        let agg_res = self.aggregate(py, query, agg_query_dict)?;
+        let agg_res: &Bound<PyDict> = agg_res.bind(py);
+
+        let res = agg_res.get_item("cardinality")?.ok_or_else(|| {
+            PyValueError::new_err("Unexpected aggregation result")
+        })?;
+        let res_dict: &Bound<PyDict> = res.downcast()?;
+        let value = res_dict.get_item("value")?.ok_or_else(|| {
+            PyValueError::new_err("Unexpected aggregation result")
+        })?;
+        let res = value.extract::<f64>()?;
+
+        Ok(res)
+    }
+
     /// Returns the overall number of documents in the index.
     #[getter]
     fn num_docs(&self) -> u64 {
@@ -274,6 +312,20 @@ impl Searcher {
     #[getter]
     fn num_segments(&self) -> usize {
         self.inner.segment_readers().len()
+    }
+
+    /// Return the overall number of documents containing
+    /// the given term.
+    #[pyo3(signature = (field_name, field_value))]
+    fn doc_freq(
+        &self,
+        field_name: &str,
+        field_value: &Bound<PyAny>,
+    ) -> PyResult<u64> {
+        // Wrap the tantivy Searcher `doc_freq` method to return a PyResult.
+        let schema = self.inner.schema();
+        let term = crate::make_term(schema, field_name, field_value)?;
+        self.inner.doc_freq(&term).map_err(to_pyerr)
     }
 
     /// Fetches a document from Tantivy's store given a DocAddress.
@@ -308,7 +360,9 @@ impl Searcher {
 /// The id used for the segment is actually an ordinal in the list of segment
 /// hold by a Searcher.
 #[pyclass(frozen, module = "tantivy.tantivy")]
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(
+    Clone, Debug, Deserialize, PartialEq, PartialOrd, Eq, Ord, Serialize,
+)]
 pub(crate) struct DocAddress {
     pub(crate) segment_ord: tv::SegmentOrdinal,
     pub(crate) doc: tv::DocId,
@@ -338,13 +392,9 @@ impl DocAddress {
         &self,
         other: &Self,
         op: CompareOp,
-        py: Python<'_>,
-    ) -> PyObject {
-        match op {
-            CompareOp::Eq => (self == other).into_py(py),
-            CompareOp::Ne => (self != other).into_py(py),
-            _ => py.NotImplemented(),
-        }
+        _py: Python<'_>,
+    ) -> bool {
+        op.matches(self.cmp(other))
     }
 
     fn __getnewargs__(&self) -> PyResult<(tv::SegmentOrdinal, tv::DocId)> {

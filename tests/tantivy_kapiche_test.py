@@ -360,7 +360,7 @@ class TestClass(object):
         query = ram_index.parse_query("winter")
         assert (
             repr(query)
-            == """Query(BooleanQuery { subqueries: [(Should, TermQuery(Term(field=0, type=Str, "winter"))), (Should, TermQuery(Term(field=1, type=Str, "winter")))] })"""
+            == """Query(BooleanQuery { subqueries: [(Should, TermQuery(Term(field=0, type=Str, "winter"))), (Should, TermQuery(Term(field=1, type=Str, "winter")))], minimum_number_should_match: 1 })"""
         )
 
     def test_query_errors(self, ram_index):

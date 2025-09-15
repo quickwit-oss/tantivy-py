@@ -3,6 +3,7 @@ use ::tantivy::schema::{OwnedValue as Value, Term};
 use pyo3::{exceptions, prelude::*, wrap_pymodule};
 
 mod document;
+mod explanation;
 mod facet;
 mod filters;
 mod index;
@@ -14,8 +15,10 @@ mod schemabuilder;
 mod searcher;
 mod searcher_frame_document;
 mod snippet;
+mod tokenizer;
 
 use document::{extract_value, extract_value_for_type, Document};
+use explanation::Explanation;
 use facet::Facet;
 use index::Index;
 use query::{Occur, Query};
@@ -23,6 +26,7 @@ use schema::{FieldType, Schema};
 use schemabuilder::SchemaBuilder;
 use searcher::{DocAddress, Order, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
+use tokenizer::{Filter, TextAnalyzer, TextAnalyzerBuilder, Tokenizer};
 
 /// Python bindings for the search engine library Tantivy.
 ///
@@ -86,14 +90,21 @@ fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<DocAddress>()?;
     m.add_class::<Facet>()?;
     m.add_class::<Query>()?;
+    m.add_class::<Explanation>()?;
     m.add_class::<Snippet>()?;
     m.add_class::<SnippetGenerator>()?;
     m.add_class::<Occur>()?;
     m.add_class::<FieldType>()?;
+    m.add_class::<Tokenizer>()?;
+    m.add_class::<TextAnalyzerBuilder>()?;
+    m.add_class::<Filter>()?;
+    m.add_class::<TextAnalyzer>()?;
 
     m.add("__version__", tv::version_string())?;
 
     m.add_wrapped(wrap_pymodule!(query_parser_error))?;
+
+    m.add("__version__", tv::version_string())?;
 
     Ok(())
 }

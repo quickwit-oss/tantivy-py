@@ -1,4 +1,5 @@
 use crate::to_pyerr;
+use pyo3::IntoPyObjectExt;
 use pyo3::{basic::CompareOp, prelude::*, types::PyTuple};
 use serde::{Deserialize, Serialize};
 use tantivy as tv;
@@ -53,17 +54,17 @@ impl Schema {
         other: &Self,
         op: CompareOp,
         py: Python<'_>,
-    ) -> PyObject {
+    ) -> PyResult<Py<PyAny>> {
         match op {
-            CompareOp::Eq => (self == other).into_py(py),
-            CompareOp::Ne => (self != other).into_py(py),
-            _ => py.NotImplemented(),
+            CompareOp::Eq => (self == other).into_py_any(py),
+            CompareOp::Ne => (self != other).into_py_any(py),
+            _ => Ok(py.NotImplemented()),
         }
     }
 
     #[staticmethod]
     fn _internal_from_pythonized(serialized: &Bound<PyAny>) -> PyResult<Self> {
-        pythonize::depythonize_bound(serialized.clone()).map_err(to_pyerr)
+        pythonize::depythonize(serialized).map_err(to_pyerr)
     }
 
     fn __reduce__<'a>(
@@ -71,13 +72,12 @@ impl Schema {
         py: Python<'a>,
     ) -> PyResult<Bound<'a, PyTuple>> {
         let serialized = pythonize::pythonize(py, &*slf).map_err(to_pyerr)?;
-
-        Ok(PyTuple::new_bound(
+        let deserializer = slf
+            .into_pyobject(py)?
+            .getattr("_internal_from_pythonized")?;
+        PyTuple::new(
             py,
-            [
-                slf.into_py(py).getattr(py, "_internal_from_pythonized")?,
-                PyTuple::new_bound(py, [serialized]).to_object(py),
-            ],
-        ))
+            [deserializer, PyTuple::new(py, [serialized])?.into_any()],
+        )
     }
 }

@@ -1,9 +1,13 @@
 import datetime
 from enum import Enum
+from types import TracebackType
 from typing import Any, Optional, Sequence, TypeVar, Union
+from typing_extensions import Self
+
 
 class Schema:
     pass
+
 
 class SchemaBuilder:
     @staticmethod
@@ -14,6 +18,7 @@ class SchemaBuilder:
         self,
         name: str,
         stored: bool = False,
+        fast: bool = False,
         tokenizer_name: str = "default",
         index_option: str = "position",
     ) -> SchemaBuilder:
@@ -101,6 +106,7 @@ class SchemaBuilder:
     def build(self) -> Schema:
         pass
 
+
 class Facet:
     @staticmethod
     def from_encoded(encoded_bytes: bytes) -> Facet:
@@ -127,18 +133,22 @@ class Facet:
     def to_path_str(self) -> str:
         pass
 
+
 class Document:
     def __new__(cls, **kwargs) -> Document:
+        pass
+
+    def __getitem__(self, key: str) -> list[Any]:
         pass
 
     def extend(self, py_dict: dict, schema: Optional[Schema]) -> None:
         pass
 
     @staticmethod
-    def from_dict(py_dict: dict, schema: Optional[Schema]) -> Document:
+    def from_dict(py_dict: dict, schema: Optional[Schema] = None) -> Document:
         pass
 
-    def to_dict(self) -> Any:
+    def to_dict(self) -> dict[str, list[Any]]:
         pass
 
     def add_text(self, field_name: str, text: str) -> None:
@@ -185,10 +195,12 @@ class Document:
     def get_all(self, field_name: str) -> list[Any]:
         pass
 
+
 class Occur(Enum):
     Must = 1
     Should = 2
     MustNot = 3
+
 
 class FieldType(Enum):
     Text = 1
@@ -201,8 +213,12 @@ class FieldType(Enum):
     Bytes = 8
     Json = 9
     IpAddr = 10
-    
-_RangeType = TypeVar("_RangeType", bound=int | float | datetime.datetime | bool | str | bytes)
+
+
+_RangeType = TypeVar(
+    "_RangeType", bound=int | float | datetime.datetime | bool | str | bytes
+)
+
 
 class Query:
     @staticmethod
@@ -215,7 +231,9 @@ class Query:
         pass
 
     @staticmethod
-    def term_set_query(schema: Schema, field_name: str, field_values: Sequence[Any]) -> Query:
+    def term_set_query(
+        schema: Schema, field_name: str, field_values: Sequence[Any]
+    ) -> Query:
         pass
 
     @staticmethod
@@ -224,32 +242,37 @@ class Query:
 
     @staticmethod
     def fuzzy_term_query(
-            schema: Schema,
-            field_name: str,
-            text: str,
-            distance: int = 1,
-            transposition_cost_one: bool = True,
-            prefix=False,
+        schema: Schema,
+        field_name: str,
+        text: str,
+        distance: int = 1,
+        transposition_cost_one: bool = True,
+        prefix=False,
     ) -> Query:
         pass
 
     @staticmethod
-    def phrase_query(schema: Schema, field_name: str, words: list[Union[str, tuple[int, str]]], slop: int = 0) -> Query:
+    def phrase_query(
+        schema: Schema,
+        field_name: str,
+        words: list[Union[str, tuple[int, str]]],
+        slop: int = 0,
+    ) -> Query:
         pass
-
 
     @staticmethod
     def boolean_query(subqueries: Sequence[tuple[Occur, Query]]) -> Query:
         pass
 
     @staticmethod
-    def disjunction_max_query(subqueries: Sequence[Query], tie_breaker: Optional[float] = None) -> Query:
+    def disjunction_max_query(
+        subqueries: Sequence[Query], tie_breaker: Optional[float] = None
+    ) -> Query:
         pass
-    
+
     @staticmethod
     def boost_query(query: Query, boost: float) -> Query:
         pass
-
 
     @staticmethod
     def regex_query(schema: Schema, field_name: str, regex_pattern: str) -> Query:
@@ -265,14 +288,14 @@ class Query:
         min_word_length: Optional[int] = None,
         max_word_length: Optional[int] = None,
         boost_factor: Optional[float] = 1.0,
-        stop_words: list[str] = []
+        stop_words: list[str] = [],
     ) -> Query:
         pass
 
     @staticmethod
     def const_score_query(query: Query, score: float) -> Query:
         pass
-       
+
     @staticmethod
     def range_query(
         schema: Schema,
@@ -284,11 +307,20 @@ class Query:
         include_upper: bool = True,
     ) -> Query:
         pass
- 
+
+    def explain(self, searcher: Searcher, doc_address: DocAddress) -> Explanation:
+        pass
+
+
+class Explanation:
+    def to_json(self) -> str:
+        pass
+
 
 class Order(Enum):
     Asc = 1
     Desc = 2
+
 
 class DocAddress:
     def __new__(cls, segment_ord: int, doc: int) -> DocAddress:
@@ -302,10 +334,12 @@ class DocAddress:
     def doc(self) -> int:
         pass
 
+
 class SearchResult:
     @property
     def hits(self) -> list[tuple[Any, DocAddress]]:
         pass
+
 
 class Searcher:
     def search(
@@ -337,6 +371,13 @@ class Searcher:
     def doc(self, doc_address: DocAddress) -> Document:
         pass
 
+    def doc_freq(self, field_name: str, field_value: Any) -> int:
+        pass
+
+    def cardinality(self, query: Query, field_name: str) -> float:
+        pass
+
+
 class IndexWriter:
     def add_document(self, doc: Document) -> int:
         pass
@@ -363,8 +404,26 @@ class IndexWriter:
     def delete_documents(self, field_name: str, field_value: Any) -> int:
         pass
 
+    def delete_documents_by_term(self, field_name: str, field_value: Any) -> int:
+        pass
+
+    def delete_documents_by_query(self, query: Query) -> int:
+        pass
+
     def wait_merging_threads(self) -> None:
         pass
+
+    def __enter__(self: Self) -> Self:
+        pass
+
+    def __exit__(
+        self: Self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        pass
+
 
 class Index:
     def __new__(
@@ -399,14 +458,27 @@ class Index:
         pass
 
     def parse_query(
-        self, query: str, default_field_names: Optional[list[str]] = None
+        self,
+        query: str,
+        default_field_names: Optional[list[str]] = None,
+        field_boosts: Optional[dict[str, float]] = None,
+        fuzzy_fields: Optional[dict[str, tuple[bool, int, bool]]] = None,
     ) -> Query:
         pass
 
     def parse_query_lenient(
-        self, query: str, default_field_names: Optional[list[str]] = None
-    ) -> Query:
+        self,
+        query: str,
+        default_field_names: Optional[list[str]] = None,
+        field_boosts: Optional[dict[str, float]] = None,
+        fuzzy_fields: Optional[dict[str, tuple[bool, int, bool]]] = None,
+    ) -> tuple[Query, list[Any]]:
         pass
+
+    def register_tokenizer(
+        self, name: str, text_analyzer: TextAnalyzer
+    ) -> None: ...
+
 
 class Range:
     @property
@@ -417,12 +489,17 @@ class Range:
     def end(self) -> int:
         pass
 
+
 class Snippet:
     def to_html(self) -> str:
         pass
 
     def highlighted(self) -> list[Range]:
         pass
+
+    def fragment(self) -> str:
+        pass
+
 
 class SnippetGenerator:
     @staticmethod
@@ -436,5 +513,84 @@ class SnippetGenerator:
 
     def set_max_num_chars(self, max_num_chars: int) -> None:
         pass
+
+
+class Tokenizer:
+    @staticmethod
+    def raw() -> Tokenizer:
+        pass
+
+    @staticmethod
+    def simple() -> Tokenizer:
+        pass
+
+    @staticmethod
+    def whitespace() -> Tokenizer:
+        pass
+
+    @staticmethod
+    def regex(pattern: str) -> Tokenizer:
+        pass
+
+    @staticmethod
+    def ngram(
+        min_gram: int = 2, max_gram: int = 3, prefix_only: bool = False
+    ) -> Tokenizer:
+        pass
+
+    @staticmethod
+    def facet() -> Tokenizer:
+        pass
+
+
+class Filter:
+    @staticmethod
+    def alphanum_only() -> Filter:
+        pass
+
+    @staticmethod
+    def ascii_fold() -> Filter:
+        pass
+
+    @staticmethod
+    def lowercase() -> Filter:
+        pass
+
+    @staticmethod
+    def remove_long(length_limit: int) -> Filter:
+        pass
+
+    @staticmethod
+    def stemmer(language: str) -> Filter:
+        pass
+
+    @staticmethod
+    def stopword(language: str) -> Filter:
+        pass
+
+    @staticmethod
+    def custom_stopword(stopwords: list[str]) -> Filter:
+        pass
+
+    @staticmethod
+    def split_compound(constituent_words: list[str]) -> Filter:
+        pass
+
+
+class TextAnalyzer:
+    def analyze(self, text: str) -> list[str]:
+        pass
+
+
+class TextAnalyzerBuilder:
+    def __init__(self, tokenizer: Tokenizer):
+        pass
+
+    def filter(self, filter: Filter) -> TextAnalyzerBuilder:
+        pass
+
+    def build(self) -> TextAnalyzer:
+        pass
+
 
 __version__: str
