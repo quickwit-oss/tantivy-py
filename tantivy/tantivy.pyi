@@ -479,6 +479,10 @@ class Index:
         self, name: str, text_analyzer: TextAnalyzer
     ) -> None: ...
 
+    def register_fast_field_tokenizer(
+        self, name: str, text_analyzer: TextAnalyzer
+    ) -> None: ...
+
 
 class Range:
     @property

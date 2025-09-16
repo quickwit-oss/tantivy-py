@@ -601,6 +601,23 @@ impl Index {
             self.index.tokenizers().register(&name, analyzer.analyzer);
         });
     }
+
+    /// Register a custom text analyzer for fast fields by name. (Confusingly,
+    /// this is one of the places where Tantivy uses 'tokenizer' to refer to a
+    /// TextAnalyzer instance.)
+    ///
+    // Implementation notes: Skipped indirection of TokenizerManager.
+    pub fn register_fast_field_tokenizer(
+        &self,
+        py: Python,
+        name: &str,
+        analyzer: PyTextAnalyzer,
+    ) {
+        py.detach(move || {
+            self.index.fast_field_tokenizer().register(&name, analyzer.analyzer);
+        });
+    }
+
 }
 
 impl Index {
