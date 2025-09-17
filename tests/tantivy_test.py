@@ -1564,12 +1564,14 @@ class TestTokenizers:
 
         schema = (
             tantivy.SchemaBuilder()
-            .add_text_field("content", tokenizer_name="custom_analyzer")
+            .add_text_field("content", fast=True, tokenizer_name="custom_analyzer")
             .build()
         )
 
         index = tantivy.Index(schema)
         index.register_tokenizer("custom_analyzer", custom_analyzer)
+        index.register_fast_field_tokenizer("custom_analyzer", custom_analyzer)
+
 
         writer = index.writer()
         doc = Document(content=doc_text)
