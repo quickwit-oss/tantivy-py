@@ -614,10 +614,11 @@ impl Index {
         analyzer: PyTextAnalyzer,
     ) {
         py.detach(move || {
-            self.index.fast_field_tokenizer().register(&name, analyzer.analyzer);
+            self.index
+                .fast_field_tokenizer()
+                .register(&name, analyzer.analyzer);
         });
     }
-
 }
 
 impl Index {
