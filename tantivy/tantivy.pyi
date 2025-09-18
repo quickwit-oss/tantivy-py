@@ -269,6 +269,15 @@ class Query:
         pass
 
     @staticmethod
+    def regex_phrase_query(
+        schema: Schema,
+        field_name: str,
+        words: list[Union[str, tuple[int, str]]],
+        slop: int = 0,
+    ) -> Query:
+        pass
+
+    @staticmethod
     def boolean_query(subqueries: Sequence[tuple[Occur, Query]]) -> Query:
         pass
 
