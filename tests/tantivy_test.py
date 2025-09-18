@@ -1043,6 +1043,33 @@ class TestQuery(object):
         with pytest.raises(ValueError, match="words must not be empty."):
             Query.phrase_query(index.schema, "title", [])
 
+    def test_phrase_prefix_query(self, ram_index):
+        index = ram_index
+        searcher = index.searcher()
+
+        query = Query.phrase_prefix_query(index.schema, "title", ["old", "man"])
+        # should match the title "The Old Man and the Sea"
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.phrase_prefix_query(index.schema, "title", ["old", "ma"])
+        # should still match the title "The Old Man and the Sea"
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.phrase_prefix_query(index.schema, "title", ["man", "old"])
+        # sholdn't match any document
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.phrase_prefix_query(index.schema, "title", [(1, "m"), (0, "old")])
+        # should match "The Old Man and the Sea" with the given offsets
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        with pytest.raises(ValueError, match="words must not be empty."):
+            Query.phrase_prefix_query(index.schema, "title", [])
+
     def test_fuzzy_term_query(self, ram_index):
         index = ram_index
         query = Query.fuzzy_term_query(index.schema, "title", "ice")

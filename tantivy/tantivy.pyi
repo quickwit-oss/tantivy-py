@@ -261,6 +261,14 @@ class Query:
         pass
 
     @staticmethod
+    def phrase_prefix_query(
+        schema: Schema,
+        field_name: str,
+        words: list[Union[str, tuple[int, str]]],
+    ) -> Query:
+        pass
+
+    @staticmethod
     def boolean_query(subqueries: Sequence[tuple[Occur, Query]]) -> Query:
         pass
 
