@@ -1433,6 +1433,19 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
+    def test_range_query_numerics_with_inverted_index(self, ram_index_numeric_fields):
+        index = ram_index_numeric_fields
+
+        # test integer field including both bounds
+        query = Query.range_query(index.schema, "id", FieldType.Integer, 1, 2, use_inverted_index=True)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        # test integer field excluding the lower bound
+        query = Query.range_query(index.schema, "id", FieldType.Integer, 1, 2, use_inverted_index=True, include_lower=False)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
     def test_range_query_dates(self, ram_index_with_date_field):
         index = ram_index_with_date_field
 

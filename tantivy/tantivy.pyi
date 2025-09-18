@@ -313,6 +313,7 @@ class Query:
         upper_bound: _RangeType,
         include_lower: bool = True,
         include_upper: bool = True,
+        use_inverted_index: bool = False,
     ) -> Query:
         pass
 
