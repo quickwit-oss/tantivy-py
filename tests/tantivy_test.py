@@ -1011,6 +1011,13 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 3
 
+    def test_empty_query(self, ram_index):
+        index = ram_index
+        query = Query.empty_query()
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
     def test_phrase_query(self, ram_index):
         index = ram_index
         searcher = index.searcher()

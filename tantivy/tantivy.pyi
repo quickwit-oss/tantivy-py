@@ -241,6 +241,10 @@ class Query:
         pass
 
     @staticmethod
+    def empty_query() -> Query:
+        pass
+
+    @staticmethod
     def fuzzy_term_query(
         schema: Schema,
         field_name: str,
