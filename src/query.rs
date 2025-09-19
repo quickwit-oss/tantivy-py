@@ -120,6 +120,15 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's EmptyQuery
+    #[staticmethod]
+    pub(crate) fn empty_query() -> PyResult<Query> {
+        let inner = tv::query::EmptyQuery {};
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
     /// Construct a Tantivy's FuzzyTermQuery
     ///
     /// # Arguments
