@@ -210,6 +210,53 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's PhraseQuery with custom offsets and slop
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - Schema of the target index.
+    /// * `field_name` - Field name to be searched.
+    /// * `words` - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.
+    /// * `slop` - (Optional) The number of gaps permitted between the words in the query phrase. Default is 0.
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, words, slop = 0))]
+    pub(crate) fn regex_phrase_query(
+        schema: &Schema,
+        field_name: &str,
+        words: Vec<Bound<PyAny>>,
+        slop: u32,
+    ) -> PyResult<Query> {
+        let mut terms_with_offset = Vec::with_capacity(words.len());
+        let field = get_field(&schema.inner, field_name).map_err(|_err| {
+            exceptions::PyValueError::new_err(format!(
+                "Field `{field_name}` is not defined in the schema."
+            ))
+        })?;
+        for (idx, word) in words.into_iter().enumerate() {
+            if let Ok((offset, value)) = word.extract() {
+                // Custom offset is provided.
+                terms_with_offset.push((offset, value));
+            } else {
+                let value = word.extract::<String>()?;
+                // Custom offset is not provided. Use the list index as the offset.
+                terms_with_offset.push((idx, value));
+            };
+        }
+        if terms_with_offset.is_empty() {
+            return Err(exceptions::PyValueError::new_err(
+                "words must not be empty.",
+            ));
+        }
+        let inner = tv::query::RegexPhraseQuery::new_with_offset_and_slop(
+            field,
+            terms_with_offset,
+            slop,
+        );
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
     /// Construct a Tantivy's PhrasePrefixQuery with custom offsets and slop
     ///
     /// # Arguments

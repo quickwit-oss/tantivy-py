@@ -1050,6 +1050,38 @@ class TestQuery(object):
         with pytest.raises(ValueError, match="words must not be empty."):
             Query.phrase_query(index.schema, "title", [])
 
+    def test_regex_phrase_query(self, ram_index):
+        index = ram_index
+        searcher = index.searcher()
+
+        query = Query.regex_phrase_query(index.schema, "title", ["o.d", "ma[nm]"])
+        # should match the title "The Old Man and the Sea"
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.regex_phrase_query(index.schema, "title", ["man", "old"])
+        # sholdn't match any document
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.regex_phrase_query(index.schema, "title", [(1, "[a-m]an"), (0, "old")])
+        # should match "The Old Man and the Sea" with the given offsets
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.regex_phrase_query(index.schema, "title", ["ma.", "se."])
+        # sholdn't match any document with default slop 0.
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.regex_phrase_query(index.schema, "title", ["ma.", "se."], slop=2)
+        # should match the title "The Old Man and the Sea" with slop 2.
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        with pytest.raises(ValueError, match="words must not be empty."):
+            Query.regex_phrase_query(index.schema, "title", [])
+
     def test_phrase_prefix_query(self, ram_index):
         index = ram_index
         searcher = index.searcher()
