@@ -380,7 +380,7 @@ impl Query {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (schema, field_name, field_type, lower_bound, upper_bound, include_lower = true, include_upper = true))]
+    #[pyo3(signature = (schema, field_name, field_type, lower_bound, upper_bound, include_lower = true, include_upper = true, use_inverted_index = false))]
     pub(crate) fn range_query(
         schema: &Schema,
         field_name: &str,
@@ -389,6 +389,7 @@ impl Query {
         upper_bound: &Bound<PyAny>,
         include_lower: bool,
         include_upper: bool,
+        use_inverted_index: bool,
     ) -> PyResult<Query> {
         match field_type {
             FieldType::Text => {
@@ -458,11 +459,20 @@ impl Query {
             OpsBound::Excluded(upper_bound_term)
         };
 
-        let inner = tv::query::RangeQuery::new(lower_bound, upper_bound);
-
-        Ok(Query {
-            inner: Box::new(inner),
-        })
+        if use_inverted_index {
+            let inner = tv::query::InvertedIndexRangeQuery::new(
+                lower_bound,
+                upper_bound,
+            );
+            return Ok(Query {
+                inner: Box::new(inner),
+            });
+        } else {
+            let inner = tv::query::RangeQuery::new(lower_bound, upper_bound);
+            return Ok(Query {
+                inner: Box::new(inner),
+            });
+        }
     }
 
     /// Explain how this query matches a given document.
