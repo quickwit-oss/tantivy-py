@@ -73,6 +73,12 @@ class TestClass(object):
 
         assert len(result.hits) == 1
 
+    def test_parse_query_conjunction_by_default(self, ram_index):
+        index = ram_index
+        # not a perfect comparison, but it's simple and does the job
+        assert repr(index.parse_query("men winter", ["title"], conjunction_by_default=False)) == repr(index.parse_query("men OR winter", ["title"], conjunction_by_default=True))
+        assert repr(index.parse_query("men winter", ["title"], conjunction_by_default=True)) == repr(index.parse_query("men AND winter", ["title"], conjunction_by_default=True))
+
     def test_doc_freq(self, ram_index):
         index = ram_index
         searcher = index.searcher()
