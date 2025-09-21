@@ -152,6 +152,14 @@ impl Searcher {
     ///         to be returned.
     ///     order (Order, optional): The order in which the results
     ///         should be sorted. If not specified, defaults to descending.
+    ///     weight_by_field (Field, optional): A schema field that the results
+    ///         should be weighted by. The field must be declared as a fast
+    ///         field when building the schema. Note, this only works for
+    ///         f64, i64 and u64 fields. The given field value is first
+    ///         transformed using the formula `log2(2.0 + value)` and then
+    ///         multiplied with the original score. This means that a weight field
+    ///         value of 0.0 results in no change to the original score.
+    ///         If the weight value is negative, it is treated as 0.0.
     ///
     /// Returns `SearchResult` object.
     ///
@@ -168,7 +176,6 @@ impl Searcher {
         order_by_field: Option<&str>,
         offset: usize,
         order: Order,
-        // TODO: supported fastfield types: u64, i64, f64, bytes, ip and text.
         weight_by_field: Option<&str>,
     ) -> PyResult<SearchResult> {
         py.detach(move || {
@@ -244,6 +251,7 @@ impl Searcher {
                                     tv::schema::Type::U64 => u64_reader.as_ref().map_or(0.0, |r| r.get_val(doc) as f64),
                                     _ => unreachable!(),
                                 };
+                                let value = value.max(0.0); // Negative values are not allowed
                                 let value_boost_score = ((2f64 + value) as tv::Score).log2();
                                 value_boost_score * original_score
                             }
