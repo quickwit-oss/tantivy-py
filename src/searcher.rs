@@ -9,6 +9,7 @@ use tantivy as tv;
 use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
 use tantivy::TantivyDocument;
+
 // Bring the trait into scope. This is required for the `to_named_doc` method.
 // However, tantivy-py declares its own `Document` class, so we need to avoid
 // introduce the `Document` trait into the namespace.
@@ -155,7 +156,8 @@ impl Searcher {
     /// Returns `SearchResult` object.
     ///
     /// Raises a ValueError if there was an error with the search.
-    #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0, order = Order::Desc))]
+    #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0, order = Order::Desc,
+            weight_by_field = None))]
     #[allow(clippy::too_many_arguments)]
     fn search(
         &self,
@@ -166,6 +168,8 @@ impl Searcher {
         order_by_field: Option<&str>,
         offset: usize,
         order: Order,
+        // TODO: supported fastfield types: u64, i64, f64, bytes, ip and text.
+        weight_by_field: Option<&str>,
     ) -> PyResult<SearchResult> {
         py.detach(move || {
             let mut multicollector = MultiCollector::new();
@@ -177,10 +181,95 @@ impl Searcher {
             };
 
             let (mut multifruit, hits) = {
-                if let Some(order_by) = order_by_field {
-                    let collector = TopDocs::with_limit(limit)
-                        .and_offset(offset)
-                        .order_by_u64_field(order_by, order.into());
+                let collector = TopDocs::with_limit(limit).and_offset(offset);
+                if let Some(weight_by_field) = weight_by_field {
+                    let weight_by_field = weight_by_field.to_string();
+
+                    // Get field type from schema
+                    let schema = self.inner.schema();
+                    let field = crate::get_field(&schema, &weight_by_field)
+                        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+                    let field_entry = schema.get_field_entry(field);
+                    let field_type = field_entry.field_type().value_type();
+
+                    // Check if field type is supported
+                    if !matches!(field_type, tv::schema::Type::F64 | tv::schema::Type::I64 | tv::schema::Type::U64) {
+                        return Err(PyValueError::new_err(format!(
+                            "Unsupported field type for weighting: {:?}. Only f64, i64, and u64 fastfields are supported.",
+                            field_type
+                        )));
+                    }
+
+                    let collector = collector.tweak_score(
+                        move |segment_reader: &tv::SegmentReader| {
+                            // Create all three readers upfront. Only one will succeed based on
+                            // the actual field type, but we must create all three because:
+                            // 1. Rust closures have a single concrete type - we can't return
+                            //    different closure types from different match arms
+                            // 2. The alternative (Box<dyn Fn>) adds heap allocation per segment
+                            //    and virtual dispatch overhead per document
+                            // 3. This approach enables monomorphization: the inner closure has
+                            //    a concrete type, allowing LLVM to inline get_val() calls
+                            let f64_reader = segment_reader
+                                .fast_fields()
+                                .f64(&weight_by_field)
+                                .ok()
+                                .map(|r| r.first_or_default_col(0.0));
+                            let i64_reader = segment_reader
+                                .fast_fields()
+                                .i64(&weight_by_field)
+                                .ok()
+                                .map(|r| r.first_or_default_col(0));
+                            let u64_reader = segment_reader
+                                .fast_fields()
+                                .u64(&weight_by_field)
+                                .ok()
+                                .map(|r| r.first_or_default_col(0));
+
+                            move |doc: tv::DocId, original_score: tv::Score| {
+                                let value: f64 = match field_type {
+                                    // Runtime type dispatch is required here even though field_type
+                                    // was checked earlier because:
+                                    // 1. field_type is moved into this closure and can't be matched
+                                    //    at compile time to select which reader to use
+                                    // 2. All three readers must exist at this point for the closure
+                                    //    to have a single concrete type
+                                    //
+                                    // Use map_or(0.0, ...) instead of unwrap() because segments
+                                    // created before a schema change may lack this fast field.
+                                    // Default value 0.0 results in neutral scoring:
+                                    // boost = log2(2.0 + 0.0) = 1.0, so score * 1.0 = score
+                                    tv::schema::Type::F64 => f64_reader.as_ref().map_or(0.0, |r| r.get_val(doc)),
+                                    tv::schema::Type::I64 => i64_reader.as_ref().map_or(0.0, |r| r.get_val(doc) as f64),
+                                    tv::schema::Type::U64 => u64_reader.as_ref().map_or(0.0, |r| r.get_val(doc) as f64),
+                                    _ => unreachable!(),
+                                };
+                                let value_boost_score = ((2f64 + value) as tv::Score).log2();
+                                value_boost_score * original_score
+                            }
+                        },
+                    );
+                    let top_docs_handle =
+                        multicollector.add_collector(collector);
+                    let ret = self.inner.search(query.get(), &multicollector);
+                    match ret {
+                        Ok(mut r) => {
+                            let top_docs = top_docs_handle.extract(&mut r);
+                            let result: Vec<(Fruit, DocAddress)> = top_docs
+                                .iter()
+                                .map(|(f, d)| {
+                                    (Fruit::Score(*f), DocAddress::from(d))
+                                })
+                                .collect();
+                            (r, result)
+                        }
+                        Err(e) => {
+                            return Err(PyValueError::new_err(e.to_string()))
+                        }
+                    }
+                } else if let Some(order_by) = order_by_field {
+                    let collector =
+                        collector.order_by_u64_field(order_by, order.into());
                     let top_docs_handle =
                         multicollector.add_collector(collector);
                     let ret = self.inner.search(query.get(), &multicollector);
@@ -201,8 +290,6 @@ impl Searcher {
                         }
                     }
                 } else {
-                    let collector =
-                        TopDocs::with_limit(limit).and_offset(offset);
                     let top_docs_handle =
                         multicollector.add_collector(collector);
                     let ret = self.inner.search(query.get(), &multicollector);

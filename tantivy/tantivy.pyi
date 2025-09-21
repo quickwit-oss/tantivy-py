@@ -372,6 +372,7 @@ class Searcher:
         order_by_field: Optional[str] = None,
         offset: int = 0,
         order: Order = Order.Desc,
+        weight_by_field: str | None = None,
     ) -> SearchResult:
         pass
 
