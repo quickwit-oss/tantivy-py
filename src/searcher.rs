@@ -199,6 +199,13 @@ impl Searcher {
                     let field_entry = schema.get_field_entry(field);
                     let field_type = field_entry.field_type().value_type();
 
+                    if !field_entry.is_fast() {
+                        return Err(PyValueError::new_err(format!(
+                            "Field '{}' is not a fast field. The field must be declared with fast=True in the schema.",
+                            weight_by_field
+                        )));
+                    }
+
                     // Check if field type is supported
                     if !matches!(field_type, tv::schema::Type::F64 | tv::schema::Type::I64 | tv::schema::Type::U64) {
                         return Err(PyValueError::new_err(format!(

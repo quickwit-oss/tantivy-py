@@ -60,3 +60,22 @@ def test_document_scoring(weight_by_field: str):
     _, doc_address = results.hits[0]
     d = index.searcher().doc(doc_address)
     assert d["id"] == [2]
+
+
+def test_not_fastfield():
+    schema = (
+        SchemaBuilder()
+        .add_integer_field("id", stored=True, indexed=True, fast=True)
+        .add_float_field("weight_f64", stored=True, indexed=True, fast=False)
+        .add_text_field("body", stored=True, fast=True)
+        .build()
+    )
+    index = Index(schema)
+    index.reload()
+
+    searcher = index.searcher()
+
+    query_text = "body:banana"
+    query = index.parse_query(query_text)
+    with pytest.raises(ValueError, match="not a fast field"):
+        _ = searcher.search(query, limit=1, weight_by_field="weight_f64")
