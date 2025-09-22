@@ -508,6 +508,8 @@ impl Index {
     ///         `prefix` determines if terms which are prefixes of the given term match the query.
     ///         `distance` determines the maximum Levenshtein distance between terms matching the query and the given term.
     ///         `transpose_cost_one` determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.
+    /// 
+    ///     conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
     #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false))]
     pub fn parse_query(
         &self,
@@ -554,6 +556,8 @@ impl Index {
     ///         `prefix` determines if terms which are prefixes of the given term match the query.
     ///         `distance` determines the maximum Levenshtein distance between terms matching the query and the given term.
     ///         `transpose_cost_one` determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.
+    /// 
+    ///     conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
     ///
     /// Returns a tuple containing the parsed query and a list of errors.
     ///
