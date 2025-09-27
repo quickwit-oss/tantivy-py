@@ -508,7 +508,9 @@ impl Index {
     ///         `prefix` determines if terms which are prefixes of the given term match the query.
     ///         `distance` determines the maximum Levenshtein distance between terms matching the query and the given term.
     ///         `transpose_cost_one` determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.
-    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new()))]
+    ///
+    ///     conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
+    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false))]
     pub fn parse_query(
         &self,
         py: Python,
@@ -516,12 +518,14 @@ impl Index {
         default_field_names: Option<Vec<String>>,
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
+        conjunction_by_default: bool,
     ) -> PyResult<Query> {
         py.detach(move || {
             let parser = self.prepare_query_parser(
                 default_field_names,
                 field_boosts,
                 fuzzy_fields,
+                conjunction_by_default,
             )?;
 
             let query = parser.parse_query(&query).map_err(to_pyerr)?;
@@ -553,10 +557,12 @@ impl Index {
     ///         `distance` determines the maximum Levenshtein distance between terms matching the query and the given term.
     ///         `transpose_cost_one` determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.
     ///
+    ///     conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
+    ///
     /// Returns a tuple containing the parsed query and a list of errors.
     ///
     /// Raises ValueError if a field in `default_field_names` is not defined or marked as indexed.
-    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new()))]
+    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false))]
     pub fn parse_query_lenient(
         &self,
         py: Python,
@@ -564,11 +570,13 @@ impl Index {
         default_field_names: Option<Vec<String>>,
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
+        conjunction_by_default: bool,
     ) -> PyResult<(Query, Vec<Py<PyAny>>)> {
         let parser = self.prepare_query_parser(
             default_field_names,
             field_boosts,
             fuzzy_fields,
+            conjunction_by_default,
         )?;
 
         let (query, errors) =
@@ -627,6 +635,7 @@ impl Index {
         default_field_names: Option<Vec<String>>,
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
+        conjunction_by_default: bool,
     ) -> PyResult<tv::query::QueryParser> {
         let schema = self.index.schema();
 
@@ -659,6 +668,10 @@ impl Index {
 
         let mut parser =
             tv::query::QueryParser::for_index(&self.index, default_fields);
+
+        if conjunction_by_default {
+            parser.set_conjunction_by_default();
+        }
 
         for (field_name, boost) in field_boosts {
             let field = schema.get_field(&field_name).map_err(|_err| {
