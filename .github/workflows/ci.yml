@@ -51,6 +51,9 @@ jobs:
         allow-prereleases: [false]
         include:
           - os: ubuntu-latest
+            python-version: "3.14"
+            allow-prereleases: false
+          - os: ubuntu-latest
             python-version: "3.13"
             allow-prereleases: false
           - os: ubuntu-latest
