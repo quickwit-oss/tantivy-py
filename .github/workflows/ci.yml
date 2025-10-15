@@ -51,6 +51,9 @@ jobs:
         allow-prereleases: [false]
         include:
           - os: ubuntu-latest
+            python-version: "3.14"
+            allow-prereleases: false
+          - os: ubuntu-latest
             python-version: "3.13"
             allow-prereleases: false
           - os: ubuntu-latest
@@ -82,6 +85,7 @@ jobs:
             index.crates.io:443
             static.rust-lang.org:443
             objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
 
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
