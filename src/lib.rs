@@ -17,7 +17,7 @@ mod tokenizer;
 use document::{extract_value, extract_value_for_type, Document};
 use explanation::Explanation;
 use facet::Facet;
-use index::Index;
+use index::{Index, IndexWriter};
 use query::{Occur, Query};
 use schema::{FieldType, Schema};
 use schemabuilder::SchemaBuilder;
@@ -84,6 +84,7 @@ fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<SearchResult>()?;
     m.add_class::<Document>()?;
     m.add_class::<Index>()?;
+    m.add_class::<IndexWriter>()?;
     m.add_class::<DocAddress>()?;
     m.add_class::<Facet>()?;
     m.add_class::<Query>()?;
