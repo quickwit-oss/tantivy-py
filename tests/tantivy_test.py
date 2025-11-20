@@ -143,15 +143,15 @@ class TestClass(object):
         index = ram_index_numeric_fields
         query = Query.all_query()
         searcher = index.searcher()
-        
+
         # Test cardinality for rating field (has 2 unique values: 3.5 and 4.5)
         cardinality = searcher.cardinality(query, "rating")
         assert cardinality == 2.0
-        
+
         # Test cardinality for id field (has 2 unique values: 1 and 2)
         cardinality = searcher.cardinality(query, "id")
         assert cardinality == 2.0
-        
+
         # Test with a query that filters to one document
         single_doc_query = Query.term_query(index.schema, "id", 1)
         cardinality = searcher.cardinality(single_doc_query, "rating")
@@ -1758,3 +1758,54 @@ class TestTokenizers:
         result = index.searcher().search(query)
         index.reload()
         assert result.count == 0
+
+    @pytest.mark.parametrize(
+        "query_string",
+        [
+            "hello world",
+            "title:hello",
+            "title:hello AND body:world",
+            "title:hello OR title:world",
+            "title:hello NOT body:spam",
+            '"hello world"',
+            "year:[2000 TO 2020]",
+            "title:hello^2.0",
+            "title:hel*",
+            "title:hello~2",
+            "",
+        ],
+    )
+    def test_parse_query_valid(self, query_string):
+        """Test parsing valid queries returns a dict AST"""
+        ast = tantivy.parse_query(query_string)
+        assert ast is not None
+        assert isinstance(ast, dict)
+
+    def test_parse_query_invalid(self):
+        """Test that invalid query raises ValueError"""
+        with pytest.raises(ValueError):
+            tantivy.parse_query("title:")
+
+    @pytest.mark.parametrize(
+        "query_string",
+        [
+            "hello world",
+            "title: AND body:world",
+            "title:hello AND body:world OR author:john",
+            "",
+        ],
+    )
+    def test_parse_query_lenient(self, query_string):
+        """Test lenient parsing returns AST and errors list"""
+        ast, errors = tantivy.parse_query_lenient(query_string)
+        assert ast is not None
+        assert isinstance(ast, dict)
+        assert isinstance(errors, list)
+
+    def test_parse_query_lenient_valid_no_errors(self):
+        """Test lenient parsing with valid query returns no errors"""
+        ast, errors = tantivy.parse_query_lenient("hello world")
+        assert ast is not None
+        assert isinstance(ast, dict)
+        assert isinstance(errors, list)
+        assert len(errors) == 0

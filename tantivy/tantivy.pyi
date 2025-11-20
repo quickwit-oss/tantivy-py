@@ -620,5 +620,33 @@ class TextAnalyzerBuilder:
     def build(self) -> TextAnalyzer:
         pass
 
+def parse_query(query: str) -> dict[str, Any]:
+    """
+    Parse a query string into an abstract syntax tree (AST).
+
+    Args:
+        query: The query string to parse.
+
+    Returns:
+        A dictionary representing the parsed query AST.
+
+    Raises:
+        ValueError: If the query has invalid syntax.
+    """
+    pass
+
+def parse_query_lenient(query: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """
+    Parse a query string leniently, recovering from syntax errors.
+
+    Args:
+        query: The query string to parse.
+
+    Returns:
+        A tuple containing:
+            - A dictionary representing the parsed query AST
+            - A list of error dictionaries describing syntax errors
+    """
+    pass
 
 __version__: str
