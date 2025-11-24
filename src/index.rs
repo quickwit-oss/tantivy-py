@@ -528,7 +528,7 @@ impl Index {
                 conjunction_by_default,
             )?;
 
-            let query = parser.parse_query(&query).map_err(to_pyerr)?;
+            let query = parser.parse_query(query).map_err(to_pyerr)?;
 
             Ok(Query { inner: query })
         })
@@ -580,7 +580,7 @@ impl Index {
         )?;
 
         let (query, errors) =
-            py.detach(move || parser.parse_query_lenient(&query));
+            py.detach(move || parser.parse_query_lenient(query));
 
         let errors = errors
             .into_iter()
@@ -606,7 +606,7 @@ impl Index {
         analyzer: PyTextAnalyzer,
     ) {
         py.detach(move || {
-            self.index.tokenizers().register(&name, analyzer.analyzer);
+            self.index.tokenizers().register(name, analyzer.analyzer);
         });
     }
 
@@ -624,7 +624,7 @@ impl Index {
         py.detach(move || {
             self.index
                 .fast_field_tokenizer()
-                .register(&name, analyzer.analyzer);
+                .register(name, analyzer.analyzer);
         });
     }
 }
