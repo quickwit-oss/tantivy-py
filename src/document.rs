@@ -53,7 +53,7 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
     }
     if let Ok(dict) = any.downcast::<PyDict>() {
         if let Ok(json_dict) =
-            pythonize::depythonize::<BTreeMap<String, Value>>(&dict.as_ref())
+            pythonize::depythonize::<BTreeMap<String, Value>>(dict.as_ref())
         {
             return Ok(Value::Object(json_dict.into_iter().collect()));
         } else {
@@ -136,7 +136,7 @@ pub(crate) fn extract_value_for_type(
                 .downcast::<PyDict>()
                 .map_err(to_pyerr_for_type("Json", field_name, any))?;
             let map = pythonize::depythonize::<BTreeMap<String, Value>>(
-                &dict.as_ref(),
+                dict.as_ref(),
             )?;
             Value::Object(map.into_iter().collect())
         }
