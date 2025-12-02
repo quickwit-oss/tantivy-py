@@ -59,7 +59,7 @@ jobs:
           manylinux: auto
           target: ${{ matrix.platform }}
           command: build
-          args: --release --sdist -o dist -i 3.9 3.10 3.11 3.12 3.13 3.13t 3.14 3.14t
+          args: --release --sdist -o dist -i 3.9 3.10 3.11 3.12 3.13 3.13t 3.14
 
       - name: Upload wheels
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4  # 5.0.0
@@ -76,7 +76,7 @@ jobs:
     strategy:
       matrix:
         target: [x64]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.13t', '3.14', '3.14t']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.13t', '3.14']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2
@@ -109,7 +109,7 @@ jobs:
       attestations: write  # persist the attestation
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.13t', '3.14', '3.14t']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.13t', '3.14']
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
