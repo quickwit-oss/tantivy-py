@@ -980,9 +980,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.145"
+version = "1.0.146"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "402a6f66d8c709116cf22f558eab210f5a50187f702eb4d7e5ef38d9a7f1c79c"
+checksum = "217ca874ae0207aac254aa02c957ded05585a90892cc8d87f9e5fa49669dadd8"
 dependencies = [
  "itoa",
  "memchr",
@@ -1044,22 +1044,6 @@ dependencies = [
 [[package]]
 name = "tantivy"
 version = "0.25.0"
-dependencies = [
- "base64",
- "chrono",
- "futures",
- "itertools",
- "pyo3",
- "pyo3-build-config 0.27.1",
- "pythonize",
- "serde",
- "serde_json",
- "tantivy 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tantivy"
-version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "502915c7381c5cb2d2781503962610cb880ad8f1a0ca95df1bae645d5ebf2545"
 dependencies = [
@@ -1107,6 +1091,22 @@ dependencies = [
  "time",
  "uuid",
  "winapi",
+]
+
+[[package]]
+name = "tantivy"
+version = "0.25.1"
+dependencies = [
+ "base64",
+ "chrono",
+ "futures",
+ "itertools",
+ "pyo3",
+ "pyo3-build-config 0.27.1",
+ "pythonize",
+ "serde",
+ "serde_json",
+ "tantivy 0.25.0",
 ]
 
 [[package]]
