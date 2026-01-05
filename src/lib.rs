@@ -5,7 +5,6 @@ use pyo3::{exceptions, prelude::*, wrap_pymodule};
 mod document;
 mod explanation;
 mod facet;
-mod filters;
 mod index;
 mod more_collectors;
 mod parser_error;

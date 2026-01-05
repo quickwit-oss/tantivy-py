@@ -279,6 +279,17 @@ impl TextAnalyzer {
         }
         tokens
     }
+
+    /// Count tokens without materializing them into a collection.
+    /// Much faster than len(analyze(text)) for large texts.
+    ///
+    /// Args:
+    /// - text (string): text to analyze
+    /// Returns:
+    /// - int: count of non-stopped tokens
+    fn count_tokens(&mut self, text: &str) -> usize {
+        tantivy_tokenizers::count_tokens(&mut self.analyzer, text)
+    }
 }
 
 /// Tantivy's TextAnalyzerBuilder

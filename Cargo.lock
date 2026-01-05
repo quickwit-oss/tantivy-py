@@ -1050,6 +1050,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tantivy 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tantivy-tokenizers",
  "unicode-properties",
 ]
 
@@ -1197,6 +1198,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23024f6aeb25ceb1a0e27740c84bdb0fae52626737b7e9a9de6ad5aa25c7b038"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "tantivy-tokenizers"
+version = "0.1.0"
+source = "git+https://github.com/Kapiche/tantivy-tokenizers?tag=v0.1.0#5b2345f2dfd6bb0e137c4314ed784ca05b264d7c"
+dependencies = [
+ "tantivy 0.25.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-properties",
 ]
 
 [[package]]
