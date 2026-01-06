@@ -10,18 +10,6 @@ use pyo3::{
 };
 use tantivy as tv;
 
-/// Custom Tuple struct to represent a pair of Occur and Query
-/// for the BooleanQuery
-struct OccurQueryPair(Occur, Query);
-
-impl<'source> FromPyObject<'source> for OccurQueryPair {
-    fn extract_bound(ob: &Bound<'source, PyAny>) -> PyResult<Self> {
-        let (occur, query): (Occur, Query) = ob.extract()?;
-
-        Ok(OccurQueryPair(occur, query))
-    }
-}
-
 /// Tantivy's Occur
 #[pyclass(frozen, module = "tantivy.tantivy")]
 #[derive(Clone)]
@@ -120,6 +108,15 @@ impl Query {
         })
     }
 
+    /// Construct a Tantivy's EmptyQuery
+    #[staticmethod]
+    pub(crate) fn empty_query() -> PyResult<Query> {
+        let inner = tv::query::EmptyQuery {};
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
     /// Construct a Tantivy's FuzzyTermQuery
     ///
     /// # Arguments
@@ -196,6 +193,91 @@ impl Query {
             terms_with_offset,
             slop,
         );
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    /// Construct a Tantivy's PhraseQuery with custom offsets and slop
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - Schema of the target index.
+    /// * `field_name` - Field name to be searched.
+    /// * `words` - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.
+    /// * `slop` - (Optional) The number of gaps permitted between the words in the query phrase. Default is 0.
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, words, slop = 0))]
+    pub(crate) fn regex_phrase_query(
+        schema: &Schema,
+        field_name: &str,
+        words: Vec<Bound<PyAny>>,
+        slop: u32,
+    ) -> PyResult<Query> {
+        let mut terms_with_offset = Vec::with_capacity(words.len());
+        let field = get_field(&schema.inner, field_name).map_err(|_err| {
+            exceptions::PyValueError::new_err(format!(
+                "Field `{field_name}` is not defined in the schema."
+            ))
+        })?;
+        for (idx, word) in words.into_iter().enumerate() {
+            if let Ok((offset, value)) = word.extract() {
+                // Custom offset is provided.
+                terms_with_offset.push((offset, value));
+            } else {
+                let value = word.extract::<String>()?;
+                // Custom offset is not provided. Use the list index as the offset.
+                terms_with_offset.push((idx, value));
+            };
+        }
+        if terms_with_offset.is_empty() {
+            return Err(exceptions::PyValueError::new_err(
+                "words must not be empty.",
+            ));
+        }
+        let inner = tv::query::RegexPhraseQuery::new_with_offset_and_slop(
+            field,
+            terms_with_offset,
+            slop,
+        );
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    /// Construct a Tantivy's PhrasePrefixQuery with custom offsets and slop
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - Schema of the target index.
+    /// * `field_name` - Field name to be searched.
+    /// * `words` - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.
+    #[staticmethod]
+    #[pyo3(signature = (schema, field_name, words))]
+    pub(crate) fn phrase_prefix_query(
+        schema: &Schema,
+        field_name: &str,
+        words: Vec<Bound<PyAny>>,
+    ) -> PyResult<Query> {
+        let mut terms_with_offset = Vec::with_capacity(words.len());
+        for (idx, word) in words.into_iter().enumerate() {
+            if let Ok((offset, value)) = word.extract() {
+                // Custom offset is provided.
+                let term = make_term(&schema.inner, field_name, &value)?;
+                terms_with_offset.push((offset, term));
+            } else {
+                // Custom offset is not provided. Use the list index as the offset.
+                let term = make_term(&schema.inner, field_name, &word)?;
+                terms_with_offset.push((idx, term));
+            };
+        }
+        if terms_with_offset.is_empty() {
+            return Err(exceptions::PyValueError::new_err(
+                "words must not be empty.",
+            ));
+        }
+        let inner =
+            tv::query::PhrasePrefixQuery::new_with_offset(terms_with_offset);
         Ok(Query {
             inner: Box::new(inner),
         })
@@ -333,7 +415,7 @@ impl Query {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (schema, field_name, field_type, lower_bound, upper_bound, include_lower = true, include_upper = true))]
+    #[pyo3(signature = (schema, field_name, field_type, lower_bound, upper_bound, include_lower = true, include_upper = true, use_inverted_index = false))]
     pub(crate) fn range_query(
         schema: &Schema,
         field_name: &str,
@@ -342,6 +424,7 @@ impl Query {
         upper_bound: &Bound<PyAny>,
         include_lower: bool,
         include_upper: bool,
+        use_inverted_index: bool,
     ) -> PyResult<Query> {
         match field_type {
             FieldType::Text => {
@@ -411,11 +494,20 @@ impl Query {
             OpsBound::Excluded(upper_bound_term)
         };
 
-        let inner = tv::query::RangeQuery::new(lower_bound, upper_bound);
-
-        Ok(Query {
-            inner: Box::new(inner),
-        })
+        if use_inverted_index {
+            let inner = tv::query::InvertedIndexRangeQuery::new(
+                lower_bound,
+                upper_bound,
+            );
+            Ok(Query {
+                inner: Box::new(inner),
+            })
+        } else {
+            let inner = tv::query::RangeQuery::new(lower_bound, upper_bound);
+            Ok(Query {
+                inner: Box::new(inner),
+            })
+        }
     }
 
     /// Explain how this query matches a given document.

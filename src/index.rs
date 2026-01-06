@@ -184,6 +184,19 @@ impl IndexWriter {
     /// This function checks the type of the field and then converts the given value to
     /// that particular type, instead of the other way around.
     ///
+    /// This method does not parse the given term and it expects the term to be
+    /// already tokenized according to any tokenizers attached to the field. This
+    /// can often result in surprising behaviour. For example, if you want to store
+    /// UUIDs as text in a field, and those values have hyphens, and you use the
+    /// default tokenizer which removes punctuation, you will not be able to delete
+    /// a document added with particular UUID, by passing the same UUID to this
+    /// method. In such workflows where deletions are required, particularly with
+    /// string values, it is strongly recommended to use the
+    /// "raw" tokenizer as this will match exactly. In situations where you do
+    /// want tokenization to be applied, it is recommended to instead use the
+    /// `delete_documents_by_query` method instead, which will delete documents
+    /// matching the given query using the same query parser as used in search queries.
+    ///
     /// Args:
     ///     field_name (str): The field name for which we want to filter deleted docs.
     ///     field_value (PyAny): Python object with the value we want to filter.
@@ -618,7 +631,9 @@ impl Index {
     ///         `prefix` determines if terms which are prefixes of the given term match the query.
     ///         `distance` determines the maximum Levenshtein distance between terms matching the query and the given term.
     ///         `transpose_cost_one` determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.
-    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new()))]
+    ///
+    ///     conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
+    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false))]
     pub fn parse_query(
         &self,
         py: Python,
@@ -626,15 +641,17 @@ impl Index {
         default_field_names: Option<Vec<String>>,
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
+        conjunction_by_default: bool,
     ) -> PyResult<Query> {
         py.detach(move || {
             let parser = self.prepare_query_parser(
                 default_field_names,
                 field_boosts,
                 fuzzy_fields,
+                conjunction_by_default,
             )?;
 
-            let query = parser.parse_query(&query).map_err(to_pyerr)?;
+            let query = parser.parse_query(query).map_err(to_pyerr)?;
 
             Ok(Query { inner: query })
         })
@@ -663,10 +680,12 @@ impl Index {
     ///         `distance` determines the maximum Levenshtein distance between terms matching the query and the given term.
     ///         `transpose_cost_one` determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.
     ///
+    ///     conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
+    ///
     /// Returns a tuple containing the parsed query and a list of errors.
     ///
     /// Raises ValueError if a field in `default_field_names` is not defined or marked as indexed.
-    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new()))]
+    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false))]
     pub fn parse_query_lenient(
         &self,
         py: Python,
@@ -674,15 +693,17 @@ impl Index {
         default_field_names: Option<Vec<String>>,
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
+        conjunction_by_default: bool,
     ) -> PyResult<(Query, Vec<Py<PyAny>>)> {
         let parser = self.prepare_query_parser(
             default_field_names,
             field_boosts,
             fuzzy_fields,
+            conjunction_by_default,
         )?;
 
         let (query, errors) =
-            py.detach(move || parser.parse_query_lenient(&query));
+            py.detach(move || parser.parse_query_lenient(query));
 
         let errors = errors
             .into_iter()
@@ -708,7 +729,25 @@ impl Index {
         analyzer: PyTextAnalyzer,
     ) {
         py.detach(move || {
-            self.index.tokenizers().register(&name, analyzer.analyzer);
+            self.index.tokenizers().register(name, analyzer.analyzer);
+        });
+    }
+
+    /// Register a custom text analyzer for fast fields by name. (Confusingly,
+    /// this is one of the places where Tantivy uses 'tokenizer' to refer to a
+    /// TextAnalyzer instance.)
+    ///
+    // Implementation notes: Skipped indirection of TokenizerManager.
+    pub fn register_fast_field_tokenizer(
+        &self,
+        py: Python,
+        name: &str,
+        analyzer: PyTextAnalyzer,
+    ) {
+        py.detach(move || {
+            self.index
+                .fast_field_tokenizer()
+                .register(name, analyzer.analyzer);
         });
     }
 }
@@ -719,6 +758,7 @@ impl Index {
         default_field_names: Option<Vec<String>>,
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
+        conjunction_by_default: bool,
     ) -> PyResult<tv::query::QueryParser> {
         let schema = self.index.schema();
 
@@ -751,6 +791,10 @@ impl Index {
 
         let mut parser =
             tv::query::QueryParser::for_index(&self.index, default_fields);
+
+        if conjunction_by_default {
+            parser.set_conjunction_by_default();
+        }
 
         for (field_name, boost) in field_boosts {
             let field = schema.get_field(&field_name).map_err(|_err| {

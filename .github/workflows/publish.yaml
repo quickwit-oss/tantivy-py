@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
       - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
         with:
-          python-version: 3.9
+          python-version: '3.10'
           architecture: x64
 
       - uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380
@@ -59,7 +59,7 @@ jobs:
           manylinux: auto
           target: ${{ matrix.platform }}
           command: build
-          args: --release --sdist -o dist -i 3.9 3.10 3.11 3.12 3.13
+          args: --release --sdist -o dist -i 3.9 3.10 3.11 3.12 3.13 3.13t 3.14
 
       - name: Upload wheels
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # 6.0.0
@@ -76,7 +76,7 @@ jobs:
     strategy:
       matrix:
         target: [x64]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.13t', '3.14']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76
@@ -109,7 +109,7 @@ jobs:
       attestations: write  # persist the attestation
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.13t', '3.14']
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
@@ -165,10 +165,10 @@ jobs:
         with:
           toolchain: "stable"
 
-      - name: Set up Python 3.9
+      - name: Set up Python 3.10
         uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
-          python-version: 3.9
+          python-version: '3.10'
 
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
@@ -183,3 +183,36 @@ jobs:
         with:
           asset_paths: '["./wheels/tantivy-*"]'
 
+  release-pypy:
+    name: Release
+    if: github.repository_owner == 'quickwit-oss'
+    runs-on: ubuntu-latest
+    needs: [ macos, windows, linux ]
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76
+        with:
+          egress-policy: audit
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: wheels
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: Publish package distributions to Test PyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: wheels/
+          skip-existing: true
+          attestations: false
+
+      - name: Publish package distributions to PyPI
+        if: always()
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        with:
+          packages-dir: wheels/
+          skip-existing: true

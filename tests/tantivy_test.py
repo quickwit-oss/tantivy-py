@@ -73,6 +73,12 @@ class TestClass(object):
 
         assert len(result.hits) == 1
 
+    def test_parse_query_conjunction_by_default(self, ram_index):
+        index = ram_index
+        # not a perfect comparison, but it's simple and does the job
+        assert repr(index.parse_query("men winter", ["title"], conjunction_by_default=False)) == repr(index.parse_query("men OR winter", ["title"], conjunction_by_default=True))
+        assert repr(index.parse_query("men winter", ["title"], conjunction_by_default=True)) == repr(index.parse_query("men AND winter", ["title"], conjunction_by_default=True))
+
     def test_doc_freq(self, ram_index):
         index = ram_index
         searcher = index.searcher()
@@ -1011,6 +1017,13 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 3
 
+    def test_empty_query(self, ram_index):
+        index = ram_index
+        query = Query.empty_query()
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
     def test_phrase_query(self, ram_index):
         index = ram_index
         searcher = index.searcher()
@@ -1042,6 +1055,65 @@ class TestQuery(object):
 
         with pytest.raises(ValueError, match="words must not be empty."):
             Query.phrase_query(index.schema, "title", [])
+
+    def test_regex_phrase_query(self, ram_index):
+        index = ram_index
+        searcher = index.searcher()
+
+        query = Query.regex_phrase_query(index.schema, "title", ["o.d", "ma[nm]"])
+        # should match the title "The Old Man and the Sea"
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.regex_phrase_query(index.schema, "title", ["man", "old"])
+        # sholdn't match any document
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.regex_phrase_query(index.schema, "title", [(1, "[a-m]an"), (0, "old")])
+        # should match "The Old Man and the Sea" with the given offsets
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.regex_phrase_query(index.schema, "title", ["ma.", "se."])
+        # sholdn't match any document with default slop 0.
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.regex_phrase_query(index.schema, "title", ["ma.", "se."], slop=2)
+        # should match the title "The Old Man and the Sea" with slop 2.
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        with pytest.raises(ValueError, match="words must not be empty."):
+            Query.regex_phrase_query(index.schema, "title", [])
+
+    def test_phrase_prefix_query(self, ram_index):
+        index = ram_index
+        searcher = index.searcher()
+
+        query = Query.phrase_prefix_query(index.schema, "title", ["old", "man"])
+        # should match the title "The Old Man and the Sea"
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.phrase_prefix_query(index.schema, "title", ["old", "ma"])
+        # should still match the title "The Old Man and the Sea"
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.phrase_prefix_query(index.schema, "title", ["man", "old"])
+        # sholdn't match any document
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
+        query = Query.phrase_prefix_query(index.schema, "title", [(1, "m"), (0, "old")])
+        # should match "The Old Man and the Sea" with the given offsets
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+
+        with pytest.raises(ValueError, match="words must not be empty."):
+            Query.phrase_prefix_query(index.schema, "title", [])
 
     def test_fuzzy_term_query(self, ram_index):
         index = ram_index
@@ -1406,6 +1478,19 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
+    def test_range_query_numerics_with_inverted_index(self, ram_index_numeric_fields):
+        index = ram_index_numeric_fields
+
+        # test integer field including both bounds
+        query = Query.range_query(index.schema, "id", FieldType.Integer, 1, 2, use_inverted_index=True)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        # test integer field excluding the lower bound
+        query = Query.range_query(index.schema, "id", FieldType.Integer, 1, 2, use_inverted_index=True, include_lower=False)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
     def test_range_query_dates(self, ram_index_with_date_field):
         index = ram_index_with_date_field
 
@@ -1564,12 +1649,13 @@ class TestTokenizers:
 
         schema = (
             tantivy.SchemaBuilder()
-            .add_text_field("content", tokenizer_name="custom_analyzer")
+            .add_text_field("content", fast=True, tokenizer_name="custom_analyzer")
             .build()
         )
 
         index = tantivy.Index(schema)
         index.register_tokenizer("custom_analyzer", custom_analyzer)
+        index.register_fast_field_tokenizer("custom_analyzer", custom_analyzer)
 
         writer = index.writer()
         doc = Document(content=doc_text)
@@ -1671,3 +1757,54 @@ class TestTokenizers:
         result = index.searcher().search(query)
         index.reload()
         assert result.count == 0
+
+    @pytest.mark.parametrize(
+        "query_string",
+        [
+            "hello world",
+            "title:hello",
+            "title:hello AND body:world",
+            "title:hello OR title:world",
+            "title:hello NOT body:spam",
+            '"hello world"',
+            "year:[2000 TO 2020]",
+            "title:hello^2.0",
+            "title:hel*",
+            "title:hello~2",
+            "",
+        ],
+    )
+    def test_parse_query_valid(self, query_string):
+        """Test parsing valid queries returns a dict AST"""
+        ast = tantivy.parse_query(query_string)
+        assert ast is not None
+        assert isinstance(ast, dict)
+
+    def test_parse_query_invalid(self):
+        """Test that invalid query raises ValueError"""
+        with pytest.raises(ValueError):
+            tantivy.parse_query("title:")
+
+    @pytest.mark.parametrize(
+        "query_string",
+        [
+            "hello world",
+            "title: AND body:world",
+            "title:hello AND body:world OR author:john",
+            "",
+        ],
+    )
+    def test_parse_query_lenient(self, query_string):
+        """Test lenient parsing returns AST and errors list"""
+        ast, errors = tantivy.parse_query_lenient(query_string)
+        assert ast is not None
+        assert isinstance(ast, dict)
+        assert isinstance(errors, list)
+
+    def test_parse_query_lenient_valid_no_errors(self):
+        """Test lenient parsing with valid query returns no errors"""
+        ast, errors = tantivy.parse_query_lenient("hello world")
+        assert ast is not None
+        assert isinstance(ast, dict)
+        assert isinstance(errors, list)
+        assert len(errors) == 0
