@@ -27,6 +27,7 @@ use schema::{FieldType, Schema};
 use schemabuilder::SchemaBuilder;
 use searcher::{DocAddress, Order, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
+use tantivy_tokenizers::{kapiche_analyzer, kapiche_analyzer_lower};
 use tokenizer::{Filter, TextAnalyzer, TextAnalyzerBuilder, Tokenizer};
 
 /// Python bindings for the search engine library Tantivy.
@@ -104,6 +105,8 @@ fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 
     m.add_function(wrap_pyfunction!(parse_query, m)?)?;
     m.add_function(wrap_pyfunction!(parse_query_lenient, m)?)?;
+    m.add_function(wrap_pyfunction!(kapiche_tokenizer_py, m)?)?;
+    m.add_function(wrap_pyfunction!(kapiche_tokenizer_lower_py, m)?)?;
 
     m.add_wrapped(wrap_pymodule!(query_parser_error))?;
 
@@ -228,4 +231,41 @@ pub(crate) fn make_term_for_type(
     };
 
     Ok(term)
+}
+
+/// Create a Kapiche text analyzer.
+///
+/// This analyzer is configured with specific tokenization and filtering
+/// rules used by Kapiche for text analysis.
+///
+/// Returns:
+///     TextAnalyzer: A configured text analyzer instance.
+///
+/// Example:
+///     >>> analyzer = tantivy.kapiche_tokenizer()
+///     >>> tokens = analyzer.analyze("Hello World")
+#[pyfunction(name = "kapiche_tokenizer")]
+fn kapiche_tokenizer_py() -> TextAnalyzer {
+    TextAnalyzer {
+        analyzer: kapiche_analyzer(),
+    }
+}
+
+/// Create a Kapiche text analyzer with lowercase normalization.
+///
+/// This analyzer is similar to kapiche_tokenizer() but includes
+/// lowercase normalization of tokens.
+///
+/// Returns:
+///     TextAnalyzer: A configured text analyzer instance with lowercase filter.
+///
+/// Example:
+///     >>> analyzer = tantivy.kapiche_tokenizer_lower()
+///     >>> tokens = analyzer.analyze("Hello World")
+///     >>> # tokens will be lowercased
+#[pyfunction(name = "kapiche_tokenizer_lower")]
+fn kapiche_tokenizer_lower_py() -> TextAnalyzer {
+    TextAnalyzer {
+        analyzer: kapiche_analyzer_lower(),
+    }
 }

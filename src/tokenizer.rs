@@ -285,10 +285,29 @@ impl TextAnalyzer {
     ///
     /// Args:
     /// - text (string): text to analyze
+    /// - unique (bool, optional): if True, count only unique tokens. Defaults to False.
     /// Returns:
-    /// - int: count of non-stopped tokens
-    fn count_tokens(&mut self, text: &str) -> usize {
-        tantivy_tokenizers::count_tokens(&mut self.analyzer, text)
+    /// - int: count of tokens (unique or total based on parameter)
+    #[pyo3(signature = (text, unique=false))]
+    fn count_tokens(&mut self, text: &str, unique: bool) -> usize {
+        let mut token_stream = self.analyzer.token_stream(text);
+
+        if unique {
+            let mut seen = std::collections::HashSet::new();
+            while token_stream.advance() {
+                let token = token_stream.token();
+                if !seen.contains(token.text.as_str()) {
+                    seen.insert(token.text.to_string());
+                }
+            }
+            seen.len()
+        } else {
+            let mut count = 0;
+            while token_stream.advance() {
+                count += 1;
+            }
+            count
+        }
     }
 }
 
