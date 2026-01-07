@@ -654,4 +654,42 @@ def parse_query_lenient(query: str) -> tuple[dict[str, Any], list[dict[str, Any]
     """
     pass
 
+def kapiche_tokenizer() -> TextAnalyzer:
+    """
+    Create a Kapiche text analyzer.
+
+    This analyzer is configured with specific tokenization and filtering
+    rules used by Kapiche for text analysis.
+
+    Returns:
+        TextAnalyzer: A configured text analyzer instance.
+    """
+    pass
+
+def kapiche_tokenizer_lower() -> TextAnalyzer:
+    """
+    Create a Kapiche text analyzer with lowercase normalization.
+
+    This analyzer is similar to kapiche_tokenizer() but includes
+    lowercase normalization of tokens.
+
+    Returns:
+        TextAnalyzer: A configured text analyzer instance with lowercase filter.
+    """
+    pass
+
+def kapiche_tokenizer_lower_with_stopwords() -> TextAnalyzer:
+    """
+    Create a Kapiche text analyzer with lowercase normalization and stopword filtering.
+
+    This analyzer is similar to kapiche_tokenizer_lower() but includes
+    stopword filtering using Kapiche's custom 334-word English stopword list.
+    Use this for token counting and topic modeling.
+    For search indexing, use kapiche_tokenizer_lower() instead.
+
+    Returns:
+        TextAnalyzer: A configured text analyzer instance with stopword filtering.
+    """
+    pass
+
 __version__: str

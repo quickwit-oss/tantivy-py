@@ -17,7 +17,7 @@ pyo3-build-config = "0.27.2"
 base64 = "0.22"
 chrono = "0.4.42"
 tantivy = "0.25.0"
-tantivy-tokenizers = { git = "https://github.com/Kapiche/tantivy-tokenizers", tag = "v0.1.0" }
+tantivy-tokenizers = { git = "https://github.com/Kapiche/tantivy-tokenizers", tag = "v0.2.0" }
 itertools = "0.14.0"
 futures = "0.3.31"
 pythonize = "0.26.0"

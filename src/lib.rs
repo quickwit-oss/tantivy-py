@@ -27,7 +27,7 @@ use schema::{FieldType, Schema};
 use schemabuilder::SchemaBuilder;
 use searcher::{DocAddress, Order, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
-use tantivy_tokenizers::{kapiche_analyzer, kapiche_analyzer_lower};
+use tantivy_tokenizers::{kapiche_analyzer, kapiche_analyzer_lower, kapiche_analyzer_lower_with_stopwords};
 use tokenizer::{Filter, TextAnalyzer, TextAnalyzerBuilder, Tokenizer};
 
 /// Python bindings for the search engine library Tantivy.
@@ -107,6 +107,7 @@ fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(parse_query_lenient, m)?)?;
     m.add_function(wrap_pyfunction!(kapiche_tokenizer_py, m)?)?;
     m.add_function(wrap_pyfunction!(kapiche_tokenizer_lower_py, m)?)?;
+    m.add_function(wrap_pyfunction!(kapiche_tokenizer_lower_with_stopwords_py, m)?)?;
 
     m.add_wrapped(wrap_pymodule!(query_parser_error))?;
 
@@ -267,5 +268,26 @@ fn kapiche_tokenizer_py() -> TextAnalyzer {
 fn kapiche_tokenizer_lower_py() -> TextAnalyzer {
     TextAnalyzer {
         analyzer: kapiche_analyzer_lower(),
+    }
+}
+
+/// Create a Kapiche text analyzer with lowercase normalization and stopword filtering.
+///
+/// This analyzer is similar to kapiche_tokenizer_lower() but includes
+/// stopword filtering using Kapiche's custom 334-word English stopword list.
+/// Use this for token counting and topic modeling.
+/// For search indexing, use kapiche_tokenizer_lower() instead.
+///
+/// Returns:
+///     TextAnalyzer: A configured text analyzer instance with stopword filtering.
+///
+/// Example:
+///     >>> analyzer = tantivy.kapiche_tokenizer_lower_with_stopwords()
+///     >>> count = analyzer.count_tokens("the quick brown fox", unique=True)
+///     >>> # count = 3 ("the" is removed as stopword)
+#[pyfunction(name = "kapiche_tokenizer_lower_with_stopwords")]
+fn kapiche_tokenizer_lower_with_stopwords_py() -> TextAnalyzer {
+    TextAnalyzer {
+        analyzer: kapiche_analyzer_lower_with_stopwords(),
     }
 }

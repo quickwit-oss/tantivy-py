@@ -130,6 +130,40 @@ class TestCountTokens:
         assert unique_count < total_count
 
 
+class TestKapicheTokenizerWithStopwords:
+    """Tests for kapiche_tokenizer_lower_with_stopwords()"""
+
+    def test_kapiche_tokenizer_lower_with_stopwords_english(self):
+        """Test that stopwords are removed using Kapiche custom English list"""
+        analyzer = tantivy.kapiche_tokenizer_lower_with_stopwords()
+        tokens = analyzer.analyze("The quick brown fox")
+        assert tokens == ["quick", "brown", "fox"]
+
+    def test_count_tokens_with_stopwords(self):
+        """Test count_tokens excludes stopwords"""
+        analyzer = tantivy.kapiche_tokenizer_lower_with_stopwords()
+        # "the", "and", and "a" are stopwords
+        count = analyzer.count_tokens("the quick brown fox and a dog", unique=True)
+        # Tokens: quick, brown, fox, dog = 4 ("the", "and", "a" are stopwords)
+        assert count == 4
+
+    def test_stopwords_with_punctuation_and_possessives(self):
+        """Test that filter order works correctly"""
+        analyzer = tantivy.kapiche_tokenizer_lower_with_stopwords()
+        tokens = analyzer.analyze("John's the best!")
+        # "John's" -> "john" (lowercased, possessive removed)
+        # "the" -> removed (stopword)
+        # "best!" -> "best" (punctuation removed)
+        assert tokens == ["john", "best"]
+
+    def test_case_insensitive_stopword_removal(self):
+        """Test that uppercase stopwords are removed after lowercasing"""
+        analyzer = tantivy.kapiche_tokenizer_lower_with_stopwords()
+        tokens = analyzer.analyze("THE QUICK")
+        # "THE" lowercased to "the", then removed as stopword
+        assert tokens == ["quick"]
+
+
 class TestUsagePattern:
     """Test the actual usage pattern mentioned in the requirements"""
 
