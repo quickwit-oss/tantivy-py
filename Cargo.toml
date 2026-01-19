@@ -15,7 +15,7 @@ pyo3-build-config = "0.27.2"
 
 [dependencies]
 base64 = "0.22"
-chrono = "0.4.42"
+chrono = "0.4.43"
 tantivy = "0.25.0"
 itertools = "0.14.0"
 futures = "0.3.31"
