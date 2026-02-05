@@ -1,7 +1,7 @@
 from datetime import datetime
 import pytest
 
-from tantivy import Schema, SchemaBuilder, Index, Document
+from tantivy import SchemaBuilder, Index, Document
 
 
 def build_schema():
