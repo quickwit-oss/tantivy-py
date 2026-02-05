@@ -1024,6 +1024,25 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
+    def test_exists_query(self, index_with_empty_fast_field):
+        index = index_with_empty_fast_field
+        query = Query.exists_query("body")
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+    def test_not_exists_query(self, index_with_empty_fast_field):
+        index = index_with_empty_fast_field
+        query = Query.boolean_query(
+            [
+                (Occur.Must, Query.all_query()),
+                (Occur.MustNot, Query.exists_query("body")),
+            ]
+        )
+
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
     def test_phrase_query(self, ram_index):
         index = ram_index
         searcher = index.searcher()

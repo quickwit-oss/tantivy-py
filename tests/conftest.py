@@ -1,7 +1,7 @@
 from datetime import datetime
 import pytest
 
-from tantivy import SchemaBuilder, Index, Document
+from tantivy import Schema, SchemaBuilder, Index, Document
 
 
 def build_schema():
@@ -277,6 +277,50 @@ def ram_index_with_date_field():
 @pytest.fixture(scope="class")
 def ram_index_with_ip_addr_field():
     return create_index_with_ip_addr_field()
+
+
+@pytest.fixture(scope="class")
+def index_with_empty_fast_field():
+    schema = (
+        SchemaBuilder()
+        .add_text_field("title", fast=True, stored=True)
+        .add_text_field("body", fast=True)
+        .build()
+    )
+
+    index = Index(schema, None)
+
+    with index.writer(15_000_000, 1) as writer:
+        doc = Document.from_dict(
+            {
+                "title": (
+                    "A record of the statesmanship and political achievements of Gen. Winfield Scott Hancock, "
+                    "regular Democratic nominee for president of the United States"
+                ),
+            }
+        )
+        writer.add_document(doc)
+
+        doc = Document.from_dict(
+            {"title": "Political Achievements of the Earl of Dalkeith"},
+        )
+
+        writer.add_document(doc)
+
+        doc = Document.from_dict(
+            {
+                "title": "The Old Man and the Sea",
+                "body": (
+                    "He was an old man who fished alone in a skiff in"
+                    "the Gulf Stream and he had gone eighty-four days "
+                    "now without taking a fish."
+                ),
+            }
+        )
+
+        writer.add_document(doc)
+
+    return index
 
 
 @pytest.fixture(scope="class")
