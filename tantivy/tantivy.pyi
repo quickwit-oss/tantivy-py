@@ -245,6 +245,12 @@ class Query:
         pass
 
     @staticmethod
+    def exists_query(
+        field_name: str, json_subpaths: bool = False
+        ) -> Query:
+        pass
+
+    @staticmethod
     def fuzzy_term_query(
         schema: Schema,
         field_name: str,
