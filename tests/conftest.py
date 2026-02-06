@@ -320,6 +320,7 @@ def index_with_empty_fast_field():
 
         writer.add_document(doc)
 
+    index.reload()
     return index
 
 
