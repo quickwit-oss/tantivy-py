@@ -122,15 +122,15 @@ impl Query {
     ///
     /// # Arguments
     ///
-    /// * `field_name` - Field name to be searched.
+    /// * `fast_field_name` - Field name to be searched.
     /// * `json_subpaths` - If true, check all the subpaths inside a JSON field
 
     #[staticmethod]
-    #[pyo3(signature = (field_name, json_subpaths=false))]
+    #[pyo3(signature = (fast_field_name, json_subpaths=false))]
     pub(crate) fn exists_query(
-        field_name: String, json_subpaths: bool
+        fast_field_name: String, json_subpaths: bool
     ) -> PyResult<Query> {
-        let inner = tv::query::ExistsQuery::new(field_name, json_subpaths);
+        let inner = tv::query::ExistsQuery::new(fast_field_name, json_subpaths);
         Ok(Query {
             inner: Box::new(inner),
         })

@@ -246,7 +246,7 @@ class Query:
 
     @staticmethod
     def exists_query(
-        field_name: str, json_subpaths: bool = False
+        fast_field_name: str, json_subpaths: bool = False
         ) -> Query:
         pass
 
