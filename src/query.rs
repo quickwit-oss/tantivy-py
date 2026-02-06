@@ -128,7 +128,8 @@ impl Query {
     #[staticmethod]
     #[pyo3(signature = (fast_field_name, json_subpaths=false))]
     pub(crate) fn exists_query(
-        fast_field_name: String, json_subpaths: bool
+        fast_field_name: String,
+        json_subpaths: bool,
     ) -> PyResult<Query> {
         let inner = tv::query::ExistsQuery::new(fast_field_name, json_subpaths);
         Ok(Query {
