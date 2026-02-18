@@ -305,17 +305,23 @@ impl Query {
 
     /// Construct a Tantivy's BooleanQuery
     #[staticmethod]
-    #[pyo3(signature = (subqueries))]
+    #[pyo3(signature = (subqueries, minimum_number_should_match=None))]
     pub(crate) fn boolean_query(
         subqueries: Vec<(Occur, Query)>,
+        minimum_number_should_match: Option<usize>,
     ) -> PyResult<Query> {
         let dyn_subqueries = subqueries
             .into_iter()
             .map(|(occur, query)| (occur.into(), query.inner.box_clone()))
             .collect::<Vec<_>>();
 
-        let inner = tv::query::BooleanQuery::from(dyn_subqueries);
-
+        let inner = match minimum_number_should_match {
+            None => tv::query::BooleanQuery::from(dyn_subqueries),
+            Some(n) => tv::query::BooleanQuery::with_minimum_required_clauses(
+                dyn_subqueries,
+                n,
+            ),
+        };
         Ok(Query {
             inner: Box::new(inner),
         })

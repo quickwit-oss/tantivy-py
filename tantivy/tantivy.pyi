@@ -288,7 +288,10 @@ class Query:
         pass
 
     @staticmethod
-    def boolean_query(subqueries: Sequence[tuple[Occur, Query]]) -> Query:
+    def boolean_query(
+        subqueries: Sequence[tuple[Occur, Query]],
+        minimum_number_should_match: int | None = None,
+    ) -> Query:
         pass
 
     @staticmethod
