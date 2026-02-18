@@ -1245,6 +1245,68 @@ class TestQuery(object):
                 ]
             )
 
+    def test_boolean_query_helpers(self, ram_index: tantivy.Index):
+        index = ram_index
+        searcher = index.searcher()
+
+        # Queries for testing
+        query_sea = Query.term_query(index.schema, "title", "sea")  # Matches "The Old Man and the Sea"
+        query_mice = Query.term_query(index.schema, "title", "mice")  # Matches "Of Mice and Men"
+        query_old = Query.term_query(index.schema, "title", "old")  # Matches "The Old Man and the Sea"
+        query_man = Query.term_query(index.schema, "title", "man")  # Matches "The Old Man and the Sea"
+
+        # Test and_must_match
+        # No document contains both "sea" and "mice" in the title
+        combined_must = query_sea.and_must_match(query_mice)
+        result = searcher.search(combined_must, 10)
+        assert len(result.hits) == 0
+
+        # "The Old Man and the Sea" contains both "old" and "man"
+        combined_must = query_old.and_must_match(query_man)
+        result = searcher.search(combined_must, 10)
+        assert len(result.hits) == 1
+        searched_doc = searcher.doc(result.hits[0][1])
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        # "The Old Man and the Sea" contains both "old" and "man"
+        # (but with many chains)
+        combined_must = (
+            query_old
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+        )
+        result = searcher.search(combined_must, 10)
+        assert len(result.hits) == 1
+        searched_doc = searcher.doc(result.hits[0][1])
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        # Test or_should_match
+        # Should match documents containing either "sea" or "mice"
+        combined_should = query_sea.or_should_match(query_mice)
+        result = searcher.search(combined_should, 10)
+        assert len(result.hits) == 2
+        titles = {searcher.doc(hit[1])["title"][0] for hit in result.hits}
+        assert "The Old Man and the Sea" in titles
+        assert "Of Mice and Men" in titles
+
+        # Test and_must_not_match
+        # All 3 docs contain "and" in the body. We exclude the one with "sea" in the title.
+        query_and_body = Query.term_query(index.schema, "body", "and")
+        combined_must_not = query_and_body.and_must_not_match(query_sea)
+        result = searcher.search(combined_must_not, 10)
+        assert len(result.hits) == 2
+        titles = {searcher.doc(hit[1])["title"][0] for hit in result.hits}
+        assert "The Old Man and the Sea" not in titles
+
     def test_disjunction_max_query(self, ram_index):
         index = ram_index
 
