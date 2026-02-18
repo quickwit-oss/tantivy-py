@@ -1195,7 +1195,14 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
-        query = Query.boolean_query([(Occur.Should, query1), (Occur.Should, query2)])
+        query = Query.boolean_query([(Occur.Should, query1), (Occur.Should, query2)], minimum_number_should_match=2)
+
+        # it's possible to specify that both queries should match with the minimum_number_should_match argument
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+
+        query = Query.boolean_query([(Occur.Should, query1), (Occur.Should, query2)], minimum_number_should_match=1)
 
         # two documents should match, one for each query
         result = index.searcher().search(query, 10)
