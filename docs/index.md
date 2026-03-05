@@ -17,6 +17,6 @@ This documentation uses the [Diátaxis](https://diataxis.fr/) framework. The fol
 
 - [Tutorials](tutorials.md): when you want to learn
 - [How-to Guides](howto.md): when need to accomplish a task
-- [Explanation](howto.md): when you need a broader understanding and the thinking behind why certain things are set up in a particular way.
+- [Explanation](explanation.md): when you need a broader understanding and the thinking behind why certain things are set up in a particular way.
 - [Reference](reference.md): when you need precise, detailed information
 
