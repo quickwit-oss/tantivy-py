@@ -426,3 +426,24 @@ cardinality = searcher.cardinality(query, "rating")
 
 assert cardinality == 2.0
 ```
+
+## Using a Custom Directory
+
+By default, tantivy-py uses `MmapDirectory` (when a `path` is given) or an in-memory store (when no `path` is given). If you need full control over how index files are stored — for example, to back the index with a cloud object store, a database, or an in-memory dict — you can implement a custom directory object in Python and pass it to the `Index` constructor via the `directory` parameter.
+
+Your directory object must implement the following methods:
+
+| Method | Signature | Description |
+|---|---|---|
+| `get_file_handle` | `(path: str) -> bytes` | Read the entire contents of a file. Raise `FileNotFoundError` if the file does not exist. |
+| `delete` | `(path: str) -> None` | Delete a file. |
+| `exists` | `(path: str) -> bool` | Return whether a file exists. |
+| `open_write` | `(path: str) -> int` | Open a file for writing and return a unique integer writer id. |
+| `write` | `(writer_id: int, data: bytes) -> None` | Append data to the writer identified by `writer_id`. |
+| `flush` | `(writer_id: int) -> None` | Flush buffered data for the given writer. |
+| `terminate` | `(writer_id: int) -> None` | Finalize and close the writer. |
+| `atomic_read` | `(path: str) -> bytes` | Atomically read a file. Raise `FileNotFoundError` if the file does not exist. |
+| `atomic_write` | `(path: str, data: bytes) -> None` | Atomically write data to a file. |
+| `sync_directory` | `() -> None` | Ensure all changes are persisted. |
+
+Note: when `directory` is provided, the `path` parameter is ignored.

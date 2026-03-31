@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use pyo3::{exceptions, prelude::*, types::PyAny};
 
 use crate::{
+    directory::PyDirectory,
     document::{extract_value, Document},
     get_field,
     parser_error::QueryParserErrorIntoPy,
@@ -336,16 +337,33 @@ impl Index {
     }
 
     #[new]
-    #[pyo3(signature = (schema, path = None, reuse = true))]
+    #[pyo3(signature = (schema, path = None, reuse = true, directory = None))]
     fn new(
         py: Python,
         schema: &Schema,
         path: Option<&str>,
         reuse: bool,
+        directory: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
         py.detach(move || {
-            let index = match path {
-                Some(p) => {
+            let index = match (directory, path) {
+                (Some(dir_obj), _) => {
+                    let py_dir = PyDirectory::new(dir_obj);
+                    if reuse {
+                        tv::Index::open_or_create(
+                            py_dir,
+                            schema.inner.clone(),
+                        )
+                    } else {
+                        tv::Index::create(
+                            py_dir,
+                            schema.inner.clone(),
+                            tv::IndexSettings::default(),
+                        )
+                    }
+                    .map_err(to_pyerr)?
+                }
+                (None, Some(p)) => {
                     let directory = MmapDirectory::open(p).map_err(to_pyerr)?;
                     if reuse {
                         tv::Index::open_or_create(
@@ -361,7 +379,7 @@ impl Index {
                     }
                     .map_err(to_pyerr)?
                 }
-                None => tv::Index::create_in_ram(schema.inner.clone()),
+                (None, None) => tv::Index::create_in_ram(schema.inner.clone()),
             };
 
             Index::register_custom_text_analyzers(&index);

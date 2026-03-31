@@ -459,7 +459,7 @@ class IndexWriter:
 
 class Index:
     def __new__(
-        cls, schema: Schema, path: Optional[str] = None, reuse: bool = True
+        cls, schema: Schema, path: Optional[str] = None, reuse: bool = True, directory: Optional[Any] = None
     ) -> Index:
         pass
 
