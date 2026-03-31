@@ -14,9 +14,7 @@ use tantivy::directory::{
 use tantivy::HasLen;
 
 fn is_file_not_found(py: Python<'_>, err: &PyErr) -> bool {
-    let builtins = py.import("builtins").unwrap();
-    let fnf_type = builtins.getattr("FileNotFoundError").unwrap();
-    err.is_instance(py, &fnf_type.as_borrowed())
+    err.is_instance_of::<pyo3::exceptions::PyFileNotFoundError>(py)
 }
 
 // ---------------------------------------------------------------------------
@@ -56,17 +54,14 @@ impl tantivy::Directory for PyDirectory {
 
         let data: Vec<u8> = Python::attach(|py| {
             self.py_object
-                .call_method1(py, "get_file_handle", (path_str.clone(),))
+                .call_method1(py, "get_file_handle", (&path_str,))
                 .and_then(|result| result.extract::<Vec<u8>>(py))
                 .map_err(|e| {
                     if is_file_not_found(py, &e) {
                         OpenReadError::FileDoesNotExist(path.to_path_buf())
                     } else {
                         OpenReadError::IoError {
-                            io_error: Arc::new(io::Error::new(
-                                io::ErrorKind::Other,
-                                e.to_string(),
-                            )),
+                            io_error: Arc::new(io::Error::other(e.to_string())),
                             filepath: path.to_path_buf(),
                         }
                     }
@@ -86,10 +81,7 @@ impl tantivy::Directory for PyDirectory {
             self.py_object.call_method1(py, "delete", (path_str,))
         })
         .map_err(|e: PyErr| DeleteError::IoError {
-            io_error: Arc::new(io::Error::new(
-                io::ErrorKind::Other,
-                e.to_string(),
-            )),
+            io_error: Arc::new(io::Error::other(e.to_string())),
             filepath: path.to_path_buf(),
         })?;
         Ok(())
@@ -100,14 +92,11 @@ impl tantivy::Directory for PyDirectory {
 
         Python::attach(|py| {
             self.py_object
-                .call_method1(py, "exists", (path_str.clone(),))
+                .call_method1(py, "exists", (&path_str,))
                 .and_then(|result| result.extract::<bool>(py))
         })
         .map_err(|e: PyErr| OpenReadError::IoError {
-            io_error: Arc::new(io::Error::new(
-                io::ErrorKind::Other,
-                e.to_string(),
-            )),
+            io_error: Arc::new(io::Error::other(e.to_string())),
             filepath: path.to_path_buf(),
         })
     }
@@ -117,14 +106,11 @@ impl tantivy::Directory for PyDirectory {
 
         let writer_id: u64 = Python::attach(|py| {
             self.py_object
-                .call_method1(py, "open_write", (path_str.clone(),))
+                .call_method1(py, "open_write", (&path_str,))
                 .and_then(|result| result.extract::<u64>(py))
         })
         .map_err(|e: PyErr| OpenWriteError::IoError {
-            io_error: Arc::new(io::Error::new(
-                io::ErrorKind::Other,
-                e.to_string(),
-            )),
+            io_error: Arc::new(io::Error::other(e.to_string())),
             filepath: path.to_path_buf(),
         })?;
 
@@ -140,17 +126,14 @@ impl tantivy::Directory for PyDirectory {
 
         Python::attach(|py| {
             self.py_object
-                .call_method1(py, "atomic_read", (path_str.clone(),))
+                .call_method1(py, "atomic_read", (&path_str,))
                 .and_then(|result| result.extract::<Vec<u8>>(py))
                 .map_err(|e| {
                     if is_file_not_found(py, &e) {
                         OpenReadError::FileDoesNotExist(path.to_path_buf())
                     } else {
                         OpenReadError::IoError {
-                            io_error: Arc::new(io::Error::new(
-                                io::ErrorKind::Other,
-                                e.to_string(),
-                            )),
+                            io_error: Arc::new(io::Error::other(e.to_string())),
                             filepath: path.to_path_buf(),
                         }
                     }
@@ -170,17 +153,13 @@ impl tantivy::Directory for PyDirectory {
                 (path_str, py_bytes),
             )
         })
-        .map_err(|e: PyErr| {
-            io::Error::new(io::ErrorKind::Other, e.to_string())
-        })?;
+        .map_err(|e: PyErr| io::Error::other(e.to_string()))?;
         Ok(())
     }
 
     fn sync_directory(&self) -> io::Result<()> {
         Python::attach(|py| self.py_object.call_method0(py, "sync_directory"))
-            .map_err(|e: PyErr| {
-                io::Error::new(io::ErrorKind::Other, e.to_string())
-            })?;
+            .map_err(|e: PyErr| io::Error::other(e.to_string()))?;
         Ok(())
     }
 
@@ -227,9 +206,6 @@ struct PyWritePtr {
     writer_id: u64,
 }
 
-unsafe impl Send for PyWritePtr {}
-unsafe impl Sync for PyWritePtr {}
-
 impl Write for PyWritePtr {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let data = buf.to_vec();
@@ -240,9 +216,7 @@ impl Write for PyWritePtr {
             self.py_object
                 .call_method1(py, "write", (self.writer_id, py_bytes))
         })
-        .map_err(|e: PyErr| {
-            io::Error::new(io::ErrorKind::Other, e.to_string())
-        })?;
+        .map_err(|e: PyErr| io::Error::other(e.to_string()))?;
 
         Ok(len)
     }
@@ -251,9 +225,7 @@ impl Write for PyWritePtr {
         Python::attach(|py| {
             self.py_object.call_method1(py, "flush", (self.writer_id,))
         })
-        .map_err(|e: PyErr| {
-            io::Error::new(io::ErrorKind::Other, e.to_string())
-        })?;
+        .map_err(|e: PyErr| io::Error::other(e.to_string()))?;
         Ok(())
     }
 }
@@ -264,9 +236,7 @@ impl TerminatingWrite for PyWritePtr {
             self.py_object
                 .call_method1(py, "terminate", (self.writer_id,))
         })
-        .map_err(|e: PyErr| {
-            io::Error::new(io::ErrorKind::Other, e.to_string())
-        })?;
+        .map_err(|e: PyErr| io::Error::other(e.to_string()))?;
         Ok(())
     }
 }

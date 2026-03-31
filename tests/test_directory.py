@@ -24,7 +24,7 @@ class InMemoryDirectory:
 
     def open_write(self, path: str) -> int:
         with self._lock:
-            if path in self._writers.values():
+            if any(p == path for p, _ in self._writers.values()):
                 raise FileExistsError(f"File already opened for write: {path}")
             writer_id = self._next_writer_id
             self._next_writer_id += 1

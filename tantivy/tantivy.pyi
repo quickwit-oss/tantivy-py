@@ -1,12 +1,27 @@
 import datetime
 from enum import Enum
 from types import TracebackType
-from typing import Any, Optional, Sequence, TypeVar, Union
+from typing import Any, Optional, Protocol, Sequence, TypeVar, Union
 from typing_extensions import Self
 
 
 class Schema:
     pass
+
+
+class Directory(Protocol):
+    """Protocol that custom directory objects must implement."""
+
+    def get_file_handle(self, path: str) -> bytes: ...
+    def delete(self, path: str) -> None: ...
+    def exists(self, path: str) -> bool: ...
+    def open_write(self, path: str) -> int: ...
+    def write(self, writer_id: int, data: bytes) -> None: ...
+    def flush(self, writer_id: int) -> None: ...
+    def terminate(self, writer_id: int) -> None: ...
+    def atomic_read(self, path: str) -> bytes: ...
+    def atomic_write(self, path: str, data: bytes) -> None: ...
+    def sync_directory(self) -> None: ...
 
 
 class SchemaBuilder:
@@ -459,7 +474,7 @@ class IndexWriter:
 
 class Index:
     def __new__(
-        cls, schema: Schema, path: Optional[str] = None, reuse: bool = True, directory: Optional[Any] = None
+        cls, schema: Schema, path: Optional[str] = None, reuse: bool = True, directory: Optional[Directory] = None
     ) -> Index:
         pass
 

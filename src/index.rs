@@ -347,7 +347,16 @@ impl Index {
     ) -> PyResult<Self> {
         py.detach(move || {
             let index = match (directory, path) {
-                (Some(dir_obj), _) => {
+                (Some(dir_obj), path_opt) => {
+                    if path_opt.is_some() {
+                        Python::attach(|py| {
+                            let warnings = py.import("warnings").expect("Failed to import warnings");
+                            let _ = warnings.call_method1(
+                                "warn",
+                                ("Both 'directory' and 'path' were provided; 'path' will be ignored.",),
+                            );
+                        });
+                    }
                     let py_dir = PyDirectory::new(dir_obj);
                     if reuse {
                         tv::Index::open_or_create(py_dir, schema.inner.clone())

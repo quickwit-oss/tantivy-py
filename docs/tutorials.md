@@ -446,4 +446,4 @@ Your directory object must implement the following methods:
 | `atomic_write` | `(path: str, data: bytes) -> None` | Atomically write data to a file. |
 | `sync_directory` | `() -> None` | Ensure all changes are persisted. |
 
-Note: when `directory` is provided, the `path` parameter is ignored.
+Note: when `directory` is provided, the `path` parameter is ignored. File watching is not supported with custom directories.
