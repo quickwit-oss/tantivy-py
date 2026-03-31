@@ -86,7 +86,10 @@ impl tantivy::Directory for PyDirectory {
             self.py_object.call_method1(py, "delete", (path_str,))
         })
         .map_err(|e: PyErr| DeleteError::IoError {
-            io_error: Arc::new(io::Error::new(io::ErrorKind::Other, e.to_string())),
+            io_error: Arc::new(io::Error::new(
+                io::ErrorKind::Other,
+                e.to_string(),
+            )),
             filepath: path.to_path_buf(),
         })?;
         Ok(())
@@ -101,7 +104,10 @@ impl tantivy::Directory for PyDirectory {
                 .and_then(|result| result.extract::<bool>(py))
         })
         .map_err(|e: PyErr| OpenReadError::IoError {
-            io_error: Arc::new(io::Error::new(io::ErrorKind::Other, e.to_string())),
+            io_error: Arc::new(io::Error::new(
+                io::ErrorKind::Other,
+                e.to_string(),
+            )),
             filepath: path.to_path_buf(),
         })
     }
@@ -115,7 +121,10 @@ impl tantivy::Directory for PyDirectory {
                 .and_then(|result| result.extract::<u64>(py))
         })
         .map_err(|e: PyErr| OpenWriteError::IoError {
-            io_error: Arc::new(io::Error::new(io::ErrorKind::Other, e.to_string())),
+            io_error: Arc::new(io::Error::new(
+                io::ErrorKind::Other,
+                e.to_string(),
+            )),
             filepath: path.to_path_buf(),
         })?;
 
@@ -155,18 +164,23 @@ impl tantivy::Directory for PyDirectory {
 
         Python::attach(|py| {
             let py_bytes = PyBytes::new(py, &data);
-            self.py_object
-                .call_method1(py, "atomic_write", (path_str, py_bytes))
+            self.py_object.call_method1(
+                py,
+                "atomic_write",
+                (path_str, py_bytes),
+            )
         })
-        .map_err(|e: PyErr| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e: PyErr| {
+            io::Error::new(io::ErrorKind::Other, e.to_string())
+        })?;
         Ok(())
     }
 
     fn sync_directory(&self) -> io::Result<()> {
-        Python::attach(|py| {
-            self.py_object.call_method0(py, "sync_directory")
-        })
-        .map_err(|e: PyErr| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        Python::attach(|py| self.py_object.call_method0(py, "sync_directory"))
+            .map_err(|e: PyErr| {
+                io::Error::new(io::ErrorKind::Other, e.to_string())
+            })?;
         Ok(())
     }
 
@@ -226,17 +240,20 @@ impl Write for PyWritePtr {
             self.py_object
                 .call_method1(py, "write", (self.writer_id, py_bytes))
         })
-        .map_err(|e: PyErr| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e: PyErr| {
+            io::Error::new(io::ErrorKind::Other, e.to_string())
+        })?;
 
         Ok(len)
     }
 
     fn flush(&mut self) -> io::Result<()> {
         Python::attach(|py| {
-            self.py_object
-                .call_method1(py, "flush", (self.writer_id,))
+            self.py_object.call_method1(py, "flush", (self.writer_id,))
         })
-        .map_err(|e: PyErr| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e: PyErr| {
+            io::Error::new(io::ErrorKind::Other, e.to_string())
+        })?;
         Ok(())
     }
 }
@@ -247,7 +264,9 @@ impl TerminatingWrite for PyWritePtr {
             self.py_object
                 .call_method1(py, "terminate", (self.writer_id,))
         })
-        .map_err(|e: PyErr| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e: PyErr| {
+            io::Error::new(io::ErrorKind::Other, e.to_string())
+        })?;
         Ok(())
     }
 }

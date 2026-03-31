@@ -350,10 +350,7 @@ impl Index {
                 (Some(dir_obj), _) => {
                     let py_dir = PyDirectory::new(dir_obj);
                     if reuse {
-                        tv::Index::open_or_create(
-                            py_dir,
-                            schema.inner.clone(),
-                        )
+                        tv::Index::open_or_create(py_dir, schema.inner.clone())
                     } else {
                         tv::Index::create(
                             py_dir,
