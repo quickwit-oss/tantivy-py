@@ -240,3 +240,13 @@ impl TerminatingWrite for PyWritePtr {
         Ok(())
     }
 }
+
+impl Drop for PyWritePtr {
+    fn drop(&mut self) {
+        // Notify Python side to close the writer if it's still open.
+        // This handles lock files which are dropped without calling terminate.
+        let _ = Python::attach(|py| {
+            self.py_object.call_method1(py, "close", (self.writer_id,))
+        });
+    }
+}

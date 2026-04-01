@@ -65,6 +65,11 @@ class InMemoryDirectory:
     def sync_directory(self) -> None:
         pass
 
+    def close(self, writer_id: int) -> None:
+        """Close a writer without saving (called on Drop)."""
+        with self._lock:
+            self._writers.pop(writer_id, None)
+
 
 class TestPyDirectory:
     def test_create_index_with_directory(self):

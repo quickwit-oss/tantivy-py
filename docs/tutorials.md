@@ -441,7 +441,8 @@ Your directory object must implement the following methods:
 | `open_write` | `(path: str) -> int` | Open a file for writing and return a unique integer writer id. |
 | `write` | `(writer_id: int, data: bytes) -> None` | Append data to the writer identified by `writer_id`. |
 | `flush` | `(writer_id: int) -> None` | Flush buffered data for the given writer. |
-| `terminate` | `(writer_id: int) -> None` | Finalize and close the writer. |
+| `terminate` | `(writer_id: int) -> None` | Finalize and close the writer, saving any buffered data. |
+| `close` | `(writer_id: int) -> None` | Close the writer without saving (called when the writer is dropped, e.g., for lock files). |
 | `atomic_read` | `(path: str) -> bytes` | Atomically read a file. Raise `FileNotFoundError` if the file does not exist. |
 | `atomic_write` | `(path: str, data: bytes) -> None` | Atomically write data to a file. |
 | `sync_directory` | `() -> None` | Ensure all changes are persisted. |
