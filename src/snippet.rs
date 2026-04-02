@@ -27,6 +27,10 @@ impl Snippet {
         Ok(self.inner.to_html())
     }
 
+    /// Returns the highlighted ranges within the fragment.
+    ///
+    /// The offsets are relative to the string returned by `fragment()`,
+    /// not the original document text.
     pub fn highlighted(&self) -> Vec<Range> {
         let highlighted = self.inner.highlighted();
         let results = highlighted
