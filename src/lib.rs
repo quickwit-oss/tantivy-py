@@ -190,6 +190,7 @@ pub(crate) fn make_term(
         Value::Facet(facet) => Term::from_facet(field, &facet),
         Value::Bool(b) => Term::from_field_bool(field, b),
         Value::IpAddr(i) => Term::from_field_ip_addr(field, i),
+        Value::Bytes(ref bytes) => Term::from_field_bytes(field, bytes),
         _ => {
             return Err(exceptions::PyValueError::new_err(format!(
                 "Can't create a term for Field `{field_name}` with value `{field_value}`."
@@ -218,6 +219,7 @@ pub(crate) fn make_term_for_type(
         Value::Facet(facet) => Term::from_facet(field, &facet),
         Value::Bool(b) => Term::from_field_bool(field, b),
         Value::IpAddr(i) => Term::from_field_ip_addr(field, i),
+        Value::Bytes(ref bytes) => Term::from_field_bytes(field, bytes),
         _ => {
             return Err(exceptions::PyValueError::new_err(format!(
                 "Can't create a term for Field `{field_name}` with value `{field_value}`."

@@ -888,6 +888,27 @@ def test_bytes(bytes_kwarg, bytes_payload):
     index.reload()
 
 
+def test_bytes_term_query():
+    schema = (
+        SchemaBuilder()
+        .add_bytes_field("data", indexed=True)
+        .build()
+    )
+    index = Index(schema)
+    writer = index.writer()
+
+    doc1 = Document(data=b"\x01\x02\x03")
+    doc2 = Document(data=b"\x04\x05\x06")
+    writer.add_document(doc1)
+    writer.add_document(doc2)
+    writer.commit()
+    index.reload()
+
+    query = Query.term_query(schema, "data", b"\x01\x02\x03")
+    result = index.searcher().search(query, 10)
+    assert len(result.hits) == 1
+
+
 def test_schema_eq():
     schema1 = build_schema()
     schema2 = build_schema()
@@ -1003,11 +1024,9 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
-        # Should fail to create the query due to the invalid list object in the terms list
-        with pytest.raises(
-            ValueError, match=r"Can't create a term for Field `title` with value `\[\]`"
-        ):
-            terms = ["old", [], "man"]
+        # Should fail to create the query due to the invalid object in the terms list
+        with pytest.raises(ValueError):
+            terms = ["old", object(), "man"]
             query = Query.term_set_query(index.schema, "title", terms)
 
     def test_all_query(self, ram_index):
