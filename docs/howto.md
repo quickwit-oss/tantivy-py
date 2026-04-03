@@ -15,6 +15,11 @@ only supports python3.
 
 ## Set up a development environment to work on tantivy-py itself
 
+Since tantivy-py includes Rust code, you need a working Rust toolchain.
+Install it via [rustup](https://rustup.rs/):
+
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
 Setting up a development environment can be done in a virtual environment using
 [`nox`](https://nox.thea.codes) or using local packages using the provided `Makefile`.
 
