@@ -529,26 +529,13 @@ class Range:
 
 
 class Snippet:
-    """A fragment of a document with highlighted search terms.
-
-    Contains a text fragment (a window around the matched terms) and
-    the ranges within that fragment that matched the query.
-    """
-
     def to_html(self) -> str:
-        """Return the fragment as HTML with matched terms wrapped in <b> tags."""
         pass
 
     def highlighted(self) -> list[Range]:
-        """Return the highlighted ranges within the fragment.
-
-        The start/end offsets are relative to the string returned by
-        ``fragment()``, not the original document text.
-        """
         pass
 
     def fragment(self) -> str:
-        """Return the text fragment that contains the highlighted terms."""
         pass
 
 
