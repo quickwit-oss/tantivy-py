@@ -1,7 +1,7 @@
 import datetime
 from enum import Enum
 from types import TracebackType
-from typing import Any, Optional, Sequence, TypeVar, Union
+from typing import Any, Optional, Sequence, TypeAlias, TypeVar, Union
 from typing_extensions import Self
 
 
@@ -219,6 +219,8 @@ _RangeType = TypeVar(
     "_RangeType", bound=int | float | datetime.datetime | bool | str | bytes
 )
 
+DocumentFieldInput: TypeAlias = dict[str, Any | list[Any]]
+
 
 class Query:
     @staticmethod
@@ -325,7 +327,7 @@ class Query:
     @staticmethod
     def more_like_this_document_fields_query(
         schema: Schema,
-        document_fields: dict[str, Any],
+        document_fields: DocumentFieldInput,
         min_doc_frequency: Optional[int] = 5,
         max_doc_frequency: Optional[int] = None,
         min_term_frequency: Optional[int] = 2,
