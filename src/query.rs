@@ -1,6 +1,7 @@
 use crate::{
-    explanation::Explanation, get_field, make_term, make_term_for_type,
-    schema::FieldType, searcher::Searcher, to_pyerr, DocAddress, Schema,
+    document::Document, explanation::Explanation, get_field, make_term,
+    make_term_for_type, schema::FieldType, searcher::Searcher, to_pyerr,
+    DocAddress, Schema,
 };
 use core::ops::Bound as OpsBound;
 use pyo3::{
@@ -46,6 +47,55 @@ impl Clone for Query {
 impl Query {
     pub(crate) fn get(&self) -> &dyn tv::query::Query {
         &self.inner
+    }
+
+    fn more_like_this_builder(
+        min_doc_frequency: Option<u64>,
+        max_doc_frequency: Option<u64>,
+        min_term_frequency: Option<usize>,
+        max_query_terms: Option<usize>,
+        min_word_length: Option<usize>,
+        max_word_length: Option<usize>,
+        boost_factor: Option<f32>,
+        stop_words: Vec<String>,
+    ) -> tv::query::MoreLikeThisQueryBuilder {
+        let mut builder = tv::query::MoreLikeThisQuery::builder();
+        if let Some(value) = min_doc_frequency {
+            builder = builder.with_min_doc_frequency(value);
+        }
+        if let Some(value) = max_doc_frequency {
+            builder = builder.with_max_doc_frequency(value);
+        }
+        if let Some(value) = min_term_frequency {
+            builder = builder.with_min_term_frequency(value);
+        }
+        if let Some(value) = max_query_terms {
+            builder = builder.with_max_query_terms(value);
+        }
+        if let Some(value) = min_word_length {
+            builder = builder.with_min_word_length(value);
+        }
+        if let Some(value) = max_word_length {
+            builder = builder.with_max_word_length(value);
+        }
+        if let Some(value) = boost_factor {
+            builder = builder.with_boost_factor(value);
+        }
+        builder.with_stop_words(stop_words)
+    }
+
+    fn named_document_fields(
+        schema: &Schema,
+        document: &Document,
+    ) -> PyResult<Vec<(tv::schema::Field, Vec<tv::schema::OwnedValue>)>> {
+        document
+            .field_values
+            .iter()
+            .map(|(field_name, values)| {
+                let field = get_field(&schema.inner, field_name)?;
+                Ok((field, values.clone()))
+            })
+            .collect()
     }
 }
 
@@ -397,31 +447,55 @@ impl Query {
         boost_factor: Option<f32>,
         stop_words: Vec<String>,
     ) -> PyResult<Query> {
-        let mut builder = tv::query::MoreLikeThisQuery::builder();
-        if let Some(value) = min_doc_frequency {
-            builder = builder.with_min_doc_frequency(value);
-        }
-        if let Some(value) = max_doc_frequency {
-            builder = builder.with_max_doc_frequency(value);
-        }
-        if let Some(value) = min_term_frequency {
-            builder = builder.with_min_term_frequency(value);
-        }
-        if let Some(value) = max_query_terms {
-            builder = builder.with_max_query_terms(value);
-        }
-        if let Some(value) = min_word_length {
-            builder = builder.with_min_word_length(value);
-        }
-        if let Some(value) = max_word_length {
-            builder = builder.with_max_word_length(value);
-        }
-        if let Some(value) = boost_factor {
-            builder = builder.with_boost_factor(value);
-        }
-        builder = builder.with_stop_words(stop_words);
+        let builder = Query::more_like_this_builder(
+            min_doc_frequency,
+            max_doc_frequency,
+            min_term_frequency,
+            max_query_terms,
+            min_word_length,
+            max_word_length,
+            boost_factor,
+            stop_words,
+        );
 
         let inner = builder.with_document(tv::DocAddress::from(doc_address));
+        Ok(Query {
+            inner: Box::new(inner),
+        })
+    }
+
+    /// Construct a Tantivy's MoreLikeThisQuery from caller-provided document fields.
+    #[staticmethod]
+    #[pyo3(signature = (schema, document, min_doc_frequency = Some(5), max_doc_frequency = None, min_term_frequency = Some(2), max_query_terms = Some(25), min_word_length = None, max_word_length = None, boost_factor = Some(1.0), stop_words = vec![]))]
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn more_like_this_document_query(
+        schema: &Schema,
+        document: &Document,
+        min_doc_frequency: Option<u64>,
+        max_doc_frequency: Option<u64>,
+        min_term_frequency: Option<usize>,
+        max_query_terms: Option<usize>,
+        min_word_length: Option<usize>,
+        max_word_length: Option<usize>,
+        boost_factor: Option<f32>,
+        stop_words: Vec<String>,
+    ) -> PyResult<Query> {
+        // Tantivy's provided-fields MLT path operates on field ids, so the
+        // Python binding must resolve the caller's named document against the
+        // target schema before constructing the query object.
+        let doc_fields = Query::named_document_fields(schema, document)?;
+        let builder = Query::more_like_this_builder(
+            min_doc_frequency,
+            max_doc_frequency,
+            min_term_frequency,
+            max_query_terms,
+            min_word_length,
+            max_word_length,
+            boost_factor,
+            stop_words,
+        );
+
+        let inner = builder.with_document_fields(doc_fields);
         Ok(Query {
             inner: Box::new(inner),
         })

@@ -1450,6 +1450,82 @@ class TestQuery(object):
         result = index.searcher().search(mlt_query, 10)
         assert len(result.hits) > 0
 
+    def test_more_like_this_document_query(self):
+        schema = (
+            SchemaBuilder()
+            .add_unsigned_field("id", stored=True, indexed=True)
+            .add_text_field("title")
+            .add_text_field("body")
+            .build()
+        )
+        index = Index(schema)
+        writer = index.writer()
+        writer.add_document(
+            Document.from_dict(
+                {
+                    "id": 1,
+                    "title": "aaa",
+                    "body": "the old man and the sea",
+                },
+                schema,
+            )
+        )
+        writer.add_document(
+            Document.from_dict(
+                {
+                    "id": 2,
+                    "title": "bbb",
+                    "body": "an old man sailing on the sea",
+                },
+                schema,
+            )
+        )
+        writer.add_document(
+            Document.from_dict(
+                {
+                    "id": 3,
+                    "title": "ccc",
+                    "body": "send this message to alice",
+                },
+                schema,
+            )
+        )
+        writer.commit()
+        writer.wait_merging_threads()
+        index.reload()
+
+        query_doc = Document.from_dict(
+            {
+                "title": "aaa",
+                "body": "the old man and the sea",
+            },
+            schema,
+        )
+        mlt_query = Query.more_like_this_document_query(
+            schema,
+            query_doc,
+            min_doc_frequency=1,
+            min_term_frequency=1,
+            max_query_terms=10,
+        )
+        assert "target: DocumentFields(" in repr(mlt_query)
+
+        result = index.searcher().search(mlt_query, 10)
+        hit_ids = {
+            index.searcher().doc(doc_address)["id"][0]
+            for _, doc_address in result.hits
+        }
+        assert hit_ids == {1, 2}
+
+    def test_more_like_this_document_query_rejects_unknown_fields(self, ram_index):
+        index = ram_index
+        query_doc = Document(unknown_field="value")
+
+        with pytest.raises(
+            ValueError, match="Field `unknown_field` is not defined in the schema."
+        ):
+            Query.more_like_this_document_query(index.schema, query_doc)
+
     def test_const_score_query(self, ram_index):
         index = ram_index
 

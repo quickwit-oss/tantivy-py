@@ -323,6 +323,21 @@ class Query:
         pass
 
     @staticmethod
+    def more_like_this_document_query(
+        schema: Schema,
+        document: Document,
+        min_doc_frequency: Optional[int] = 5,
+        max_doc_frequency: Optional[int] = None,
+        min_term_frequency: Optional[int] = 2,
+        max_query_terms: Optional[int] = 25,
+        min_word_length: Optional[int] = None,
+        max_word_length: Optional[int] = None,
+        boost_factor: Optional[float] = 1.0,
+        stop_words: list[str] = [],
+    ) -> Query:
+        pass
+
+    @staticmethod
     def const_score_query(query: Query, score: float) -> Query:
         pass
 
