@@ -246,16 +246,29 @@ snippet_generator = SnippetGenerator.create(
 snippet = snippet_generator.snippet_from_doc(best_doc)
 ```
 
-The snippet object provides the hit ranges. These are the marker
-offsets in the text that match the query.
+The snippet contains a **fragment** of the document text — typically a
+window around the matched terms. You can retrieve it with `fragment()`:
+
+```python
+fragment = snippet.fragment()
+```
+
+The `highlighted()` method returns ranges whose offsets are **relative to
+the fragment**, not the original document text. Use the fragment for
+slicing:
 
 ```python
 highlights = snippet.highlighted()
 first_highlight = highlights[0]
 assert first_highlight.start == 93
 assert first_highlight.end == 97
-assert hit_text[first_highlight.start:first_highlight.end] == "days"
+assert fragment[first_highlight.start:first_highlight.end] == "days"
 ```
+
+> **Note:** For short documents the fragment may cover the entire text, so
+> slicing the original document would also work. For longer documents the
+> fragment is a substring and the offsets will only be correct against
+> `fragment()`.
 
 The snippet object can also generate a marked-up HTML snippet:
 

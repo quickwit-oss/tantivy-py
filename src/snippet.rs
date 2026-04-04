@@ -4,10 +4,10 @@ use tantivy as tv;
 // Bring the trait into scope to use methods like `as_str()` on `OwnedValue`.
 use tantivy::schema::Value;
 
-/// Tantivy Snippet
+/// A fragment of a document with highlighted search terms.
 ///
-/// Snippet contains a fragment of a document, and some highlighted
-/// parts inside it.
+/// Contains a text fragment (a window around the matched terms) and
+/// the byte ranges within that fragment that matched the query.
 #[pyclass(module = "tantivy.tantivy")]
 pub(crate) struct Snippet {
     pub(crate) inner: tv::snippet::Snippet,
@@ -23,10 +23,15 @@ pub(crate) struct Range {
 
 #[pymethods]
 impl Snippet {
+    /// Returns the fragment as HTML with matched terms wrapped in `<b>` tags.
     pub fn to_html(&self) -> PyResult<String> {
         Ok(self.inner.to_html())
     }
 
+    /// Returns the highlighted ranges within the fragment.
+    ///
+    /// The offsets are relative to the string returned by `fragment()`,
+    /// not the original document text.
     pub fn highlighted(&self) -> Vec<Range> {
         let highlighted = self.inner.highlighted();
         let results = highlighted
@@ -39,6 +44,7 @@ impl Snippet {
         results
     }
 
+    /// Returns the text fragment that contains the highlighted terms.
     pub fn fragment(&self) -> PyResult<String> {
         Ok(self.inner.fragment().to_string())
     }
