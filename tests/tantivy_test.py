@@ -1450,7 +1450,7 @@ class TestQuery(object):
         result = index.searcher().search(mlt_query, 10)
         assert len(result.hits) > 0
 
-    def test_more_like_this_document_query(self):
+    def test_more_like_this_document_fields_query(self):
         schema = (
             SchemaBuilder()
             .add_unsigned_field("id", stored=True, indexed=True)
@@ -1494,16 +1494,13 @@ class TestQuery(object):
         writer.wait_merging_threads()
         index.reload()
 
-        query_doc = Document.from_dict(
-            {
-                "title": "aaa",
-                "body": "the old man and the sea",
-            },
+        query_document_fields = {
+            "title": "aaa",
+            "body": "the old man and the sea",
+        }
+        mlt_query = Query.more_like_this_document_fields_query(
             schema,
-        )
-        mlt_query = Query.more_like_this_document_query(
-            schema,
-            query_doc,
+            query_document_fields,
             min_doc_frequency=1,
             min_term_frequency=1,
             max_query_terms=10,
@@ -1517,14 +1514,14 @@ class TestQuery(object):
         }
         assert hit_ids == {1, 2}
 
-    def test_more_like_this_document_query_rejects_unknown_fields(self, ram_index):
+    def test_more_like_this_document_fields_query_rejects_unknown_fields(self, ram_index):
         index = ram_index
-        query_doc = Document(unknown_field="value")
+        query_document_fields = {"unknown_field": "value"}
 
         with pytest.raises(
             ValueError, match="Field `unknown_field` is not defined in the schema."
         ):
-            Query.more_like_this_document_query(index.schema, query_doc)
+            Query.more_like_this_document_fields_query(index.schema, query_document_fields)
 
     def test_const_score_query(self, ram_index):
         index = ram_index

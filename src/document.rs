@@ -965,6 +965,34 @@ impl Document {
         Ok(())
     }
 
+    pub(crate) fn field_values_from_dict(
+        py_dict: &Bound<PyDict>,
+        schema: &Schema,
+    ) -> PyResult<BTreeMap<String, Vec<Value>>> {
+        let mut field_values = BTreeMap::new();
+
+        for key_value_any in py_dict.items() {
+            let key_value = key_value_any.downcast::<PyTuple>()?;
+            if key_value.len() != 2 {
+                continue;
+            }
+
+            let key = key_value.get_item(0)?.extract::<String>()?;
+            let field = schema.inner.get_field(key.as_str()).map_err(|_| {
+                to_pyerr(format!("Field `{key}` is not defined in the schema."))
+            })?;
+            let field_type = schema.inner.get_field_entry(field).field_type();
+            let value_list = extract_value_single_or_list_for_type(
+                &key_value.get_item(1)?,
+                field_type,
+                key.as_str(),
+            )?;
+            field_values.insert(key, value_list);
+        }
+
+        Ok(field_values)
+    }
+
     pub fn iter_values_for_field<'a>(
         &'a self,
         field: &str,

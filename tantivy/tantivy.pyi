@@ -323,9 +323,9 @@ class Query:
         pass
 
     @staticmethod
-    def more_like_this_document_query(
+    def more_like_this_document_fields_query(
         schema: Schema,
-        document: Document,
+        document_fields: dict[str, Any],
         min_doc_frequency: Optional[int] = 5,
         max_doc_frequency: Optional[int] = None,
         min_term_frequency: Optional[int] = 2,

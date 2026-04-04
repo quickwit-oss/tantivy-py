@@ -7,7 +7,7 @@ use core::ops::Bound as OpsBound;
 use pyo3::{
     exceptions,
     prelude::*,
-    types::{PyAny, PyFloat, PyString},
+    types::{PyAny, PyDict, PyFloat, PyString},
 };
 use tantivy as tv;
 
@@ -86,10 +86,9 @@ impl Query {
 
     fn named_document_fields(
         schema: &Schema,
-        document: &Document,
+        document_fields: &Bound<PyDict>,
     ) -> PyResult<Vec<(tv::schema::Field, Vec<tv::schema::OwnedValue>)>> {
-        document
-            .field_values
+        Document::field_values_from_dict(document_fields, schema)?
             .iter()
             .map(|(field_name, values)| {
                 let field = get_field(&schema.inner, field_name)?;
@@ -464,13 +463,13 @@ impl Query {
         })
     }
 
-    /// Construct a Tantivy's MoreLikeThisQuery from caller-provided document fields.
+    /// Construct a Tantivy's MoreLikeThisQuery from caller-provided field values.
     #[staticmethod]
-    #[pyo3(signature = (schema, document, min_doc_frequency = Some(5), max_doc_frequency = None, min_term_frequency = Some(2), max_query_terms = Some(25), min_word_length = None, max_word_length = None, boost_factor = Some(1.0), stop_words = vec![]))]
+    #[pyo3(signature = (schema, document_fields, min_doc_frequency = Some(5), max_doc_frequency = None, min_term_frequency = Some(2), max_query_terms = Some(25), min_word_length = None, max_word_length = None, boost_factor = Some(1.0), stop_words = vec![]))]
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn more_like_this_document_query(
+    pub(crate) fn more_like_this_document_fields_query(
         schema: &Schema,
-        document: &Document,
+        document_fields: &Bound<PyDict>,
         min_doc_frequency: Option<u64>,
         max_doc_frequency: Option<u64>,
         min_term_frequency: Option<usize>,
@@ -481,9 +480,9 @@ impl Query {
         stop_words: Vec<String>,
     ) -> PyResult<Query> {
         // Tantivy's provided-fields MLT path operates on field ids, so the
-        // Python binding must resolve the caller's named document against the
+        // Python binding must resolve caller-provided field values against the
         // target schema before constructing the query object.
-        let doc_fields = Query::named_document_fields(schema, document)?;
+        let doc_fields = Query::named_document_fields(schema, document_fields)?;
         let builder = Query::more_like_this_builder(
             min_doc_frequency,
             max_doc_frequency,
