@@ -15,7 +15,7 @@ mod searcher;
 mod snippet;
 mod tokenizer;
 
-use document::{extract_value, extract_value_for_type, Document};
+use document::{extract_value_for_type, Document};
 use explanation::Explanation;
 use facet::Facet;
 use index::{Index, IndexWriter};

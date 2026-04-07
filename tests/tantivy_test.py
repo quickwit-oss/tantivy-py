@@ -2000,3 +2000,126 @@ class TestTokenizers:
         assert isinstance(ast, dict)
         assert isinstance(errors, list)
         assert len(errors) == 0
+
+
+class TestFastFieldValues:
+    """Tests for Searcher.fast_field_values()."""
+
+    @pytest.fixture(scope="class")
+    def fast_index(self):
+        schema = (
+            SchemaBuilder()
+            .add_unsigned_field("doc_id", stored=True, indexed=True, fast=True)
+            .add_integer_field("rank", stored=True, indexed=True, fast=True)
+            .add_float_field("score", stored=True, indexed=True, fast=True)
+            .add_boolean_field("active", stored=True, indexed=True)
+            .add_boolean_field("flag", stored=True, indexed=True, fast=True)
+            .add_text_field("body", stored=True)
+            .add_text_field("tag", stored=True, fast=True)
+            .build()
+        )
+        index = Index(schema, None)
+        with index.writer(15_000_000, 1) as writer:
+            doc = Document()
+            doc.add_unsigned("doc_id", 101)
+            doc.add_integer("rank", -10)
+            doc.add_float("score", 1.5)
+            doc.add_boolean("active", True)
+            doc.add_boolean("flag", True)
+            doc.add_text("body", "alpha beta gamma")
+            doc.add_text("tag", "news")
+            writer.add_document(doc)
+
+            doc = Document()
+            doc.add_unsigned("doc_id", 202)
+            doc.add_integer("rank", 0)
+            doc.add_float("score", 2.5)
+            doc.add_boolean("active", False)
+            doc.add_boolean("flag", False)
+            doc.add_text("body", "beta gamma delta")
+            doc.add_text("tag", "sports")
+            writer.add_document(doc)
+
+            doc = Document()
+            doc.add_unsigned("doc_id", 303)
+            doc.add_integer("rank", 10)
+            doc.add_float("score", 0.5)
+            doc.add_boolean("active", True)
+            doc.add_boolean("flag", True)
+            doc.add_text("body", "gamma delta epsilon")
+            doc.add_text("tag", "news")
+            writer.add_document(doc)
+        index.reload()
+        return index
+
+    def test_returns_values_in_hit_order(self, fast_index):
+        searcher = fast_index.searcher()
+        query = fast_index.parse_query("beta", ["body"])
+        result = searcher.search(query, 10)
+        addrs = [addr for _, addr in result.hits]
+        ids = searcher.fast_field_values("doc_id", addrs)
+        assert len(ids) == len(addrs)
+        # Cross-check: each value matches what stored doc reports
+        for addr, fast_id in zip(addrs, ids):
+            stored_id = searcher.doc(addr).to_dict()["doc_id"][0]
+            assert fast_id == stored_id
+
+    def test_all_docs_covered(self, fast_index):
+        searcher = fast_index.searcher()
+        query = fast_index.parse_query("gamma", ["body"])
+        result = searcher.search(query, 10)
+        addrs = [addr for _, addr in result.hits]
+        ids = searcher.fast_field_values("doc_id", addrs)
+        assert set(ids) == {101, 202, 303}
+
+    def test_empty_input_returns_empty(self, fast_index):
+        searcher = fast_index.searcher()
+        assert searcher.fast_field_values("doc_id", []) == []
+
+    def test_single_match(self, fast_index):
+        searcher = fast_index.searcher()
+        query = fast_index.parse_query("alpha", ["body"])
+        result = searcher.search(query, 10)
+        addrs = [addr for _, addr in result.hits]
+        ids = searcher.fast_field_values("doc_id", addrs)
+        assert ids == [101]
+
+    @pytest.mark.parametrize(("field_name", "expected"), [
+        pytest.param("rank", {-10, 0, 10}, id="i64"),
+        pytest.param("score", {0.5, 1.5, 2.5}, id="f64"),
+        pytest.param("flag", {True, False}, id="bool"),
+    ])
+    def test_typed_fields(self, fast_index, field_name, expected):
+        searcher = fast_index.searcher()
+        query = fast_index.parse_query("gamma", ["body"])
+        result = searcher.search(query, 10)
+        addrs = [addr for _, addr in result.hits]
+        assert set(searcher.fast_field_values(field_name, addrs)) == expected
+
+    def test_unknown_field_raises(self, fast_index):
+        """ValueError for a field name that does not exist in the schema."""
+        searcher = fast_index.searcher()
+        query = fast_index.parse_query("gamma", ["body"])
+        result = searcher.search(query, 1)
+        addrs = [addr for _, addr in result.hits]
+        with pytest.raises(ValueError, match="Unknown field"):
+            searcher.fast_field_values("nonexistent", addrs)
+
+    def test_non_fast_field_raises(self, fast_index):
+        """ValueError when the field exists but is not declared fast."""
+        searcher = fast_index.searcher()
+        query = fast_index.parse_query("gamma", ["body"])
+        result = searcher.search(query, 1)
+        addrs = [addr for _, addr in result.hits]
+        with pytest.raises(ValueError, match="not a fast field"):
+            searcher.fast_field_values("active", addrs)
+
+    def test_unsupported_type_raises(self, fast_index):
+        """ValueError when the field is fast but has an unsupported type (text)."""
+        searcher = fast_index.searcher()
+        query = fast_index.parse_query("gamma", ["body"])
+        result = searcher.search(query, 1)
+        addrs = [addr for _, addr in result.hits]
+        # Text fast fields store term ids, not scalar values — unsupported.
+        with pytest.raises(ValueError, match="unsupported type"):
+            searcher.fast_field_values("tag", addrs)
