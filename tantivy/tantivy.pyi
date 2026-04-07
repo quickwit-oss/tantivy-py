@@ -420,6 +420,13 @@ class Searcher:
     def doc(self, doc_address: DocAddress) -> Document:
         pass
 
+    def collect_u64_fast_field(
+        self,
+        field_name: str,
+        doc_addresses: list[DocAddress],
+    ) -> list[int | None]:
+        pass
+
     def doc_freq(self, field_name: str, field_value: Any) -> int:
         pass
 
