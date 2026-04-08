@@ -42,6 +42,43 @@ impl std::fmt::Debug for Fruit {
     }
 }
 
+/// Open one column per segment, map each DocAddress to its value, and wrap in
+/// the given `FastFieldValue` variant.  Used by `fast_field_values()` to avoid
+/// repeating the same iterator chain for each numeric type.
+macro_rules! collect_fast_field {
+    ($readers:expr, $field:expr, $addrs:expr, $method:ident, $variant:path) => {{
+        let columns: Vec<Option<_>> = $readers
+            .iter()
+            .map(|reader| reader.fast_fields().$method($field).ok())
+            .collect();
+        Ok($addrs
+            .iter()
+            .map(|addr| {
+                columns[addr.segment_ord as usize]
+                    .as_ref()
+                    .and_then(|col| col.first(addr.doc))
+                    .map($variant)
+            })
+            .collect())
+    }};
+}
+
+/// A typed value read from a numeric fast field.
+///
+/// PyO3 converts U64/I64 to Python int and F64 to Python float, so Python
+/// callers receive `int | float` without needing to know the underlying type.
+#[derive(IntoPyObject)]
+enum FastFieldValue {
+    #[pyo3(transparent)]
+    U64(u64),
+    #[pyo3(transparent)]
+    I64(i64),
+    #[pyo3(transparent)]
+    F64(f64),
+    #[pyo3(transparent)]
+    Bool(bool),
+}
+
 #[pyclass(frozen, module = "tantivy.tantivy")]
 #[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 /// Enum representing the direction in which something should be sorted.
@@ -446,33 +483,37 @@ impl Searcher {
         })
     }
 
-    /// Read a u64 fast field for a batch of DocAddresses without fetching
+    /// Read a numeric fast field for a batch of DocAddresses without fetching
     /// stored documents.
     ///
     /// Fast fields are column-oriented and support O(1) random access by
     /// segment-local DocId.  Use this instead of doc().to_dict()[field] when
     /// you only need a single numeric field for many documents.
     ///
+    /// The field type is resolved from the schema automatically: u64 and i64
+    /// fields return Python int; f64 fields return Python float; bool fields
+    /// return Python bool.
+    ///
     /// Args:
-    ///     field_name: Name of a u64 field declared with fast=True.
+    ///     field_name: Name of a u64, i64, f64, or bool field declared with fast=True.
     ///     doc_addresses: List of DocAddress objects (e.g. from search().hits).
     ///
     /// Returns:
-    ///     A list of int values in the same order as doc_addresses.
+    ///     A list of values in the same order as doc_addresses.
     ///     None is returned for any address where the column is absent
     ///     (e.g. a segment written before the field was added to the schema).
     ///
     /// Raises:
-    ///     ValueError: if the field does not exist or is not a fast u64 field.
+    ///     ValueError: if the field does not exist, is not a fast field, or
+    ///         has an unsupported type (only u64, i64, f64, and bool are supported).
     #[pyo3(signature = (field_name, doc_addresses))]
-    fn collect_u64_fast_field(
+    fn fast_field_values(
         &self,
         field_name: &str,
         doc_addresses: Vec<DocAddress>,
-    ) -> PyResult<Vec<Option<u64>>> {
+    ) -> PyResult<Vec<Option<FastFieldValue>>> {
         let schema = self.inner.schema();
 
-        // Validate field exists and is a fast u64.
         let field = schema.get_field(field_name).map_err(|_| {
             PyValueError::new_err(format!("Unknown field: '{field_name}'"))
         })?;
@@ -482,39 +523,15 @@ impl Searcher {
                 "Field '{field_name}' is not a fast field."
             )));
         }
-        if !matches!(
-            field_entry.field_type().value_type(),
-            tv::schema::Type::U64
-        ) {
-            return Err(PyValueError::new_err(format!(
-                "Field '{field_name}' is not a u64 field."
-            )));
-        }
 
+        let field_type = field_entry.field_type().value_type();
         let segment_readers = self.inner.segment_readers();
-
-        // Pre-open one column reader per unique segment so the column is not
-        // reopened for every document address.  Columns are references into
-        // mmapped data, so this is zero-copy — just pointer arithmetic once
-        // per segment rather than once per document.
         let num_segments = segment_readers.len();
-        let mut columns: Vec<
-            Option<std::sync::Arc<dyn tv::columnar::ColumnValues<u64>>>,
-        > = Vec::with_capacity(num_segments);
-        for reader in segment_readers {
-            let col = reader
-                .fast_fields()
-                .u64(field_name)
-                .ok()
-                .map(|c| c.first_or_default_col(u64::MAX));
-            columns.push(col);
-        }
 
         // Validate all segment_ords before reading so we don't produce a
         // partial result on error.
         for doc_address in &doc_addresses {
-            let seg_ord = doc_address.segment_ord as usize;
-            if seg_ord >= num_segments {
+            if doc_address.segment_ord as usize >= num_segments {
                 return Err(PyValueError::new_err(format!(
                     "Invalid segment_ord: {}",
                     doc_address.segment_ord
@@ -522,26 +539,42 @@ impl Searcher {
             }
         }
 
-        // Read values using the pre-opened columns.
-        let result: Vec<Option<u64>> = doc_addresses
-            .iter()
-            .map(|doc_address| {
-                let seg_ord = doc_address.segment_ord as usize;
-                columns[seg_ord]
-                    .as_ref()
-                    .map(|col| {
-                        let v = col.get_val(doc_address.doc);
-                        if v == u64::MAX {
-                            None
-                        } else {
-                            Some(v)
-                        }
-                    })
-                    .flatten()
-            })
-            .collect();
-
-        Ok(result)
+        // Pre-open one Column per segment so it is not reopened per document.
+        // Column::first() returns Option<T>, so no sentinel value is needed.
+        match field_type {
+            tv::schema::Type::U64 => collect_fast_field!(
+                segment_readers,
+                field_name,
+                doc_addresses,
+                u64,
+                FastFieldValue::U64
+            ),
+            tv::schema::Type::I64 => collect_fast_field!(
+                segment_readers,
+                field_name,
+                doc_addresses,
+                i64,
+                FastFieldValue::I64
+            ),
+            tv::schema::Type::F64 => collect_fast_field!(
+                segment_readers,
+                field_name,
+                doc_addresses,
+                f64,
+                FastFieldValue::F64
+            ),
+            tv::schema::Type::Bool => collect_fast_field!(
+                segment_readers,
+                field_name,
+                doc_addresses,
+                bool,
+                FastFieldValue::Bool
+            ),
+            _ => Err(PyValueError::new_err(format!(
+                "Field '{field_name}' has unsupported type for fast field access. \
+                 Only u64, i64, f64, and bool fast fields are supported."
+            ))),
+        }
     }
 
     fn __repr__(&self) -> PyResult<String> {
