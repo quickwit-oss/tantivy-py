@@ -6,6 +6,7 @@ nav:
   - How-to Guides: howto.md
   - Explanation: explanation.md
   - Reference: reference.md
+  - Contributing: contributing.md
   - About: about.md
 theme: readthedocs
 
