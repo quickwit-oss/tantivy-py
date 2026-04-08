@@ -29,9 +29,13 @@ In general we would prefer such features to go into a higher level package that 
 
 If you're unsure whether a contribution is desired, please open an issue first to discuss it. This isn't required for clear bug fixes, parity with upstream tantivy features, or very short PRs.
 
-**Keep PRs small and focused.** Shorter PRs can be reviewed *exponentially* faster than longer ones. A PR can be as small as fixing a single typo. Don't be shy. We will be very happy to review and merge small PRs, and we will be much less likely to reject them.
+**Keep PRs small and focused.** Shorter PRs can be reviewed *exponentially* faster than longer ones. A PR can be as small as fixing a single typo. Don't be shy. We will be very happy to review and merge small PRs, and we will be much less likely to reject them. What is "small"? Here are basic guidelines:
+- Anything under 100 lines can be checked quickly
+- Under 500 lines is "medium", and might require some time to review depending on the density and complexity of the changes.
+- Under 1000 lines is "large" and will likely require a lot of time to review.
+- Over 1000 lines should be preceded by a discussion about whether the change is desired and how to execute it.
 
-Sometimes a longer PR is unavoidable. When that happens, please open an issue to discuss the change *before* doing the bulk of the work, not after. Maintainers don't want to feel bad about rejecting a huge PR that was a lot of work for the contributor.
+These are very rough guidelines only, not hard rules. Sometimes a larger PR is unavoidable. When that happens, please open an issue to discuss the change *before* doing the bulk of the work, not after. Maintainers don't want to feel bad about rejecting a huge PR that was a lot of work for the contributor.
 
 If your PR is just an idea and you're looking for feedback, please say so. If you have high confidence in some parts but less in others, please say so. This information is very helpful for reviewers, and the reviewers want to help you. Let them help you.
 
