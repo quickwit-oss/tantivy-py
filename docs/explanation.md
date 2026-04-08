@@ -27,3 +27,9 @@ for ... in data:
 writer.commit()
 writer.wait_merging_threads()
 ```
+
+## Contributing guidelines setup
+
+The contributing guide lives at `CONTRIBUTING.md` in the repo root. GitHub automatically surfaces this file in the repository sidebar and shows a link to it when users open new issues or pull requests.
+
+To include the same content in this documentation site without duplicating it, `docs/contributing.md` is a symlink pointing to `../CONTRIBUTING.md`. MkDocs follows symlinks during the build, so the docs site always reflects the current state of the repo-root file. Edit `CONTRIBUTING.md` at the repo root, and both GitHub and the docs site update.
