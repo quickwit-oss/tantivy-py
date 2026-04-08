@@ -404,8 +404,8 @@ class Searcher:
 
     def aggregate(
         self,
-        search_query: Query,
-        agg_query: dict,
+        query: Query,
+        agg: dict,
     ) -> dict:
         pass
 
