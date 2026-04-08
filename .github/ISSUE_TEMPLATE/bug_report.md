@@ -10,6 +10,8 @@ A clear and concise description of what the bug is.
 **Reproducer**
 Please provide a short, self-contained, runnable code example that demonstrates the bug. See [sscce.org](https://www.sscce.org/) for guidance on writing good reproducers.
 
+The easier you make it for us to reproduce, the faster we can fix the bug.
+
 ```python
 # Your reproducer here
 ```
