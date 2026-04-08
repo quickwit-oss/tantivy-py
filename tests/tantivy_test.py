@@ -1752,6 +1752,57 @@ class TestQuery(object):
         ):
             Query.range_query(index.schema, "title", FieldType.Facet, 1, 2)
 
+    def test_term_query_unsigned_field(self):
+        """term_query must correctly match documents on unsigned (u64) fields.
+
+        Previously, make_term() used extract_value() which always inferred
+        Python integers as i64.  For a u64 schema field this produced a
+        mistyped Term that never matched any document, silently returning 0
+        hits regardless of the value passed.
+        """
+        schema = (
+            SchemaBuilder()
+            .add_unsigned_field("uid", stored=True, indexed=True)
+            .add_text_field("body", stored=True)
+            .build()
+        )
+        index = Index(schema, None)
+        with index.writer(15_000_000, 1) as writer:
+            doc = Document()
+            doc.add_unsigned("uid", 1)
+            doc.add_text("body", "hello world")
+            writer.add_document(doc)
+
+            doc = Document()
+            doc.add_unsigned("uid", 2)
+            doc.add_text("body", "goodbye world")
+            writer.add_document(doc)
+
+        index.reload()
+        searcher = index.searcher()
+
+        # Exact match on a u64 field — previously always returned 0 hits.
+        query = Query.term_query(index.schema, "uid", 1)
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1, (
+            "term_query on a u64 field returned no hits; "
+            "integer was likely extracted as i64"
+        )
+        _, doc_address = result.hits[0]
+        assert searcher.doc(doc_address)["uid"][0] == 1
+
+        # Second value also resolves correctly.
+        query = Query.term_query(index.schema, "uid", 2)
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        assert searcher.doc(doc_address)["uid"][0] == 2
+
+        # Non-existent value returns no hits.
+        query = Query.term_query(index.schema, "uid", 999)
+        result = searcher.search(query, 10)
+        assert len(result.hits) == 0
+
 
 class TestTokenizers:
     def test_build_and_register_simple_tokenizer(self):
