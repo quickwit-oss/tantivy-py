@@ -1,0 +1,1 @@
+- [ ] I have read the [contributing guidelines](https://github.com/quickwit-oss/tantivy-py/blob/master/CONTRIBUTING.md) which also contains information about our AI policy.

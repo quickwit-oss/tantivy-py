@@ -20,3 +20,7 @@ can succeed.
 # Documentation
 
 Please see [the documentation](https://tantivy-py.readthedocs.io/en/latest/) for more information.
+
+# Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute.
