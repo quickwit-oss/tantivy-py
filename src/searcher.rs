@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use tantivy as tv;
 use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::{Count, MultiCollector, TopDocs};
+use tantivy::columnar::MonotonicallyMappableToU64;
 use tantivy::TantivyDocument;
 
 // Bring the trait into scope. This is required for the `to_named_doc` method.
@@ -30,14 +31,15 @@ enum Fruit {
     #[pyo3(transparent)]
     Score(f32),
     #[pyo3(transparent)]
-    Order(u64),
+    Order(Option<u64>),
 }
 
 impl std::fmt::Debug for Fruit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Fruit::Score(s) => f.write_str(&format!("{s}")),
-            Fruit::Order(o) => f.write_str(&format!("{o}")),
+            Fruit::Order(Some(o)) => f.write_str(&format!("{o}")),
+            Fruit::Order(None) => f.write_str("None"),
         }
     }
 }
@@ -283,30 +285,73 @@ impl Searcher {
                         }
                     }
                 } else if let Some(order_by) = order_by_field {
-                    let collector =
-                        collector.order_by_u64_field(order_by, order.into());
-                    let top_docs_handle =
-                        multicollector.add_collector(collector);
-                    let ret = self.inner.search(query.get(), &multicollector);
-
-                    match ret {
-                        Ok(mut r) => {
-                            let top_docs = top_docs_handle.extract(&mut r);
-                            let result: Vec<(Fruit, DocAddress)> = top_docs
-                                .iter()
-                                .map(|(f, d)| {
-                                    (Fruit::Order(*f), DocAddress::from(d))
-                                })
-                                .collect();
-                            (r, result)
+                    let schema = self.inner.schema();
+                    let field = crate::get_field(&schema, order_by)
+                        .map_err(|e| PyValueError::new_err(e.to_string()))?;
+                    let field_type =
+                        schema.get_field_entry(field).field_type().value_type();
+                    match field_type {
+                        tv::schema::Type::U64 => {
+                            let top_docs_handle = multicollector.add_collector(
+                                collector.order_by_u64_field(order_by, order.into()),
+                            );
+                            let ret =
+                                self.inner.search(query.get(), &multicollector);
+                            match ret {
+                                Ok(mut r) => {
+                                    let top_docs = top_docs_handle.extract(&mut r);
+                                    let result: Vec<(Fruit, DocAddress)> = top_docs
+                                        .into_iter()
+                                        .map(|(f, d)| {
+                                            (Fruit::Order(f), DocAddress::from(&d))
+                                        })
+                                        .collect();
+                                    (r, result)
+                                }
+                                Err(e) => {
+                                    return Err(PyValueError::new_err(e.to_string()))
+                                }
+                            }
                         }
-                        Err(e) => {
-                            return Err(PyValueError::new_err(e.to_string()))
+                        tv::schema::Type::Date => {
+                            let top_docs_handle = multicollector.add_collector(
+                                collector.order_by_fast_field::<tv::DateTime>(
+                                    order_by,
+                                    order.into(),
+                                ),
+                            );
+                            let ret =
+                                self.inner.search(query.get(), &multicollector);
+                            match ret {
+                                Ok(mut r) => {
+                                    let top_docs = top_docs_handle.extract(&mut r);
+                                    let result: Vec<(Fruit, DocAddress)> = top_docs
+                                        .into_iter()
+                                        .map(|(f, d)| {
+                                            (
+                                                Fruit::Order(f.map(|dt| dt.to_u64())),
+                                                DocAddress::from(&d),
+                                            )
+                                        })
+                                        .collect();
+                                    (r, result)
+                                }
+                                Err(e) => {
+                                    return Err(PyValueError::new_err(e.to_string()))
+                                }
+                            }
+                        }
+                        other => {
+                            return Err(PyValueError::new_err(format!(
+                                "Field '{}' has type {:?}; order_by_field \
+                                 only supports U64 and Date fast fields.",
+                                order_by, other
+                            )));
                         }
                     }
                 } else {
-                    let top_docs_handle =
-                        multicollector.add_collector(collector);
+                    let top_docs_handle = multicollector
+                        .add_collector(collector.order_by_score());
                     let ret = self.inner.search(query.get(), &multicollector);
 
                     match ret {
