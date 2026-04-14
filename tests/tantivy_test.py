@@ -203,6 +203,22 @@ class TestClass(object):
             == """Query(BooleanQuery { subqueries: [(Should, FuzzyTermQuery { term: Term(field=0, type=Str, "winter"), distance: 1, transposition_cost_one: false, prefix: true }), (Should, TermQuery(Term(field=1, type=Str, "winter")))], minimum_number_should_match: 1 })"""
         )
 
+    def test_parse_query_allow_regexes(self, ram_index):
+        query = ram_index.parse_query("title:/(?:man|men)/", allow_regexes=True)
+        result = ram_index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+        _, doc_address = result.hits[0]
+        searched_doc = ram_index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+        _, doc_address = result.hits[1]
+        searched_doc = ram_index.searcher().doc(doc_address)
+        assert searched_doc["title"] == ["Of Mice and Men"]
+
+        with pytest.raises(
+               ValueError, match="Unsupported query: Regex queries are not allowed."
+          ):
+          query = ram_index.parse_query("title:/(?:man|men)/")
+
     def test_query_errors(self, ram_index):
         index = ram_index
         # no "bod" field
@@ -233,6 +249,10 @@ class TestClass(object):
             == """Query(BooleanQuery { subqueries: [(Should, BooleanQuery { subqueries: [(Must, TermQuery(Term(field=3, type=Str, "hello")))], minimum_number_should_match: 0 })], minimum_number_should_match: 1 })"""
         )
 
+        query, errors = index.parse_query_lenient("title:/(?:man|men)/")
+        assert len(errors) == 1
+        assert isinstance(errors[0], query_parser_error.UnsupportedQueryError)
+        
     def test_order_by_search(self):
         schema = (
             SchemaBuilder()
