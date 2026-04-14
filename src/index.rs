@@ -529,7 +529,7 @@ impl Index {
                 field_boosts,
                 fuzzy_fields,
                 conjunction_by_default,
-                allow_regexes
+                allow_regexes,
             )?;
 
             let query = parser.parse_query(query).map_err(to_pyerr)?;
