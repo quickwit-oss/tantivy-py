@@ -1,6 +1,6 @@
 [package]
 name = "tantivy"
-version = "0.25.1"
+version = "0.26.0"
 readme = "README.md"
 authors = ["Damir Jelić <poljar@termina.org.uk>"]
 edition = "2021"
@@ -16,7 +16,7 @@ pyo3-build-config = "0.28.3"
 [dependencies]
 base64 = "0.22"
 chrono = "0.4.44"
-tantivy = "0.25.0"
+tantivy = "0.26.0"
 itertools = "0.14.0"
 futures = "0.3.32"
 pythonize = "0.26.0"
