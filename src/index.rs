@@ -510,7 +510,9 @@ impl Index {
     ///         `transpose_cost_one` determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.
     ///
     ///     conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
-    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false))]
+    ///
+    ///     allow_regexes: If true, allow regexes in queries.
+    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false, allow_regexes = false))]
     pub fn parse_query(
         &self,
         py: Python,
@@ -519,6 +521,7 @@ impl Index {
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
         conjunction_by_default: bool,
+        allow_regexes: bool,
     ) -> PyResult<Query> {
         py.detach(move || {
             let parser = self.prepare_query_parser(
@@ -526,6 +529,7 @@ impl Index {
                 field_boosts,
                 fuzzy_fields,
                 conjunction_by_default,
+                allow_regexes,
             )?;
 
             let query = parser.parse_query(query).map_err(to_pyerr)?;
@@ -559,10 +563,12 @@ impl Index {
     ///
     ///     conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
     ///
+    ///     allow_regexes: If true, allow regexes in queries.
+    ///
     /// Returns a tuple containing the parsed query and a list of errors.
     ///
     /// Raises ValueError if a field in `default_field_names` is not defined or marked as indexed.
-    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false))]
+    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false, allow_regexes = false))]
     pub fn parse_query_lenient(
         &self,
         py: Python,
@@ -571,12 +577,14 @@ impl Index {
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
         conjunction_by_default: bool,
+        allow_regexes: bool,
     ) -> PyResult<(Query, Vec<Py<PyAny>>)> {
         let parser = self.prepare_query_parser(
             default_field_names,
             field_boosts,
             fuzzy_fields,
             conjunction_by_default,
+            allow_regexes,
         )?;
 
         let (query, errors) =
@@ -636,6 +644,7 @@ impl Index {
         field_boosts: HashMap<String, tv::Score>,
         fuzzy_fields: HashMap<String, (bool, u8, bool)>,
         conjunction_by_default: bool,
+        allow_regexes: bool,
     ) -> PyResult<tv::query::QueryParser> {
         let schema = self.index.schema();
 
@@ -671,6 +680,10 @@ impl Index {
 
         if conjunction_by_default {
             parser.set_conjunction_by_default();
+        }
+
+        if allow_regexes {
+            parser.allow_regexes();
         }
 
         for (field_name, boost) in field_boosts {
