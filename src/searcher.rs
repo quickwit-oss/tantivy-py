@@ -466,13 +466,14 @@ impl Searcher {
     #[pyo3(signature = (field_name, field_value))]
     fn doc_freq(
         &self,
+        py: Python,
         field_name: &str,
         field_value: &Bound<PyAny>,
     ) -> PyResult<u64> {
-        // Wrap the tantivy Searcher `doc_freq` method to return a PyResult.
+        // make_term() needs the GIL (Python type extraction); doc_freq() does not.
         let schema = self.inner.schema();
         let term = crate::make_term(schema, field_name, field_value)?;
-        self.inner.doc_freq(&term).map_err(to_pyerr)
+        py.detach(move || self.inner.doc_freq(&term).map_err(to_pyerr))
     }
 
     /// Fetches a document from Tantivy's store given a DocAddress.
@@ -482,12 +483,15 @@ impl Searcher {
     ///         the document that we wish to fetch.
     ///
     /// Returns the Document, raises ValueError if the document can't be found.
-    fn doc(&self, doc_address: &DocAddress) -> PyResult<Document> {
-        let doc: TantivyDocument =
-            self.inner.doc(doc_address.into()).map_err(to_pyerr)?;
-        let named_doc = doc.to_named_doc(self.inner.schema());
-        Ok(crate::document::Document {
-            field_values: named_doc.0,
+    fn doc(&self, py: Python, doc_address: &DocAddress) -> PyResult<Document> {
+        let addr: tv::DocAddress = doc_address.into();
+        py.detach(move || {
+            let doc: TantivyDocument =
+                self.inner.doc(addr).map_err(to_pyerr)?;
+            let named_doc = doc.to_named_doc(self.inner.schema());
+            Ok(crate::document::Document {
+                field_values: named_doc.0,
+            })
         })
     }
 
