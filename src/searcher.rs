@@ -4,6 +4,7 @@ use crate::{document::Document, query::Query, to_pyerr};
 use pyo3::types::PyDict;
 use pyo3::IntoPyObjectExt;
 use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
+use pythonize::{depythonize, pythonize};
 use serde::{Deserialize, Serialize};
 use tantivy as tv;
 use tantivy::aggregation::AggregationCollector;
@@ -170,6 +171,33 @@ impl SearchResult {
             })
             .collect::<PyResult<_>>()?;
         Ok(ret)
+    }
+}
+
+impl Searcher {
+    /// Execute an aggregation from an already-deserialized spec.
+    /// Shared by `aggregate()` and `cardinality()` so neither needs to
+    /// round-trip through JSON or Python when the spec is already a
+    /// `serde_json::Value`.
+    fn aggregate_value(
+        &self,
+        py: Python,
+        query: &Query,
+        aggs: tv::aggregation::agg_req::Aggregations,
+    ) -> PyResult<Py<PyDict>> {
+        let agg_res = py.detach(move || {
+            let agg_collector =
+                AggregationCollector::from_aggs(aggs, Default::default());
+            self.inner
+                .search(query.get(), &agg_collector)
+                .map_err(to_pyerr)
+        })?;
+
+        pythonize(py, &agg_res)
+            .map_err(to_pyerr)?
+            .downcast_into::<PyDict>()
+            .map(|d| d.unbind())
+            .map_err(Into::into)
     }
 }
 
@@ -415,6 +443,13 @@ impl Searcher {
         })
     }
 
+    /// Execute an aggregation query and return the results as a dict.
+    ///
+    /// Args:
+    ///     query (Query): The query that filters the documents to aggregate over.
+    ///     agg (dict): The aggregation specification as a Python dict.
+    ///
+    /// Returns a dict containing the aggregation results.
     #[pyo3(signature = (query, agg))]
     fn aggregate(
         &self,
@@ -422,26 +457,9 @@ impl Searcher {
         query: &Query,
         agg: Py<PyDict>,
     ) -> PyResult<Py<PyDict>> {
-        let py_json = py.import("json")?;
-        let agg_query_str = py_json.call_method1("dumps", (agg,))?.to_string();
-
-        let agg_str = py.detach(move || {
-            let agg_collector = AggregationCollector::from_aggs(
-                serde_json::from_str(&agg_query_str).map_err(to_pyerr)?,
-                Default::default(),
-            );
-            let agg_res = self
-                .inner
-                .search(query.get(), &agg_collector)
-                .map_err(to_pyerr)?;
-
-            serde_json::to_string(&agg_res).map_err(to_pyerr)
-        })?;
-
-        let agg_dict = py_json.call_method1("loads", (agg_str,))?;
-        let agg_dict = agg_dict.downcast::<PyDict>()?;
-
-        Ok(agg_dict.clone().unbind())
+        let aggs: tv::aggregation::agg_req::Aggregations =
+            depythonize(agg.bind(py)).map_err(to_pyerr)?;
+        self.aggregate_value(py, query, aggs)
     }
 
     /// Returns the cardinality of a query.
@@ -458,20 +476,16 @@ impl Searcher {
         query: &Query,
         field_name: &str,
     ) -> PyResult<f64> {
-        let py_json = py.import("json")?;
-        let agg_query = serde_json::json!({
+        let agg_spec = serde_json::json!({
             "cardinality": {
                 "cardinality": {
                     "field": field_name,
                 }
             }
         });
-        let agg_query_str =
-            serde_json::to_string(&agg_query).map_err(to_pyerr)?;
-        let agg_query_dict: Py<PyDict> =
-            py_json.call_method1("loads", (agg_query_str,))?.extract()?;
 
-        let agg_res = self.aggregate(py, query, agg_query_dict)?;
+        let aggs = serde_json::from_value(agg_spec).map_err(to_pyerr)?;
+        let agg_res = self.aggregate_value(py, query, aggs)?;
         let agg_res: &Bound<PyDict> = agg_res.bind(py);
 
         let res = agg_res.get_item("cardinality")?.ok_or_else(|| {
@@ -481,9 +495,7 @@ impl Searcher {
         let value = res_dict.get_item("value")?.ok_or_else(|| {
             PyValueError::new_err("Unexpected aggregation result")
         })?;
-        let res = value.extract::<f64>()?;
-
-        Ok(res)
+        value.extract::<f64>()
     }
 
     /// Returns the overall number of documents in the index.
