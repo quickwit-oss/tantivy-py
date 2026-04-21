@@ -514,13 +514,13 @@ impl Query {
     }
 
     #[staticmethod]
-    #[pyo3(signature = (schema, field_name, field_type, lower_bound, upper_bound, include_lower = true, include_upper = true, use_inverted_index = false))]
+    #[pyo3(signature = (schema, field_name, field_type, lower_bound=None, upper_bound=None, include_lower = true, include_upper = true, use_inverted_index = false))]
     pub(crate) fn range_query(
         schema: &Schema,
         field_name: &str,
         field_type: FieldType,
-        lower_bound: &Bound<PyAny>,
-        upper_bound: &Bound<PyAny>,
+        lower_bound: Option<&Bound<PyAny>>,
+        upper_bound: Option<&Bound<PyAny>>,
         include_lower: bool,
         include_upper: bool,
         use_inverted_index: bool,
@@ -568,45 +568,55 @@ impl Query {
             )));
         }
 
-        let lower_bound_term = make_term_for_type(
-            &schema.inner,
-            field_name,
-            field_type.clone(),
-            lower_bound,
-        )?;
-        let upper_bound_term = make_term_for_type(
-            &schema.inner,
-            field_name,
-            field_type.clone(),
-            upper_bound,
-        )?;
+        if lower_bound.is_none() && upper_bound.is_none() {
+            return Err(exceptions::PyValueError::new_err(
+                "At least one of lower_bound or upper_bound must be provided.",
+            ));
+        }
 
-        let lower_bound = if include_lower {
-            OpsBound::Included(lower_bound_term)
-        } else {
-            OpsBound::Excluded(lower_bound_term)
+        let lower_bound = match lower_bound {
+            None => OpsBound::Unbounded,
+            Some(lb) => {
+                let term = make_term_for_type(
+                    &schema.inner,
+                    field_name,
+                    field_type.clone(),
+                    lb,
+                )?;
+                if include_lower {
+                    OpsBound::Included(term)
+                } else {
+                    OpsBound::Excluded(term)
+                }
+            }
         };
 
-        let upper_bound = if include_upper {
-            OpsBound::Included(upper_bound_term)
-        } else {
-            OpsBound::Excluded(upper_bound_term)
+        let upper_bound = match upper_bound {
+            None => OpsBound::Unbounded,
+            Some(ub) => {
+                let term = make_term_for_type(
+                    &schema.inner,
+                    field_name,
+                    field_type.clone(),
+                    ub,
+                )?;
+                if include_upper {
+                    OpsBound::Included(term)
+                } else {
+                    OpsBound::Excluded(term)
+                }
+            }
         };
 
-        if use_inverted_index {
-            let inner = tv::query::InvertedIndexRangeQuery::new(
+        let inner: Box<dyn tv::query::Query> = if use_inverted_index {
+            Box::new(tv::query::InvertedIndexRangeQuery::new(
                 lower_bound,
                 upper_bound,
-            );
-            Ok(Query {
-                inner: Box::new(inner),
-            })
+            ))
         } else {
-            let inner = tv::query::RangeQuery::new(lower_bound, upper_bound);
-            Ok(Query {
-                inner: Box::new(inner),
-            })
-        }
+            Box::new(tv::query::RangeQuery::new(lower_bound, upper_bound))
+        };
+        Ok(Query { inner })
     }
 
     /// Explain how this query matches a given document.
