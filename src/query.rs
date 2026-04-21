@@ -513,6 +513,23 @@ impl Query {
         })
     }
 
+    /// Construct a range query over a numeric or date field.
+    ///
+    /// Pass `None` for `lower_bound` or `upper_bound` to leave that side unbounded.
+    /// Both bounds cannot be `None`; use `Query.all_query()` to match all documents.
+    /// Setting `include_lower` or `include_upper` to `False` while the corresponding
+    /// bound is `None` is an error—unbounded sides are always inclusive by definition.
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - Schema of the target index.
+    /// * `field_name` - Field name to be searched.
+    /// * `field_type` - Type of the field (`FieldType.Integer`, `FieldType.Float`, `FieldType.Date`, etc.).
+    /// * `lower_bound` - Lower bound value, or `None` for unbounded.
+    /// * `upper_bound` - Upper bound value, or `None` for unbounded.
+    /// * `include_lower` - Whether the lower bound is inclusive. Ignored (and must be `True`) when `lower_bound` is `None`.
+    /// * `include_upper` - Whether the upper bound is inclusive. Ignored (and must be `True`) when `upper_bound` is `None`.
+    /// * `use_inverted_index` - If `True`, use an inverted index range query instead of a fast-field range query.
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, field_type, lower_bound=None, upper_bound=None, include_lower = true, include_upper = true, use_inverted_index = false))]
     pub(crate) fn range_query(
@@ -569,8 +586,25 @@ impl Query {
         }
 
         if lower_bound.is_none() && upper_bound.is_none() {
+            // tv::query::RangeQuery::field() panics if both bounds are Unbounded,
+            // so we must reject this combination before constructing the query.
             return Err(exceptions::PyValueError::new_err(
-                "At least one of lower_bound or upper_bound must be provided.",
+                "At least one of lower_bound or upper_bound must be provided. \
+                 To match all documents, use Query.all_query() instead.",
+            ));
+        }
+
+        if lower_bound.is_none() && !include_lower {
+            return Err(exceptions::PyValueError::new_err(
+                "include_lower=False is invalid when lower_bound is None: \
+                 an unbounded side is always inclusive.",
+            ));
+        }
+
+        if upper_bound.is_none() && !include_upper {
+            return Err(exceptions::PyValueError::new_err(
+                "include_upper=False is invalid when upper_bound is None: \
+                 an unbounded side is always inclusive.",
             ));
         }
 

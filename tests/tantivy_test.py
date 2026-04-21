@@ -1698,6 +1698,34 @@ class TestQuery(object):
         _, doc_address = result.hits[0]
         assert index.searcher().doc(doc_address)["id"][0] == 1
 
+    @pytest.mark.parametrize(
+        ("lower_bound", "upper_bound", "include_lower", "include_upper", "match"),
+        [
+            (None, 4.0, False, True, "include_lower"),
+            (3.0, None, True, False, "include_upper"),
+        ],
+    )
+    def test_range_query_contradictory_include_and_none_bound(
+        self,
+        ram_index_numeric_fields,
+        lower_bound: float | None,
+        upper_bound: float | None,
+        include_lower: bool,
+        include_upper: bool,
+        match: str,
+    ):
+        index = ram_index_numeric_fields
+        with pytest.raises(ValueError, match=match):
+            Query.range_query(
+                index.schema,
+                "rating",
+                FieldType.Float,
+                lower_bound,
+                upper_bound,
+                include_lower=include_lower,
+                include_upper=include_upper,
+            )
+
     def test_range_query_numerics_with_inverted_index(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
 
