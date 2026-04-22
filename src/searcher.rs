@@ -32,15 +32,19 @@ enum Fruit {
     #[pyo3(transparent)]
     Score(f32),
     #[pyo3(transparent)]
-    Order(Option<u64>),
+    OrderU64(Option<u64>),
+    #[pyo3(transparent)]
+    OrderStr(Option<String>),
 }
 
 impl std::fmt::Debug for Fruit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Fruit::Score(s) => f.write_str(&format!("{s}")),
-            Fruit::Order(Some(o)) => f.write_str(&format!("{o}")),
-            Fruit::Order(None) => f.write_str("None"),
+            Fruit::OrderU64(Some(o)) => f.write_str(&format!("{o}")),
+            Fruit::OrderU64(None) => f.write_str("None"),
+            Fruit::OrderStr(Some(s)) => f.write_str(&format!("{s}")),
+            Fruit::OrderStr(None) => f.write_str("None"),
         }
     }
 }
@@ -355,35 +359,10 @@ impl Searcher {
                         .map_err(|e| PyValueError::new_err(e.to_string()))?;
                     let field_type =
                         schema.get_field_entry(field).field_type().value_type();
-                    match field_type {
-                        tv::schema::Type::U64 => {
+                    macro_rules! run_order_by_fast {
+                        ($t:ty) => {{
                             let top_docs_handle = multicollector.add_collector(
-                                collector.order_by_u64_field(order_by, order.into()),
-                            );
-                            let ret =
-                                self.inner.search(query.get(), &multicollector);
-                            match ret {
-                                Ok(mut r) => {
-                                    let top_docs = top_docs_handle.extract(&mut r);
-                                    let result: Vec<(Fruit, DocAddress)> = top_docs
-                                        .into_iter()
-                                        .map(|(f, d)| {
-                                            (Fruit::Order(f), DocAddress::from(&d))
-                                        })
-                                        .collect();
-                                    (r, result)
-                                }
-                                Err(e) => {
-                                    return Err(PyValueError::new_err(e.to_string()))
-                                }
-                            }
-                        }
-                        tv::schema::Type::Date => {
-                            let top_docs_handle = multicollector.add_collector(
-                                collector.order_by_fast_field::<tv::DateTime>(
-                                    order_by,
-                                    order.into(),
-                                ),
+                                collector.order_by_fast_field::<$t>(order_by, order.into()),
                             );
                             let ret =
                                 self.inner.search(query.get(), &multicollector);
@@ -394,7 +373,39 @@ impl Searcher {
                                         .into_iter()
                                         .map(|(f, d)| {
                                             (
-                                                Fruit::Order(f.map(|dt| dt.to_u64())),
+                                                Fruit::OrderU64(f.map(|v| v.to_u64())),
+                                                DocAddress::from(&d),
+                                            )
+                                        })
+                                        .collect();
+                                    (r, result)
+                                }
+                                Err(e) => {
+                                    return Err(PyValueError::new_err(e.to_string()))
+                                }
+                            }
+                        }};
+                    }
+                    match field_type {
+                        tv::schema::Type::U64  => run_order_by_fast!(u64),
+                        tv::schema::Type::I64  => run_order_by_fast!(i64),
+                        tv::schema::Type::F64  => run_order_by_fast!(f64),
+                        tv::schema::Type::Bool => run_order_by_fast!(bool),
+                        tv::schema::Type::Date => run_order_by_fast!(tv::DateTime),
+                        tv::schema::Type::Str  => {
+                            let top_docs_handle = multicollector.add_collector(
+                                collector.order_by_string_fast_field(order_by, order.into()),
+                            );
+                            let ret =
+                                self.inner.search(query.get(), &multicollector);
+                            match ret {
+                                Ok(mut r) => {
+                                    let top_docs = top_docs_handle.extract(&mut r);
+                                    let result: Vec<(Fruit, DocAddress)> = top_docs
+                                        .into_iter()
+                                        .map(|(f, d)| {
+                                            (
+                                                Fruit::OrderStr(f),
                                                 DocAddress::from(&d),
                                             )
                                         })
@@ -408,8 +419,8 @@ impl Searcher {
                         }
                         other => {
                             return Err(PyValueError::new_err(format!(
-                                "Field '{}' has type {:?}; order_by_field \
-                                 only supports U64 and Date fast fields.",
+                                "Field '{}' has type {:?}; order_by_field only supports \
+                                 U64, I64, F64, Bool, Date, and Str fast fields.",
                                 order_by, other
                             )));
                         }
