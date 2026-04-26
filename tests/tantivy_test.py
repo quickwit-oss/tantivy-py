@@ -141,6 +141,39 @@ class TestClass(object):
 }
 """)
 
+    def test_aggregate_terms(self, ram_index_numeric_fields):
+        """terms aggregation on a fast text field returns buckets with doc counts."""
+        index = ram_index_numeric_fields
+        query = Query.all_query()
+        agg_query = {
+            "body_terms": {
+                "terms": {
+                    "field": "body",
+                    "size": 5,
+                }
+            }
+        }
+        searcher = index.searcher()
+        result = searcher.aggregate(query, agg_query)
+
+        assert isinstance(result, dict)
+        assert "body_terms" in result
+        buckets = result["body_terms"]["buckets"]
+        assert len(buckets) == 5  # capped by size=5
+        # Every bucket must have a string key and an integer doc_count
+        for bucket in buckets:
+            assert isinstance(bucket["key"], str)
+            assert isinstance(bucket["doc_count"], int)
+            assert bucket["doc_count"] >= 1
+        # Results are sorted by doc_count descending.
+        counts = [b["doc_count"] for b in buckets]
+        assert counts == sorted(counts, reverse=True)
+        # "and" appears in both documents so it has the highest doc_count (2).
+        # doc1's body has "inthe" as one token (no separate "the"), so "and" wins.
+        top_keys = {b["key"] for b in buckets if b["doc_count"] == buckets[0]["doc_count"]}
+        assert "and" in top_keys
+        assert buckets[0]["doc_count"] == 2
+
     def test_cardinality(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
         query = Query.all_query()
@@ -158,6 +191,11 @@ class TestClass(object):
         single_doc_query = Query.term_query(index.schema, "id", 1)
         cardinality = searcher.cardinality(single_doc_query, "rating")
         assert cardinality == 1.0
+
+        # Test cardinality on a text fast field - the body field contains
+        # many unique tokens across both documents.
+        cardinality = searcher.cardinality(query, "body")
+        assert cardinality > 10
 
     def test_and_query_numeric_fields(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
@@ -1805,7 +1843,7 @@ class TestQuery(object):
         index.reload()
         searcher = index.searcher()
 
-        # Exact match on a u64 field — previously always returned 0 hits.
+        # Exact match on a u64 field - previously always returned 0 hits.
         query = Query.term_query(index.schema, "uid", 1)
         result = searcher.search(query, 10)
         assert len(result.hits) == 1, (
