@@ -808,10 +808,9 @@ impl Searcher {
                     let count = match &filter_sets {
                         None => stream.value().doc_freq,
                         Some(filter_sets) => {
-                            let term_info = stream.value().clone();
                             let mut postings = inv_index
                                 .read_postings_from_terminfo(
-                                    &term_info,
+                                    stream.value(),
                                     IndexRecordOption::Basic,
                                 )
                                 .map_err(to_pyerr)?;
