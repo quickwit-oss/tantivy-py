@@ -6,7 +6,8 @@ use pyo3::IntoPyObjectExt;
 use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use pythonize::{depythonize, pythonize};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
 use tantivy as tv;
 use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::{
@@ -865,15 +866,52 @@ impl Searcher {
                 }
             }
 
-            let mut pairs: Vec<(String, u32)> = counts.into_iter().collect();
-            pairs.sort_by(|(a_term, a_count), (b_term, b_count)| {
-                b_count.cmp(a_count).then_with(|| a_term.cmp(b_term))
-            });
-            if let Some(n) = limit {
-                pairs.truncate(n);
-            }
+            let result: Vec<(String, u32)> = match limit {
+                None => {
+                    let mut pairs: Vec<(String, u32)> =
+                        counts.into_iter().collect();
+                    pairs.sort_by(|a, b| {
+                        b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0))
+                    });
+                    pairs
+                }
+                Some(0) => Vec::new(),
+                Some(n) => {
+                    // Bounded min-heap of size n. The key (count, Reverse(term))
+                    // is constructed so "larger" means "more deserving" — higher
+                    // count, or on ties, lexicographically smaller term.
+                    // BinaryHeap is a max-heap, so wrapping in an outer Reverse
+                    // flips it to a min-heap whose peek() is the worst currently
+                    // kept entry — the candidate for eviction when a new term
+                    // outranks it.
+                    // Pop-then-push when full keeps the heap at exactly n
+                    // entries, so n is the precise capacity needed.
+                    let mut heap: BinaryHeap<Reverse<(u32, Reverse<String>)>> =
+                        BinaryHeap::with_capacity(n);
+                    for (term, count) in counts {
+                        let key = (count, Reverse(term));
+                        if heap.len() < n {
+                            heap.push(Reverse(key));
+                        } else if heap
+                            .peek()
+                            .is_some_and(|Reverse(worst)| &key > worst)
+                        {
+                            heap.pop();
+                            heap.push(Reverse(key));
+                        }
+                    }
+                    let mut top: Vec<(u32, Reverse<String>)> =
+                        heap.into_iter().map(|Reverse(k)| k).collect();
+                    // Heap order is unspecified; sort the survivors descending
+                    // (largest key first) for the documented output order.
+                    top.sort_by(|a, b| b.cmp(a));
+                    top.into_iter()
+                        .map(|(count, Reverse(term))| (term, count))
+                        .collect()
+                }
+            };
 
-            Ok(pairs)
+            Ok(result)
         })
     }
 
