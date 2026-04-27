@@ -430,6 +430,14 @@ class Searcher:
     def doc_freq(self, field_name: str, field_value: Any) -> int:
         pass
 
+    def terms_with_prefix(
+        self,
+        field_name: str,
+        prefix: str,
+        filter_query: Query | None = None,
+        limit: int | None = None,
+    ) -> list[tuple[str, int]]: ...
+
     def cardinality(self, query: Query, field_name: str) -> float:
         pass
 
