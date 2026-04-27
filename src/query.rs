@@ -513,7 +513,7 @@ impl Query {
         })
     }
 
-    /// Construct a range query over a numeric or date field.
+    /// Construct a range query over a numeric, date, or IP address field.
     ///
     /// Pass `None` for `lower_bound` or `upper_bound` to leave that side unbounded.
     /// Both bounds cannot be `None`; use `Query.all_query()` to match all documents.
