@@ -1658,6 +1658,76 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
+        # test unbounded upper (>= 4.0)
+        query = Query.range_query(
+            index.schema, "rating", FieldType.Float, 4.0, None, include_lower=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["id"][0] == 2
+
+        # test unbounded lower (<= 4.0)
+        query = Query.range_query(
+            index.schema, "rating", FieldType.Float, None, 4.0, include_upper=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["id"][0] == 1
+
+        # both bounds None is an error
+        with pytest.raises(ValueError, match="At least one"):
+            Query.range_query(index.schema, "rating", FieldType.Float, None, None)
+
+        # test integer field with unbounded upper (id >= 2)
+        query = Query.range_query(
+            index.schema, "id", FieldType.Integer, 2, None, include_lower=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        assert index.searcher().doc(doc_address)["id"][0] == 2
+
+        # test integer field with unbounded lower (id <= 1)
+        query = Query.range_query(
+            index.schema, "id", FieldType.Integer, None, 1, include_upper=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        assert index.searcher().doc(doc_address)["id"][0] == 1
+
+    @pytest.mark.parametrize(
+        ("lower_bound", "upper_bound", "include_lower", "include_upper", "match"),
+        [
+            (None, 4.0, False, True, "include_lower"),
+            (3.0, None, True, False, "include_upper"),
+        ],
+    )
+    def test_range_query_contradictory_include_and_none_bound(
+        self,
+        ram_index_numeric_fields,
+        lower_bound: float | None,
+        upper_bound: float | None,
+        include_lower: bool,
+        include_upper: bool,
+        match: str,
+    ):
+        index = ram_index_numeric_fields
+        with pytest.raises(ValueError, match=match):
+            Query.range_query(
+                index.schema,
+                "rating",
+                FieldType.Float,
+                lower_bound,
+                upper_bound,
+                include_lower=include_lower,
+                include_upper=include_upper,
+            )
+
     def test_range_query_numerics_with_inverted_index(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
 
@@ -1668,6 +1738,13 @@ class TestQuery(object):
 
         # test integer field excluding the lower bound
         query = Query.range_query(index.schema, "id", FieldType.Integer, 1, 2, use_inverted_index=True, include_lower=False)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        # test unbounded upper with inverted index (id >= 2)
+        query = Query.range_query(
+            index.schema, "id", FieldType.Integer, 2, None, include_lower=True, use_inverted_index=True
+        )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
 
@@ -1708,6 +1785,30 @@ class TestQuery(object):
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
+
+        # test date field with unbounded upper (date >= 2021-01-02)
+        query = Query.range_query(
+            index.schema,
+            "date",
+            FieldType.Date,
+            datetime.datetime(2021, 1, 2),
+            None,
+            include_lower=True,
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        # test date field with unbounded lower (date <= 2021-01-01)
+        query = Query.range_query(
+            index.schema,
+            "date",
+            FieldType.Date,
+            None,
+            datetime.datetime(2021, 1, 1),
+            include_upper=True,
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
 
     def test_range_query_ip_addrs(self, ram_index_with_ip_addr_field):
         index = ram_index_with_ip_addr_field
@@ -1756,6 +1857,20 @@ class TestQuery(object):
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
+
+        # test unbounded upper (ip >= 10.0.0.1): matches 10.0.0.1 and 127.0.0.1
+        query = Query.range_query(
+            index.schema, "ip_addr", FieldType.IpAddr, "10.0.0.1", None, include_lower=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        # test unbounded lower (ip <= 10.0.0.1): matches ::1 and 10.0.0.1
+        query = Query.range_query(
+            index.schema, "ip_addr", FieldType.IpAddr, None, "10.0.0.1", include_upper=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
 
     def test_range_query_invalid_types(
         self,
