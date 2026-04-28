@@ -216,33 +216,33 @@ def create_index_with_ip_addr_field(dir=None):
 
 
 def create_index_with_order_fast_fields(dir=None):
-        index = Index(build_schema_order_fast_fields(), dir)
-        writer = index.writer(15_000_000, 1)
+    index = Index(build_schema_order_fast_fields(), dir)
+    writer = index.writer(15_000_000, 1)
 
-        doc = Document()
-        doc.add_text("title", "low title")
-        doc.add_unsigned("u64_field", 0)
-        doc.add_integer("i64_field", -10)
-        doc.add_float("f64_field", 1.5)
-        doc.add_boolean("bool_field", False)
-        doc.add_date("date_field", datetime(2024, 1, 1))
-        doc.add_text("str_field", "apple")
-        writer.add_document(doc)
+    doc = Document()
+    doc.add_text("title", "low title")
+    doc.add_unsigned("u64_field", 0)
+    doc.add_integer("i64_field", -10)
+    doc.add_float("f64_field", 1.5)
+    doc.add_boolean("bool_field", False)
+    doc.add_date("date_field", datetime(2024, 1, 1))
+    doc.add_text("str_field", "apple")
+    writer.add_document(doc)
 
-        doc = Document()
-        doc.add_text("title", "high title")
-        doc.add_unsigned("u64_field", 2)
-        doc.add_integer("i64_field", 5)
-        doc.add_float("f64_field", 3.14)
-        doc.add_boolean("bool_field", True)
-        doc.add_date("date_field", datetime(2026, 1, 1))
-        doc.add_text("str_field", "cherry")
-        writer.add_document(doc)
+    doc = Document()
+    doc.add_text("title", "high title")
+    doc.add_unsigned("u64_field", 2)
+    doc.add_integer("i64_field", 5)
+    doc.add_float("f64_field", 3.14)
+    doc.add_boolean("bool_field", True)
+    doc.add_date("date_field", datetime(2026, 1, 1))
+    doc.add_text("str_field", "cherry")
+    writer.add_document(doc)
 
-        writer.commit()
-        writer.wait_merging_threads()
-        index.reload()
-        return index
+    writer.commit()
+    writer.wait_merging_threads()
+    index.reload()
+    return index
 
 
 def spanish_schema():
@@ -370,9 +370,11 @@ def index_with_empty_fast_field():
 def spanish_index():
     return create_spanish_index()
 
+
 @pytest.fixture(scope="class")
 def index_with_order_fast_fields():
     return create_index_with_order_fast_fields()
+
 
 @pytest.fixture(scope="class")
 def schema():
