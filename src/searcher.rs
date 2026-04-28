@@ -13,7 +13,6 @@ use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::{
     Collector, Count, MultiCollector, SegmentCollector, TopDocs,
 };
-use tantivy::columnar::MonotonicallyMappableToU64;
 use tantivy::schema::{IndexRecordOption, Type};
 use tantivy::TantivyDocument;
 use tantivy::{DocId, DocSet, Score, SegmentOrdinal, TERMINATED};
@@ -120,6 +119,14 @@ enum Fruit {
     #[pyo3(transparent)]
     OrderU64(Option<u64>),
     #[pyo3(transparent)]
+    OrderI64(Option<i64>),
+    #[pyo3(transparent)]
+    OrderF64(Option<f64>),
+    #[pyo3(transparent)]
+    OrderBool(Option<bool>),
+    #[pyo3(transparent)]
+    OrderDate(Option<i64>),
+    #[pyo3(transparent)]
     OrderStr(Option<String>),
 }
 
@@ -127,9 +134,17 @@ impl std::fmt::Debug for Fruit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Fruit::Score(s) => f.write_str(&format!("{s}")),
-            Fruit::OrderU64(Some(o)) => f.write_str(&format!("{o}")),
+            Fruit::OrderU64(Some(v)) => f.write_str(&format!("{v}")),
             Fruit::OrderU64(None) => f.write_str("None"),
-            Fruit::OrderStr(Some(s)) => f.write_str(&format!("{s}")),
+            Fruit::OrderI64(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderI64(None) => f.write_str("None"),
+            Fruit::OrderF64(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderF64(None) => f.write_str("None"),
+            Fruit::OrderBool(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderBool(None) => f.write_str("None"),
+            Fruit::OrderDate(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderDate(None) => f.write_str("None"),
+            Fruit::OrderStr(Some(v)) => f.write_str(&format!("{v}")),
             Fruit::OrderStr(None) => f.write_str("None"),
         }
     }
@@ -446,7 +461,7 @@ impl Searcher {
                     let field_type =
                         schema.get_field_entry(field).field_type().value_type();
                     macro_rules! run_order_by_fast {
-                        ($t:ty) => {{
+                        ($t:ty, $to_fruit:expr) => {{
                             let top_docs_handle = multicollector.add_collector(
                                 collector.order_by_fast_field::<$t>(order_by, order.into()),
                             );
@@ -459,7 +474,7 @@ impl Searcher {
                                         .into_iter()
                                         .map(|(f, d)| {
                                             (
-                                                Fruit::OrderU64(f.map(|v| v.to_u64())),
+                                                $to_fruit(f),
                                                 DocAddress::from(&d),
                                             )
                                         })
@@ -473,11 +488,16 @@ impl Searcher {
                         }};
                     }
                     match field_type {
-                        tv::schema::Type::U64  => run_order_by_fast!(u64),
-                        tv::schema::Type::I64  => run_order_by_fast!(i64),
-                        tv::schema::Type::F64  => run_order_by_fast!(f64),
-                        tv::schema::Type::Bool => run_order_by_fast!(bool),
-                        tv::schema::Type::Date => run_order_by_fast!(tv::DateTime),
+                        tv::schema::Type::U64  => run_order_by_fast!(u64, Fruit::OrderU64),
+                        tv::schema::Type::I64  => run_order_by_fast!(i64, Fruit::OrderI64),
+                        tv::schema::Type::F64  => run_order_by_fast!(f64, Fruit::OrderF64),
+                        tv::schema::Type::Bool => run_order_by_fast!(bool, Fruit::OrderBool),
+                        tv::schema::Type::Date => run_order_by_fast!(
+                            tv::DateTime,
+                            |f: Option<tv::DateTime>| {
+                                Fruit::OrderDate(f.map(|dt| dt.into_timestamp_nanos()))
+                            }
+                        ),
                         tv::schema::Type::Str  => {
                             let top_docs_handle = multicollector.add_collector(
                                 collector.order_by_string_fast_field(order_by, order.into()),
