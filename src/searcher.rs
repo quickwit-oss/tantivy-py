@@ -316,24 +316,28 @@ impl Searcher {
     ///         return. Defaults to 10.
     ///     count (bool, optional): Should the number of documents that match
     ///         the query be returned as well. Defaults to true.
-    ///     order_by_field (Field, optional): A schema field that the results
+    ///     order_by_field (str, optional): Name of a field that the results
     ///         should be ordered by. The field must be declared as a fast field
-    ///         when building the schema. Note, this only works for unsigned
-    ///         fields.
-    ///     offset (Field, optional): The offset from which the results have
+    ///         when building the schema. Supported field types: Text, Unsigned,
+    ///         Integer, Float, Boolean and Date.
+    ///     offset (int, optional): The offset from which the results have
     ///         to be returned.
     ///     order (Order, optional): The order in which the results
     ///         should be sorted. If not specified, defaults to descending.
-    ///     weight_by_field (Field, optional): A schema field that the results
+    ///     weight_by_field (str, optional): Name of a field that the results
     ///         should be weighted by. The field must be declared as a fast
     ///         field when building the schema. Note, this only works for
-    ///         f64, i64 and u64 fields. The given field value is first
+    ///         Float, Integer and Unsigned fields. The given field value is first
     ///         transformed using the formula `log2(2.0 + value)` and then
     ///         multiplied with the original score. This means that a weight field
     ///         value of 0.0 results in no change to the original score.
     ///         If the weight value is negative, it is treated as 0.0.
     ///
-    /// Returns `SearchResult` object.
+    /// Returns `SearchResult` object whose `hits` is a list of `(order_key,
+    /// DocAddress)` tuples. When no `order_by_field` is given, `order_key` is
+    /// a float score. When ordering by a field, `order_key` matches the
+    /// field's Python type (int, float, bool, or str), except for date fields
+    /// which return an int of nanoseconds since the epoch.
     ///
     /// Raises a ValueError if there was an error with the search.
     #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0, order = Order::Desc,
