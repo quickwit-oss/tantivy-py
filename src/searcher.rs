@@ -6,7 +6,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use pythonize::{depythonize, pythonize};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use tantivy as tv;
 use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::{
@@ -16,6 +16,7 @@ use tantivy::columnar::MonotonicallyMappableToU64;
 use tantivy::schema::{IndexRecordOption, Type};
 use tantivy::TantivyDocument;
 use tantivy::{DocId, DocSet, Score, SegmentOrdinal, TERMINATED};
+use tantivy_common::BitSet;
 
 // Bring the trait into scope. This is required for the `to_named_doc` method.
 // However, tantivy-py declares its own `Document` class, so we need to avoid
@@ -38,21 +39,24 @@ fn next_prefix_bound(prefix: &[u8]) -> Option<Vec<u8>> {
     None
 }
 
-/// Private collector that gathers matching DocIds per segment.
+/// Private collector that gathers matching DocIds per segment as a BitSet.
 ///
-/// `merge_fruits` places each segment's HashSet at index `segment_ord` so
-/// `terms_with_prefix` can look up visibility by segment index.
-struct PerSegmentDocSetCollector {
+/// Each segment's BitSet is sized to that segment's `max_doc()`, so total
+/// memory is ~1 bit per indexed document regardless of how many docs the
+/// query matches. `merge_fruits` places each segment's BitSet at index
+/// `segment_ord` so `terms_with_prefix` can look up visibility by segment
+/// index. Slots for segments that produced no fruit remain `None`.
+struct PerSegmentBitSetCollector {
     num_segments: usize,
 }
 
-struct PerSegmentSegmentCollector {
+struct PerSegmentBitSetSegmentCollector {
     segment_ord: u32,
-    docs: HashSet<DocId>,
+    docs: BitSet,
 }
 
-impl SegmentCollector for PerSegmentSegmentCollector {
-    type Fruit = (u32, HashSet<DocId>);
+impl SegmentCollector for PerSegmentBitSetSegmentCollector {
+    type Fruit = (u32, BitSet);
 
     fn collect(&mut self, doc: DocId, _score: Score) {
         self.docs.insert(doc);
@@ -63,18 +67,18 @@ impl SegmentCollector for PerSegmentSegmentCollector {
     }
 }
 
-impl Collector for PerSegmentDocSetCollector {
-    type Fruit = Vec<HashSet<DocId>>;
-    type Child = PerSegmentSegmentCollector;
+impl Collector for PerSegmentBitSetCollector {
+    type Fruit = Vec<Option<BitSet>>;
+    type Child = PerSegmentBitSetSegmentCollector;
 
     fn for_segment(
         &self,
         segment_local_id: SegmentOrdinal,
-        _reader: &tv::SegmentReader,
+        reader: &tv::SegmentReader,
     ) -> tv::Result<Self::Child> {
-        Ok(PerSegmentSegmentCollector {
+        Ok(PerSegmentBitSetSegmentCollector {
             segment_ord: segment_local_id,
-            docs: HashSet::new(),
+            docs: BitSet::with_max_value(reader.max_doc()),
         })
     }
 
@@ -84,11 +88,15 @@ impl Collector for PerSegmentDocSetCollector {
 
     fn merge_fruits(
         &self,
-        segment_fruits: Vec<(u32, HashSet<DocId>)>,
-    ) -> tv::Result<Vec<HashSet<DocId>>> {
-        let mut result = vec![HashSet::new(); self.num_segments];
+        segment_fruits: Vec<(u32, BitSet)>,
+    ) -> tv::Result<Vec<Option<BitSet>>> {
+        // None marks "no fruit for this segment". In practice tantivy calls
+        // for_segment for every segment, so every slot ends up as Some(_) —
+        // but a None default keeps merge_fruits robust to any future change.
+        let mut result: Vec<Option<BitSet>> =
+            (0..self.num_segments).map(|_| None).collect();
         for (seg_ord, docs) in segment_fruits {
-            result[seg_ord as usize] = docs;
+            result[seg_ord as usize] = Some(docs);
         }
         Ok(result)
     }
@@ -762,19 +770,22 @@ impl Searcher {
         let open_ended = upper_bound.is_none() && !prefix_bytes.is_empty();
 
         py.detach(move || {
-            let filter_sets: Option<Vec<HashSet<DocId>>> = filter_query
+            let filter_sets: Option<Vec<Option<BitSet>>> = filter_query
                 .map(|fq| {
                     self.inner
                         .search(
                             fq.get(),
-                            &PerSegmentDocSetCollector { num_segments },
+                            &PerSegmentBitSetCollector { num_segments },
                         )
                         .map_err(to_pyerr)
                 })
                 .transpose()?;
 
             if let Some(ref sets) = filter_sets {
-                if sets.iter().all(|s| s.is_empty()) {
+                if sets
+                    .iter()
+                    .all(|s| s.as_ref().map_or(true, |bs| bs.len() == 0))
+                {
                     return Ok(vec![]);
                 }
             }
@@ -784,6 +795,22 @@ impl Searcher {
             for (seg_ord, segment_reader) in
                 self.inner.segment_readers().iter().enumerate()
             {
+                // Resolve this segment's filter once per segment, not per term.
+                // - None outer  → no filter at all; use term doc_freq below.
+                // - Some(None)  → segment produced no fruit; skip it entirely.
+                // - Some(Some(bs)) with len() == 0 → no docs match here; skip.
+                // - Some(Some(bs)) with len() > 0  → intersect postings against bs.
+                let segment_filter: Option<&BitSet> = match &filter_sets {
+                    None => None,
+                    Some(sets) => {
+                        debug_assert!(seg_ord < sets.len());
+                        match sets[seg_ord].as_ref() {
+                            Some(bs) if bs.len() > 0 => Some(bs),
+                            _ => continue,
+                        }
+                    }
+                };
+
                 let inv_index =
                     segment_reader.inverted_index(field).map_err(to_pyerr)?;
 
@@ -805,17 +832,15 @@ impl Searcher {
                         continue;
                     };
 
-                    let count = match &filter_sets {
+                    let count = match segment_filter {
                         None => stream.value().doc_freq,
-                        Some(filter_sets) => {
+                        Some(filter_set) => {
                             let mut postings = inv_index
                                 .read_postings_from_terminfo(
                                     stream.value(),
                                     IndexRecordOption::Basic,
                                 )
                                 .map_err(to_pyerr)?;
-                            debug_assert!(seg_ord < filter_sets.len());
-                            let filter_set = &filter_sets[seg_ord];
                             let mut c = 0u32;
                             // SegmentPostings initialises at doc 0; read doc()
                             // before the first advance().
@@ -824,7 +849,7 @@ impl Searcher {
                                 if doc == TERMINATED {
                                     break;
                                 }
-                                if filter_set.contains(&doc) {
+                                if filter_set.contains(doc) {
                                     c += 1;
                                 }
                                 postings.advance();
