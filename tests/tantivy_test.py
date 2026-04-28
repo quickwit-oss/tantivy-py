@@ -316,25 +316,34 @@ class TestClass(object):
         # The JSON should contain score information
         assert '"value"' in json_output or "value" in json_output
 
-    @pytest.mark.parametrize("field", [
-        "u64_field",
-        "i64_field",
-        "f64_field",
-        "bool_field",
-        "date_field",
-        "str_field",
+    @pytest.mark.parametrize("field, low_value, high_value", [
+        pytest.param("u64_field", 0, 2, id="U64"),
+        pytest.param("i64_field", -10, 5, id="I64"),
+        pytest.param("f64_field", 1.5, 3.14, id="F64"),
+        pytest.param("bool_field", False, True, id="Bool"),
+        pytest.param("str_field", "apple", "cherry", id="Str"),
+        pytest.param(
+            "date_field",
+            int(datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc).timestamp()) * 1_000_000_000,
+            int(datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc).timestamp()) * 1_000_000_000,
+            id="Date",
+        ),
     ])
-    def test_order_by_fast_field(self, index_with_order_fast_fields, field):
+    def test_order_by_fast_field(self, index_with_order_fast_fields, field, low_value, high_value):
         searcher = index_with_order_fast_fields.searcher()
         query = index_with_order_fast_fields.parse_query("title", ["title"])
 
         result = searcher.search(query, 10, order_by_field=field)
         assert len(result.hits) == 2
+        assert result.hits[0][0] == high_value
+        assert result.hits[1][0] == low_value
         assert searcher.doc(result.hits[0][1])["title"] == ["high title"]
         assert searcher.doc(result.hits[1][1])["title"] == ["low title"]
 
         result = searcher.search(query, 10, order_by_field=field, order=tantivy.Order.Asc)
         assert len(result.hits) == 2
+        assert result.hits[0][0] == low_value
+        assert result.hits[1][0] == high_value
         assert searcher.doc(result.hits[0][1])["title"] == ["low title"]
         assert searcher.doc(result.hits[1][1])["title"] == ["high title"]
 
