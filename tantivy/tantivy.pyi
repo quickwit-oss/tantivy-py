@@ -348,8 +348,8 @@ class Query:
         schema: Schema,
         field_name: str,
         field_type: FieldType,
-        lower_bound: _RangeType,
-        upper_bound: _RangeType,
+        lower_bound: Optional[_RangeType] = None,
+        upper_bound: Optional[_RangeType] = None,
         include_lower: bool = True,
         include_upper: bool = True,
         use_inverted_index: bool = False,
@@ -429,6 +429,14 @@ class Searcher:
 
     def doc_freq(self, field_name: str, field_value: Any) -> int:
         pass
+
+    def terms_with_prefix(
+        self,
+        field_name: str,
+        prefix: str,
+        filter_query: Query | None = None,
+        limit: int | None = None,
+    ) -> list[tuple[str, int]]: ...
 
     def cardinality(self, query: Query, field_name: str) -> float:
         pass

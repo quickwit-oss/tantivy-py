@@ -6,16 +6,102 @@ use pyo3::IntoPyObjectExt;
 use pyo3::{basic::CompareOp, exceptions::PyValueError, prelude::*};
 use pythonize::{depythonize, pythonize};
 use serde::{Deserialize, Serialize};
+use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
 use tantivy as tv;
 use tantivy::aggregation::AggregationCollector;
-use tantivy::collector::{Count, MultiCollector, TopDocs};
+use tantivy::collector::{
+    Collector, Count, MultiCollector, SegmentCollector, TopDocs,
+};
 use tantivy::columnar::MonotonicallyMappableToU64;
+use tantivy::schema::{IndexRecordOption, Type};
 use tantivy::TantivyDocument;
+use tantivy::{DocId, DocSet, Score, SegmentOrdinal, TERMINATED};
+use tantivy_common::BitSet;
 
 // Bring the trait into scope. This is required for the `to_named_doc` method.
 // However, tantivy-py declares its own `Document` class, so we need to avoid
 // introduce the `Document` trait into the namespace.
 use tantivy::Document as _;
+
+/// Returns the smallest byte string strictly greater than `prefix`.
+///
+/// Increments the last non-0xFF byte in place and truncates. Returns None
+/// if every byte is 0xFF (caller must fall back to a manual prefix check).
+fn next_prefix_bound(prefix: &[u8]) -> Option<Vec<u8>> {
+    let mut bound = prefix.to_vec();
+    for i in (0..bound.len()).rev() {
+        if bound[i] < 0xFF {
+            bound[i] += 1;
+            bound.truncate(i + 1);
+            return Some(bound);
+        }
+    }
+    None
+}
+
+/// Private collector that gathers matching DocIds per segment as a BitSet.
+///
+/// Each segment's BitSet is sized to that segment's `max_doc()`, so total
+/// memory is ~1 bit per indexed document regardless of how many docs the
+/// query matches. `merge_fruits` places each segment's BitSet at index
+/// `segment_ord` so `terms_with_prefix` can look up visibility by segment
+/// index. Slots for segments that produced no fruit remain `None`.
+struct PerSegmentBitSetCollector {
+    num_segments: usize,
+}
+
+struct PerSegmentBitSetSegmentCollector {
+    segment_ord: u32,
+    docs: BitSet,
+}
+
+impl SegmentCollector for PerSegmentBitSetSegmentCollector {
+    type Fruit = (u32, BitSet);
+
+    fn collect(&mut self, doc: DocId, _score: Score) {
+        self.docs.insert(doc);
+    }
+
+    fn harvest(self) -> Self::Fruit {
+        (self.segment_ord, self.docs)
+    }
+}
+
+impl Collector for PerSegmentBitSetCollector {
+    type Fruit = Vec<Option<BitSet>>;
+    type Child = PerSegmentBitSetSegmentCollector;
+
+    fn for_segment(
+        &self,
+        segment_local_id: SegmentOrdinal,
+        reader: &tv::SegmentReader,
+    ) -> tv::Result<Self::Child> {
+        Ok(PerSegmentBitSetSegmentCollector {
+            segment_ord: segment_local_id,
+            docs: BitSet::with_max_value(reader.max_doc()),
+        })
+    }
+
+    fn requires_scoring(&self) -> bool {
+        false
+    }
+
+    fn merge_fruits(
+        &self,
+        segment_fruits: Vec<(u32, BitSet)>,
+    ) -> tv::Result<Vec<Option<BitSet>>> {
+        // None marks "no fruit for this segment". In practice tantivy calls
+        // for_segment for every segment, so every slot ends up as Some(_) —
+        // but a None default keeps merge_fruits robust to any future change.
+        let mut result: Vec<Option<BitSet>> =
+            (0..self.num_segments).map(|_| None).collect();
+        for (seg_ord, docs) in segment_fruits {
+            result[seg_ord as usize] = Some(docs);
+        }
+        Ok(result)
+    }
+}
 
 /// Tantivy's Searcher class
 ///
@@ -265,7 +351,7 @@ impl Searcher {
 
                     // Get field type from schema
                     let schema = self.inner.schema();
-                    let field = crate::get_field(&schema, &weight_by_field)
+                    let field = crate::get_field(schema, &weight_by_field)
                         .map_err(|e| PyValueError::new_err(e.to_string()))?;
                     let field_entry = schema.get_field_entry(field);
                     let field_type = field_entry.field_type().value_type();
@@ -355,7 +441,7 @@ impl Searcher {
                     }
                 } else if let Some(order_by) = order_by_field {
                     let schema = self.inner.schema();
-                    let field = crate::get_field(&schema, order_by)
+                    let field = crate::get_field(schema, order_by)
                         .map_err(|e| PyValueError::new_err(e.to_string()))?;
                     let field_type =
                         schema.get_field_entry(field).field_type().value_type();
@@ -647,6 +733,197 @@ impl Searcher {
                  Only u64, i64, f64, and bool fast fields are supported."
             ))),
         }
+    }
+
+    /// Walk the term dictionary for `field_name` and return all terms that
+    /// begin with `prefix`, together with their document frequencies.
+    ///
+    /// Args:
+    ///     field_name: Name of an indexed text field in the schema.
+    ///     prefix: Only terms beginning with this string are returned.
+    ///         An empty string returns all terms in the field.
+    ///     filter_query: Optional Query. When provided, each term's count
+    ///         reflects only documents matched by the query (e.g. for
+    ///         permission filtering). Counts are still summed across segments.
+    ///     limit: If given, only the top-`limit` entries (by count) are returned.
+    ///
+    /// Returns:
+    ///     ``[(term, count), ...]`` sorted by count descending, then
+    ///     alphabetically. Terms present in multiple segments have their
+    ///     counts summed.
+    ///
+    /// Raises:
+    ///     ValueError: if the field does not exist or is not a text field.
+    #[pyo3(signature = (field_name, prefix, filter_query = None, limit = None))]
+    fn terms_with_prefix(
+        &self,
+        py: Python,
+        field_name: &str,
+        prefix: &str,
+        filter_query: Option<&Query>,
+        limit: Option<usize>,
+    ) -> PyResult<Vec<(String, u32)>> {
+        let schema = self.inner.schema();
+        let field = crate::get_field(schema, field_name)?;
+        if !matches!(
+            schema.get_field_entry(field).field_type().value_type(),
+            Type::Str
+        ) {
+            return Err(PyValueError::new_err(format!(
+                "Field '{field_name}' is not an indexed text field."
+            )));
+        }
+
+        let prefix_bytes = prefix.as_bytes().to_vec();
+        let upper_bound = next_prefix_bound(&prefix_bytes);
+        let num_segments = self.inner.segment_readers().len();
+        // When every byte of prefix is 0xFF no FST upper bound can be expressed;
+        // the inner loop falls back to a manual starts_with check.
+        let open_ended = upper_bound.is_none() && !prefix_bytes.is_empty();
+
+        py.detach(move || {
+            let filter_sets: Option<Vec<Option<BitSet>>> = filter_query
+                .map(|fq| {
+                    self.inner
+                        .search(
+                            fq.get(),
+                            &PerSegmentBitSetCollector { num_segments },
+                        )
+                        .map_err(to_pyerr)
+                })
+                .transpose()?;
+
+            if let Some(ref sets) = filter_sets {
+                if sets
+                    .iter()
+                    .all(|s| s.as_ref().map_or(true, |bs| bs.len() == 0))
+                {
+                    return Ok(vec![]);
+                }
+            }
+
+            let mut counts: HashMap<String, u32> = HashMap::new();
+
+            for (seg_ord, segment_reader) in
+                self.inner.segment_readers().iter().enumerate()
+            {
+                // Resolve this segment's filter once per segment, not per term.
+                // - None outer  → no filter at all; use term doc_freq below.
+                // - Some(None)  → segment produced no fruit; skip it entirely.
+                // - Some(Some(bs)) with len() == 0 → no docs match here; skip.
+                // - Some(Some(bs)) with len() > 0  → intersect postings against bs.
+                let segment_filter: Option<&BitSet> = match &filter_sets {
+                    None => None,
+                    Some(sets) => {
+                        debug_assert!(seg_ord < sets.len());
+                        match sets[seg_ord].as_ref() {
+                            Some(bs) if bs.len() > 0 => Some(bs),
+                            _ => continue,
+                        }
+                    }
+                };
+
+                let inv_index =
+                    segment_reader.inverted_index(field).map_err(to_pyerr)?;
+
+                let mut stream = {
+                    let mut builder =
+                        inv_index.terms().range().ge(prefix_bytes.as_slice());
+                    if let Some(ref ub) = upper_bound {
+                        builder = builder.lt(ub.as_slice());
+                    }
+                    builder.into_stream().map_err(to_pyerr)?
+                };
+
+                while stream.advance() {
+                    let key = stream.key();
+                    if open_ended && !key.starts_with(prefix_bytes.as_slice()) {
+                        break;
+                    }
+                    let Ok(term_str) = std::str::from_utf8(key) else {
+                        continue;
+                    };
+
+                    let count = match segment_filter {
+                        None => stream.value().doc_freq,
+                        Some(filter_set) => {
+                            let mut postings = inv_index
+                                .read_postings_from_terminfo(
+                                    stream.value(),
+                                    IndexRecordOption::Basic,
+                                )
+                                .map_err(to_pyerr)?;
+                            let mut c = 0u32;
+                            // SegmentPostings initialises at doc 0; read doc()
+                            // before the first advance().
+                            loop {
+                                let doc = postings.doc();
+                                if doc == TERMINATED {
+                                    break;
+                                }
+                                if filter_set.contains(doc) {
+                                    c += 1;
+                                }
+                                postings.advance();
+                            }
+                            c
+                        }
+                    };
+
+                    if count > 0 {
+                        *counts.entry(term_str.to_owned()).or_insert(0) +=
+                            count;
+                    }
+                }
+            }
+
+            let result: Vec<(String, u32)> = match limit {
+                None => {
+                    let mut pairs: Vec<(String, u32)> =
+                        counts.into_iter().collect();
+                    pairs.sort_by(|a, b| {
+                        b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0))
+                    });
+                    pairs
+                }
+                Some(0) => Vec::new(),
+                Some(n) => {
+                    // Bounded min-heap of size n. The key (count, Reverse(term))
+                    // is constructed so "larger" means "more deserving" — higher
+                    // count, or on ties, lexicographically smaller term.
+                    // BinaryHeap is a max-heap, so wrapping in an outer Reverse
+                    // flips it to a min-heap whose peek() is the worst currently
+                    // kept entry — the candidate for eviction when a new term
+                    // outranks it.
+                    // Pop-then-push when full keeps the heap at exactly n
+                    // entries, so n is the precise capacity needed.
+                    let mut heap: BinaryHeap<Reverse<(u32, Reverse<String>)>> =
+                        BinaryHeap::with_capacity(n);
+                    for (term, count) in counts {
+                        let key = (count, Reverse(term));
+                        if heap.len() < n {
+                            heap.push(Reverse(key));
+                        } else if heap
+                            .peek()
+                            .is_some_and(|Reverse(worst)| &key > worst)
+                        {
+                            heap.pop();
+                            heap.push(Reverse(key));
+                        }
+                    }
+                    let mut top: Vec<(u32, Reverse<String>)> =
+                        heap.into_iter().map(|Reverse(k)| k).collect();
+                    // Heap order is unspecified; sort the survivors descending
+                    // (largest key first) for the documented output order.
+                    top.sort_by(|a, b| b.cmp(a));
+                    top.into_iter()
+                        .map(|(count, Reverse(term))| (term, count))
+                        .collect()
+                }
+            };
+
+            Ok(result)
+        })
     }
 
     fn __repr__(&self) -> PyResult<String> {

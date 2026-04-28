@@ -4,6 +4,8 @@ import copy
 import datetime
 import json
 import pickle
+from itertools import groupby
+
 import pytest
 
 import tantivy
@@ -1555,6 +1557,76 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
+        # test unbounded upper (>= 4.0)
+        query = Query.range_query(
+            index.schema, "rating", FieldType.Float, 4.0, None, include_lower=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["id"][0] == 2
+
+        # test unbounded lower (<= 4.0)
+        query = Query.range_query(
+            index.schema, "rating", FieldType.Float, None, 4.0, include_upper=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        searched_doc = index.searcher().doc(doc_address)
+        assert searched_doc["id"][0] == 1
+
+        # both bounds None is an error
+        with pytest.raises(ValueError, match="At least one"):
+            Query.range_query(index.schema, "rating", FieldType.Float, None, None)
+
+        # test integer field with unbounded upper (id >= 2)
+        query = Query.range_query(
+            index.schema, "id", FieldType.Integer, 2, None, include_lower=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        assert index.searcher().doc(doc_address)["id"][0] == 2
+
+        # test integer field with unbounded lower (id <= 1)
+        query = Query.range_query(
+            index.schema, "id", FieldType.Integer, None, 1, include_upper=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, doc_address = result.hits[0]
+        assert index.searcher().doc(doc_address)["id"][0] == 1
+
+    @pytest.mark.parametrize(
+        ("lower_bound", "upper_bound", "include_lower", "include_upper", "match"),
+        [
+            (None, 4.0, False, True, "include_lower"),
+            (3.0, None, True, False, "include_upper"),
+        ],
+    )
+    def test_range_query_contradictory_include_and_none_bound(
+        self,
+        ram_index_numeric_fields,
+        lower_bound: float | None,
+        upper_bound: float | None,
+        include_lower: bool,
+        include_upper: bool,
+        match: str,
+    ):
+        index = ram_index_numeric_fields
+        with pytest.raises(ValueError, match=match):
+            Query.range_query(
+                index.schema,
+                "rating",
+                FieldType.Float,
+                lower_bound,
+                upper_bound,
+                include_lower=include_lower,
+                include_upper=include_upper,
+            )
+
     def test_range_query_numerics_with_inverted_index(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
 
@@ -1565,6 +1637,13 @@ class TestQuery(object):
 
         # test integer field excluding the lower bound
         query = Query.range_query(index.schema, "id", FieldType.Integer, 1, 2, use_inverted_index=True, include_lower=False)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        # test unbounded upper with inverted index (id >= 2)
+        query = Query.range_query(
+            index.schema, "id", FieldType.Integer, 2, None, include_lower=True, use_inverted_index=True
+        )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
 
@@ -1605,6 +1684,30 @@ class TestQuery(object):
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 0
+
+        # test date field with unbounded upper (date >= 2021-01-02)
+        query = Query.range_query(
+            index.schema,
+            "date",
+            FieldType.Date,
+            datetime.datetime(2021, 1, 2),
+            None,
+            include_lower=True,
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        # test date field with unbounded lower (date <= 2021-01-01)
+        query = Query.range_query(
+            index.schema,
+            "date",
+            FieldType.Date,
+            None,
+            datetime.datetime(2021, 1, 1),
+            include_upper=True,
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
 
     def test_range_query_ip_addrs(self, ram_index_with_ip_addr_field):
         index = ram_index_with_ip_addr_field
@@ -1653,6 +1756,20 @@ class TestQuery(object):
         )
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
+
+        # test unbounded upper (ip >= 10.0.0.1): matches 10.0.0.1 and 127.0.0.1
+        query = Query.range_query(
+            index.schema, "ip_addr", FieldType.IpAddr, "10.0.0.1", None, include_lower=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+
+        # test unbounded lower (ip <= 10.0.0.1): matches ::1 and 10.0.0.1
+        query = Query.range_query(
+            index.schema, "ip_addr", FieldType.IpAddr, None, "10.0.0.1", include_upper=True
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
 
     def test_range_query_invalid_types(
         self,
@@ -2060,3 +2177,176 @@ class TestFastFieldValues:
         # Text fast fields store term ids, not scalar values — unsupported.
         with pytest.raises(ValueError, match="unsupported type"):
             searcher.fast_field_values("tag", addrs)
+
+
+class TestTermsWithPrefix:
+    """Tests for Searcher.terms_with_prefix()."""
+
+    @pytest.fixture(scope="class")
+    def prefix_index(self):
+        """Single-segment index with predictable term frequencies."""
+        schema = (
+            SchemaBuilder()
+            .add_text_field("body", stored=False)
+            .add_unsigned_field("owner_id", stored=True, indexed=True, fast=True)
+            .build()
+        )
+        index = Index(schema, None)
+        with index.writer(15_000_000, 1) as writer:
+            # apple: 2 docs, apricot: 1 doc, banana: 1 doc, cherry: 1 doc, date: 1 doc
+            doc = Document()
+            doc.add_text("body", "apple banana")
+            doc.add_unsigned("owner_id", 1)
+            writer.add_document(doc)
+            doc = Document()
+            doc.add_text("body", "apple apricot")
+            doc.add_unsigned("owner_id", 2)
+            writer.add_document(doc)
+            doc = Document()
+            doc.add_text("body", "cherry date")
+            doc.add_unsigned("owner_id", 1)
+            writer.add_document(doc)
+        index.reload()
+        return index
+
+    @pytest.fixture(scope="class")
+    def multi_seg_index(self):
+        """Two-segment index — same 3 docs as prefix_index split across commits.
+
+        wait_merging_threads() is intentionally omitted: calling it lets the
+        default merge policy collapse the two small segments into one, which
+        would defeat the purpose of this fixture.
+        """
+        schema = (
+            SchemaBuilder()
+            .add_text_field("body", stored=False)
+            .build()
+        )
+        index = Index(schema, None)
+        # Two separate commits → two segments (no merge policy invoked yet)
+        with index.writer(15_000_000, 1) as writer:
+            doc = Document()
+            doc.add_text("body", "apple banana")
+            writer.add_document(doc)
+        # Reload between commits forces a new segment on the next write
+        index.reload()
+        with index.writer(15_000_000, 1) as writer:
+            doc = Document()
+            doc.add_text("body", "apple apricot")
+            writer.add_document(doc)
+        index.reload()
+        return index
+
+    @pytest.fixture(scope="class")
+    def filtered_index(self):
+        """4-doc index: 2 owned by user 1, 2 owned by user 2.
+        All docs contain 'apple'; 'exclusive' only in user-2 docs."""
+        schema = (
+            SchemaBuilder()
+            .add_text_field("body", stored=False)
+            .add_unsigned_field("owner_id", stored=True, indexed=True, fast=True)
+            .build()
+        )
+        index = Index(schema, None)
+        with index.writer(15_000_000, 1) as writer:
+            for _ in range(2):
+                doc = Document()
+                doc.add_text("body", "apple common")
+                doc.add_unsigned("owner_id", 1)
+                writer.add_document(doc)
+            for _ in range(2):
+                doc = Document()
+                doc.add_text("body", "apple exclusive")
+                doc.add_unsigned("owner_id", 2)
+                writer.add_document(doc)
+        index.reload()
+        return index
+
+    # ------------------------------------------------------------------ tests
+
+    def test_basic_prefix_match(self, prefix_index):
+        """Returns correct terms and counts for a simple prefix."""
+        searcher = prefix_index.searcher()
+        results = searcher.terms_with_prefix("body", "ap")
+        terms = [t for t, _ in results]
+        counts = {t: c for t, c in results}
+        assert "apple" in terms
+        assert "apricot" in terms
+        assert "banana" not in terms
+        assert counts["apple"] == 2
+        assert counts["apricot"] == 1
+
+    def test_sorted_by_count_descending_then_alpha(self, prefix_index):
+        """Higher-count terms come first; ties broken alphabetically."""
+        searcher = prefix_index.searcher()
+        results = searcher.terms_with_prefix("body", "")  # all terms
+        counts = [c for _, c in results]
+        assert counts == sorted(counts, reverse=True)
+        # Find all terms with the same count and check alphabetical order within
+        for _, group in groupby(results, key=lambda x: x[1]):
+            group_terms = [t for t, _ in group]
+            assert group_terms == sorted(group_terms)
+
+    def test_multi_segment_counts_summed(self, multi_seg_index):
+        """Counts are summed correctly across segments."""
+        assert multi_seg_index.searcher().num_segments >= 2
+        results = multi_seg_index.searcher().terms_with_prefix("body", "ap")
+        counts = {t: c for t, c in results}
+        assert counts["apple"] == 2
+        assert counts["apricot"] == 1
+
+    def test_filter_query_path(self, filtered_index):
+        """filter_query restricts counts to matching docs only."""
+        searcher = filtered_index.searcher()
+        schema = filtered_index.schema
+        filter_q = Query.term_query(schema, "owner_id", 2)
+        # Use empty prefix so all terms are reachable
+        results = searcher.terms_with_prefix("body", "", filter_query=filter_q)
+        counts = {t: c for t, c in results}
+        # user 2 has 2 docs each containing 'apple' and 'exclusive'
+        assert counts.get("apple") == 2
+        assert "common" not in counts
+        assert "exclusive" in counts
+
+    def test_filter_matches_nothing(self, filtered_index):
+        """Returns [] when the filter matches no documents."""
+        searcher = filtered_index.searcher()
+        schema = filtered_index.schema
+        # owner_id 99 does not exist
+        filter_q = Query.term_query(schema, "owner_id", 99)
+        assert searcher.terms_with_prefix("body", "ap", filter_query=filter_q) == []
+
+    def test_limit_truncation(self, prefix_index):
+        """Exactly `limit` results returned, and they are the correct top-N."""
+        searcher = prefix_index.searcher()
+        all_results = searcher.terms_with_prefix("body", "")
+        limited = searcher.terms_with_prefix("body", "", limit=2)
+        assert len(limited) == 2
+        # The top-2 from the full list must equal the limited result
+        assert limited == all_results[:2]
+
+    def test_empty_prefix_returns_all_terms(self, prefix_index):
+        """Empty prefix returns every term in the field."""
+        searcher = prefix_index.searcher()
+        results = searcher.terms_with_prefix("body", "")
+        terms = {t for t, _ in results}
+        assert {"apple", "apricot", "banana", "cherry", "date"} == terms
+
+    def test_unknown_field_raises(self, prefix_index):
+        """ValueError when field_name is not in the schema."""
+        with pytest.raises(ValueError, match="is not defined in the schema"):
+            prefix_index.searcher().terms_with_prefix("nonexistent", "ap")
+
+    def test_non_text_field_raises(self, prefix_index):
+        """ValueError when the field exists but is not a text field."""
+        with pytest.raises(ValueError, match="not an indexed text field"):
+            prefix_index.searcher().terms_with_prefix("owner_id", "ap")
+
+    def test_no_filter_equals_all_docs_filter(self, filtered_index):
+        """filter_query=None and a query matching all docs give identical results
+        including the same ordering."""
+        searcher = filtered_index.searcher()
+        no_filter = searcher.terms_with_prefix("body", "")
+        all_docs_q = filtered_index.parse_query("apple OR common OR exclusive", ["body"])
+        with_filter = searcher.terms_with_prefix("body", "", filter_query=all_docs_q)
+        assert no_filter == with_filter
