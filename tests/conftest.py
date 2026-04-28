@@ -43,6 +43,7 @@ def build_schema_with_ip_addr_field():
         .build()
     )
 
+
 def build_schema_order_fast_fields():
     return (
         SchemaBuilder()
@@ -55,6 +56,7 @@ def build_schema_order_fast_fields():
         .add_text_field("str_field", fast=True)
         .build()
     )
+
 
 def create_index(dir=None):
     # assume all tests will use the same documents for now
