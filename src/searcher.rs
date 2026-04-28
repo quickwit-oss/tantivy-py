@@ -530,7 +530,7 @@ impl Searcher {
                         other => {
                             return Err(PyValueError::new_err(format!(
                                 "Field '{}' has type {:?}; order_by_field only supports \
-                                 U64, I64, F64, Bool, Date, and Str fast fields.",
+                                 Text, Unsigned, Integer, Float, Boolean and Date fast fields.",
                                 order_by, other
                             )));
                         }
