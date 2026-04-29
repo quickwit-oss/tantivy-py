@@ -13,7 +13,6 @@ use tantivy::aggregation::AggregationCollector;
 use tantivy::collector::{
     Collector, Count, MultiCollector, SegmentCollector, TopDocs,
 };
-use tantivy::columnar::MonotonicallyMappableToU64;
 use tantivy::schema::{IndexRecordOption, Type};
 use tantivy::TantivyDocument;
 use tantivy::{DocId, DocSet, Score, SegmentOrdinal, TERMINATED};
@@ -118,15 +117,35 @@ enum Fruit {
     #[pyo3(transparent)]
     Score(f32),
     #[pyo3(transparent)]
-    Order(Option<u64>),
+    OrderU64(Option<u64>),
+    #[pyo3(transparent)]
+    OrderI64(Option<i64>),
+    #[pyo3(transparent)]
+    OrderF64(Option<f64>),
+    #[pyo3(transparent)]
+    OrderBool(Option<bool>),
+    #[pyo3(transparent)]
+    OrderDate(Option<i64>),
+    #[pyo3(transparent)]
+    OrderStr(Option<String>),
 }
 
 impl std::fmt::Debug for Fruit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Fruit::Score(s) => f.write_str(&format!("{s}")),
-            Fruit::Order(Some(o)) => f.write_str(&format!("{o}")),
-            Fruit::Order(None) => f.write_str("None"),
+            Fruit::OrderU64(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderU64(None) => f.write_str("None"),
+            Fruit::OrderI64(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderI64(None) => f.write_str("None"),
+            Fruit::OrderF64(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderF64(None) => f.write_str("None"),
+            Fruit::OrderBool(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderBool(None) => f.write_str("None"),
+            Fruit::OrderDate(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderDate(None) => f.write_str("None"),
+            Fruit::OrderStr(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderStr(None) => f.write_str("None"),
         }
     }
 }
@@ -297,24 +316,28 @@ impl Searcher {
     ///         return. Defaults to 10.
     ///     count (bool, optional): Should the number of documents that match
     ///         the query be returned as well. Defaults to true.
-    ///     order_by_field (Field, optional): A schema field that the results
+    ///     order_by_field (str, optional): Name of a field that the results
     ///         should be ordered by. The field must be declared as a fast field
-    ///         when building the schema. Note, this only works for unsigned
-    ///         fields.
-    ///     offset (Field, optional): The offset from which the results have
+    ///         when building the schema. Supported field types: Text, Unsigned,
+    ///         Integer, Float, Boolean and Date.
+    ///     offset (int, optional): The offset from which the results have
     ///         to be returned.
     ///     order (Order, optional): The order in which the results
     ///         should be sorted. If not specified, defaults to descending.
-    ///     weight_by_field (Field, optional): A schema field that the results
+    ///     weight_by_field (str, optional): Name of a field that the results
     ///         should be weighted by. The field must be declared as a fast
     ///         field when building the schema. Note, this only works for
-    ///         f64, i64 and u64 fields. The given field value is first
+    ///         Float, Integer and Unsigned fields. The given field value is first
     ///         transformed using the formula `log2(2.0 + value)` and then
     ///         multiplied with the original score. This means that a weight field
     ///         value of 0.0 results in no change to the original score.
     ///         If the weight value is negative, it is treated as 0.0.
     ///
-    /// Returns `SearchResult` object.
+    /// Returns `SearchResult` object whose `hits` is a list of `(order_key,
+    /// DocAddress)` tuples. When no `order_by_field` is given, `order_key` is
+    /// a float score. When ordering by a field, `order_key` matches the
+    /// field's Python type (int, float, bool, or str), except for date fields
+    /// which return an int of nanoseconds since the epoch.
     ///
     /// Raises a ValueError if there was an error with the search.
     #[pyo3(signature = (query, limit = 10, count = true, order_by_field = None, offset = 0, order = Order::Desc,
@@ -441,35 +464,10 @@ impl Searcher {
                         .map_err(|e| PyValueError::new_err(e.to_string()))?;
                     let field_type =
                         schema.get_field_entry(field).field_type().value_type();
-                    match field_type {
-                        tv::schema::Type::U64 => {
+                    macro_rules! run_order_by_fast {
+                        ($t:ty, $to_fruit:expr) => {{
                             let top_docs_handle = multicollector.add_collector(
-                                collector.order_by_u64_field(order_by, order.into()),
-                            );
-                            let ret =
-                                self.inner.search(query.get(), &multicollector);
-                            match ret {
-                                Ok(mut r) => {
-                                    let top_docs = top_docs_handle.extract(&mut r);
-                                    let result: Vec<(Fruit, DocAddress)> = top_docs
-                                        .into_iter()
-                                        .map(|(f, d)| {
-                                            (Fruit::Order(f), DocAddress::from(&d))
-                                        })
-                                        .collect();
-                                    (r, result)
-                                }
-                                Err(e) => {
-                                    return Err(PyValueError::new_err(e.to_string()))
-                                }
-                            }
-                        }
-                        tv::schema::Type::Date => {
-                            let top_docs_handle = multicollector.add_collector(
-                                collector.order_by_fast_field::<tv::DateTime>(
-                                    order_by,
-                                    order.into(),
-                                ),
+                                collector.order_by_fast_field::<$t>(order_by, order.into()),
                             );
                             let ret =
                                 self.inner.search(query.get(), &multicollector);
@@ -480,7 +478,44 @@ impl Searcher {
                                         .into_iter()
                                         .map(|(f, d)| {
                                             (
-                                                Fruit::Order(f.map(|dt| dt.to_u64())),
+                                                $to_fruit(f),
+                                                DocAddress::from(&d),
+                                            )
+                                        })
+                                        .collect();
+                                    (r, result)
+                                }
+                                Err(e) => {
+                                    return Err(PyValueError::new_err(e.to_string()))
+                                }
+                            }
+                        }};
+                    }
+                    match field_type {
+                        tv::schema::Type::U64  => run_order_by_fast!(u64, Fruit::OrderU64),
+                        tv::schema::Type::I64  => run_order_by_fast!(i64, Fruit::OrderI64),
+                        tv::schema::Type::F64  => run_order_by_fast!(f64, Fruit::OrderF64),
+                        tv::schema::Type::Bool => run_order_by_fast!(bool, Fruit::OrderBool),
+                        tv::schema::Type::Date => run_order_by_fast!(
+                            tv::DateTime,
+                            |f: Option<tv::DateTime>| {
+                                Fruit::OrderDate(f.map(|dt| dt.into_timestamp_nanos()))
+                            }
+                        ),
+                        tv::schema::Type::Str  => {
+                            let top_docs_handle = multicollector.add_collector(
+                                collector.order_by_string_fast_field(order_by, order.into()),
+                            );
+                            let ret =
+                                self.inner.search(query.get(), &multicollector);
+                            match ret {
+                                Ok(mut r) => {
+                                    let top_docs = top_docs_handle.extract(&mut r);
+                                    let result: Vec<(Fruit, DocAddress)> = top_docs
+                                        .into_iter()
+                                        .map(|(f, d)| {
+                                            (
+                                                Fruit::OrderStr(f),
                                                 DocAddress::from(&d),
                                             )
                                         })
@@ -494,8 +529,8 @@ impl Searcher {
                         }
                         other => {
                             return Err(PyValueError::new_err(format!(
-                                "Field '{}' has type {:?}; order_by_field \
-                                 only supports U64 and Date fast fields.",
+                                "Field '{}' has type {:?}; order_by_field only supports \
+                                 Text, Unsigned, Integer, Float, Boolean and Date fast fields.",
                                 order_by, other
                             )));
                         }
