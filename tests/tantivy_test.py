@@ -292,102 +292,6 @@ class TestClass(object):
         query, errors = index.parse_query_lenient("title:/(?:man|men)/")
         assert len(errors) == 1
         assert isinstance(errors[0], query_parser_error.UnsupportedQueryError)
-        
-    def test_order_by_search(self):
-        schema = (
-            SchemaBuilder()
-            .add_unsigned_field("order", fast=True)
-            .add_text_field("title", stored=True)
-            .build()
-        )
-
-        index = Index(schema)
-        writer = index.writer()
-
-        doc = Document()
-        doc.add_unsigned("order", 0)
-        doc.add_text("title", "Test title")
-
-        writer.add_document(doc)
-
-        doc = Document()
-        doc.add_unsigned("order", 2)
-        doc.add_text("title", "Final test title")
-        writer.add_document(doc)
-
-        doc = Document()
-        doc.add_unsigned("order", 1)
-        doc.add_text("title", "Another test title")
-
-        writer.add_document(doc)
-
-        writer.commit()
-        index.reload()
-
-        query = index.parse_query("test")
-
-        searcher = index.searcher()
-
-        result = searcher.search(query, 10, offset=2, order_by_field="order")
-
-        assert len(result.hits) == 1
-
-        result = searcher.search(query, 10, order_by_field="order")
-
-        assert len(result.hits) == 3
-
-        _, doc_address = result.hits[0]
-        searched_doc = index.searcher().doc(doc_address)
-        assert searched_doc["title"] == ["Final test title"]
-
-        _, doc_address = result.hits[1]
-        searched_doc = index.searcher().doc(doc_address)
-        assert searched_doc["title"] == ["Another test title"]
-
-        _, doc_address = result.hits[2]
-        searched_doc = index.searcher().doc(doc_address)
-        assert searched_doc["title"] == ["Test title"]
-
-        result = searcher.search(
-            query, 10, order_by_field="order", order=tantivy.Order.Asc
-        )
-
-        assert len(result.hits) == 3
-
-        _, doc_address = result.hits[2]
-        searched_doc = index.searcher().doc(doc_address)
-        assert searched_doc["title"] == ["Final test title"]
-
-        _, doc_address = result.hits[1]
-        searched_doc = index.searcher().doc(doc_address)
-        assert searched_doc["title"] == ["Another test title"]
-
-        _, doc_address = result.hits[0]
-        searched_doc = index.searcher().doc(doc_address)
-        assert searched_doc["title"] == ["Test title"]
-
-    def test_order_by_search_without_fast_field(self):
-        schema = (
-            SchemaBuilder()
-            .add_unsigned_field("order")
-            .add_text_field("title", stored=True)
-            .build()
-        )
-
-        index = Index(schema)
-        writer = index.writer()
-
-        doc = Document()
-        doc.add_unsigned("order", 0)
-        doc.add_text("title", "Test title")
-
-        query = index.parse_query("test")
-
-        searcher = index.searcher()
-        with pytest.raises(
-            ValueError, match="not a fast field"
-        ):
-            searcher.search(query, 10, order_by_field="order")
 
     def test_query_explain(self, ram_index):
         index: Index = ram_index
@@ -412,10 +316,42 @@ class TestClass(object):
         # The JSON should contain score information
         assert '"value"' in json_output or "value" in json_output
 
-    def test_order_by_search_date(self):
+    @pytest.mark.parametrize("field, low_value, high_value", [
+        pytest.param("u64_field", 0, 2, id="U64"),
+        pytest.param("i64_field", -10, 5, id="I64"),
+        pytest.param("f64_field", 1.5, 3.14, id="F64"),
+        pytest.param("bool_field", False, True, id="Bool"),
+        pytest.param("str_field", "apple", "cherry", id="Str"),
+        pytest.param(
+            "date_field",
+            int(datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc).timestamp()) * 1_000_000_000,
+            int(datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc).timestamp()) * 1_000_000_000,
+            id="Date",
+        ),
+    ])
+    def test_order_by_fast_field(self, index_with_order_fast_fields, field, low_value, high_value):
+        searcher = index_with_order_fast_fields.searcher()
+        query = index_with_order_fast_fields.parse_query("title", ["title"])
+
+        result = searcher.search(query, 10, order_by_field=field)
+        assert len(result.hits) == 2
+        assert result.hits[0][0] == high_value
+        assert result.hits[1][0] == low_value
+        assert searcher.doc(result.hits[0][1])["title"] == ["high title"]
+        assert searcher.doc(result.hits[1][1])["title"] == ["low title"]
+
+        result = searcher.search(query, 10, order_by_field=field, order=tantivy.Order.Asc)
+        assert len(result.hits) == 2
+        assert result.hits[0][0] == low_value
+        assert result.hits[1][0] == high_value
+        assert searcher.doc(result.hits[0][1])["title"] == ["low title"]
+        assert searcher.doc(result.hits[1][1])["title"] == ["high title"]
+
+
+    def test_order_by_search_without_fast_field(self):
         schema = (
             SchemaBuilder()
-            .add_date_field("order", fast=True)
+            .add_unsigned_field("order")
             .add_text_field("title", stored=True)
             .build()
         )
@@ -424,44 +360,16 @@ class TestClass(object):
         writer = index.writer()
 
         doc = Document()
-        doc.add_date("order", datetime.datetime(2020, 1, 1))
+        doc.add_unsigned("order", 0)
         doc.add_text("title", "Test title")
-
-        writer.add_document(doc)
-
-        doc = Document()
-        doc.add_date("order", datetime.datetime(2022, 1, 1))
-        doc.add_text("title", "Final test title")
-        writer.add_document(doc)
-
-        doc = Document()
-        doc.add_date("order", datetime.datetime(2021, 1, 1))
-        doc.add_text("title", "Another test title")
-
-        writer.add_document(doc)
-
-        writer.commit()
-        index.reload()
 
         query = index.parse_query("test")
 
         searcher = index.searcher()
-
-        result = searcher.search(query, 10, order_by_field="order")
-
-        assert len(result.hits) == 3
-
-        _, doc_address = result.hits[0]
-        searched_doc = index.searcher().doc(doc_address)
-        assert searched_doc["title"] == ["Final test title"]
-
-        _, doc_address = result.hits[1]
-        searched_doc = index.searcher().doc(doc_address)
-        assert searched_doc["title"] == ["Another test title"]
-
-        _, doc_address = result.hits[2]
-        searched_doc = index.searcher().doc(doc_address)
-        assert searched_doc["title"] == ["Test title"]
+        with pytest.raises(
+            ValueError, match="not a fast field"
+        ):
+            searcher.search(query, 10, order_by_field="order")
 
     def test_with_merges(self):
         # This test is taken from tantivy's test suite:
