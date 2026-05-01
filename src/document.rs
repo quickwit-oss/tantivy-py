@@ -6,13 +6,13 @@ use pyo3::{
     basic::CompareOp,
     prelude::*,
     types::{
-        PyAny, PyBool, PyDateAccess, PyDateTime, PyDict, PyInt, PyList,
-        PyTimeAccess, PyTuple,
+        PyAny, PyBool, PyDateTime, PyDict, PyInt, PyList, PyTuple, PyTzInfo,
+        PyTzInfoAccess,
     },
     IntoPyObjectExt, Python,
 };
 
-use chrono::{offset::TimeZone, NaiveDateTime, Utc};
+use chrono::{DateTime as ChronoDateTime, NaiveDateTime, Utc};
 
 use tantivy::{self as tv, schema::document::OwnedValue as Value};
 
@@ -27,6 +27,41 @@ use std::{
     str::FromStr,
 };
 
+/// Convert a Python `datetime` (naive or aware) to a tantivy `DateTime`.
+///
+/// Tantivy stores timestamps as UTC nanoseconds with no tzinfo. Aware inputs
+/// are normalized via `astimezone(timezone.utc)`, which handles fixed-offset
+/// and IANA tzinfos (e.g. `zoneinfo.ZoneInfo`). Naive inputs are interpreted
+/// as UTC, matching tantivy's documented "implicitly UTC" convention.
+///
+/// The `astimezone` round-trip is required because pyo3's chrono `FromPyObject`
+/// impls are strict: `NaiveDateTime` rejects any input with tzinfo, and
+/// `DateTime<Utc>` only accepts inputs whose tzinfo *is* `datetime.timezone.utc`
+/// — a `zoneinfo.ZoneInfo("UTC")` or any non-UTC tz fails. Normalizing in
+/// Python first sidesteps both restrictions.
+fn pydatetime_to_tv(any: &Bound<PyAny>) -> PyResult<tv::DateTime> {
+    let dt = any.downcast::<PyDateTime>()?;
+    let nanos = if dt.get_tzinfo().is_some() {
+        let utc_tz = PyTzInfo::utc(dt.py())?;
+        let utc_dt = dt.call_method1("astimezone", (utc_tz,))?;
+        utc_dt
+            .extract::<ChronoDateTime<Utc>>()?
+            .timestamp_nanos_opt()
+    } else {
+        any.extract::<NaiveDateTime>()?
+            .and_utc()
+            .timestamp_nanos_opt()
+    }
+    .ok_or_else(|| to_pyerr("datetime out of representable range"))?;
+    Ok(tv::DateTime::from_timestamp_nanos(nanos))
+}
+
+/// Convert a tantivy `DateTime` to a tz-aware UTC Python `datetime`.
+fn tv_to_pydatetime(py: Python, dt: tv::DateTime) -> PyResult<Py<PyAny>> {
+    ChronoDateTime::<Utc>::from_timestamp_nanos(dt.into_timestamp_nanos())
+        .into_py_any(py)
+}
+
 pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
     if let Ok(s) = any.extract::<String>() {
         return Ok(Value::Str(s));
@@ -40,10 +75,8 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
     if let Ok(num) = any.extract::<f64>() {
         return Ok(Value::F64(num));
     }
-    if let Ok(datetime) = any.extract::<NaiveDateTime>() {
-        return Ok(Value::Date(tv::DateTime::from_timestamp_secs(
-            datetime.and_utc().timestamp(),
-        )));
+    if any.downcast::<PyDateTime>().is_ok() {
+        return Ok(Value::Date(pydatetime_to_tv(any)?));
     }
     if let Ok(facet) = any.extract::<Facet>() {
         return Ok(Value::Facet(facet.inner));
@@ -105,15 +138,10 @@ pub(crate) fn extract_value_for_type(
             any.extract::<f64>()
                 .map_err(to_pyerr_for_type("F64", field_name, any))?,
         ),
-        tv::schema::Type::Date => {
-            let datetime = any
-                .extract::<NaiveDateTime>()
-                .map_err(to_pyerr_for_type("DateTime", field_name, any))?;
-
-            Value::Date(tv::DateTime::from_timestamp_secs(
-                datetime.and_utc().timestamp(),
-            ))
-        }
+        tv::schema::Type::Date => Value::Date(
+            pydatetime_to_tv(any)
+                .map_err(to_pyerr_for_type("DateTime", field_name, any))?,
+        ),
         tv::schema::Type::Facet => Value::Facet(
             any.extract::<Facet>()
                 .map_err(to_pyerr_for_type("Facet", field_name, any))?
@@ -226,21 +254,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<Py<PyAny>> {
             // TODO implement me
             unimplemented!();
         }
-        Value::Date(d) => {
-            let utc = d.into_utc();
-            PyDateTime::new(
-                py,
-                utc.year(),
-                utc.month() as u8,
-                utc.day(),
-                utc.hour(),
-                utc.minute(),
-                utc.second(),
-                utc.microsecond(),
-                None,
-            )?
-            .into_py_any(py)?
-        }
+        Value::Date(d) => tv_to_pydatetime(py, *d)?,
         Value::Facet(f) => Facet { inner: f.clone() }.into_py_any(py)?,
         Value::Array(arr) => {
             let list = PyList::empty(py);
@@ -719,22 +733,14 @@ impl Document {
     /// Args:
     ///     field_name (str): The field name for which we are adding the date.
     ///     value (datetime): The date that will be added to the document.
-    fn add_date(&mut self, field_name: String, value: &Bound<PyDateTime>) {
-        let datetime = Utc
-            .with_ymd_and_hms(
-                value.get_year(),
-                value.get_month().into(),
-                value.get_day().into(),
-                value.get_hour().into(),
-                value.get_minute().into(),
-                value.get_second().into(),
-            )
-            .single()
-            .unwrap();
-        self.add_value(
-            field_name,
-            tv::DateTime::from_timestamp_secs(datetime.timestamp()),
-        );
+    fn add_date(
+        &mut self,
+        field_name: String,
+        value: &Bound<PyDateTime>,
+    ) -> PyResult<()> {
+        let dt = pydatetime_to_tv(value.as_any())?;
+        self.add_value(field_name, dt);
+        Ok(())
     }
 
     /// Add a facet value to the document.

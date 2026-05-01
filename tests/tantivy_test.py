@@ -371,6 +371,48 @@ class TestClass(object):
         ):
             searcher.search(query, 10, order_by_field="order")
 
+    def test_date_index_roundtrip(self):
+        schema = (
+            SchemaBuilder()
+            .add_date_field("date", stored=True, indexed=True)
+            .add_text_field("title", stored=True)
+            .build()
+        )
+        index = Index(schema)
+        writer = index.writer()
+
+        naive = datetime.datetime(2019, 8, 12, 13, 0, 0, 123456)
+        ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+        aware = datetime.datetime(2019, 8, 12, 13, 0, 0, tzinfo=ist)
+
+        doc = Document()
+        doc.add_text("title", "naive")
+        doc.add_date("date", naive)
+        writer.add_document(doc)
+
+        doc = Document()
+        doc.add_text("title", "aware")
+        doc.add_date("date", aware)
+        writer.add_document(doc)
+
+        writer.commit()
+        index.reload()
+        searcher = index.searcher()
+
+        query = index.parse_query("naive OR aware", ["title"])
+        hits = searcher.search(query, 10).hits
+        by_title = {
+            searcher.doc(addr)["title"][0]: searcher.doc(addr)["date"][0]
+            for _, addr in hits
+        }
+
+        assert by_title["naive"] == naive.replace(
+            tzinfo=datetime.timezone.utc
+        )
+        assert by_title["aware"] == datetime.datetime(
+            2019, 8, 12, 7, 30, 0, tzinfo=datetime.timezone.utc
+        )
+
     def test_with_merges(self):
         # This test is taken from tantivy's test suite:
         # https://github.com/quickwit-oss/tantivy/blob/42acd334f49d5ff7e4fe846b5c12198f24409b50/src/indexer/index_writer.rs#L1130
@@ -702,7 +744,27 @@ class TestDocument(object):
     def test_document_with_date(self):
         date = datetime.datetime(2019, 8, 12, 13, 0, 0)
         doc = tantivy.Document(name="Bill", date=date)
-        assert doc["date"][0] == date
+        assert doc["date"][0] == date.replace(tzinfo=datetime.timezone.utc)
+
+    def test_document_with_aware_date(self):
+        eastern = datetime.timezone(datetime.timedelta(hours=-5))
+        date = datetime.datetime(2019, 8, 12, 13, 0, 0, tzinfo=eastern)
+        doc = tantivy.Document(name="Bill", date=date)
+        assert doc["date"][0] == date.astimezone(datetime.timezone.utc)
+
+    def test_document_with_offset_date_normalizes_to_utc(self):
+        ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+        date = datetime.datetime(2019, 8, 12, 13, 0, 0, tzinfo=ist)
+        doc = tantivy.Document(name="Bill", date=date)
+        expected = datetime.datetime(
+            2019, 8, 12, 7, 30, 0, tzinfo=datetime.timezone.utc
+        )
+        assert doc["date"][0] == expected
+
+    def test_document_date_microseconds_preserved(self):
+        date = datetime.datetime(2019, 8, 12, 13, 0, 0, 123456)
+        doc = tantivy.Document(name="Bill", date=date)
+        assert doc["date"][0] == date.replace(tzinfo=datetime.timezone.utc)
 
     def test_document_repr(self):
         doc = tantivy.Document(name="Bill", reference=[1, 2])
