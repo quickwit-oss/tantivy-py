@@ -33,6 +33,12 @@ use std::{
 /// are normalized via `astimezone(timezone.utc)`, which handles fixed-offset
 /// and IANA tzinfos (e.g. `zoneinfo.ZoneInfo`). Naive inputs are interpreted
 /// as UTC, matching tantivy's documented "implicitly UTC" convention.
+///
+/// The `astimezone` round-trip is required because pyo3's chrono `FromPyObject`
+/// impls are strict: `NaiveDateTime` rejects any input with tzinfo, and
+/// `DateTime<Utc>` only accepts inputs whose tzinfo *is* `datetime.timezone.utc`
+/// — a `zoneinfo.ZoneInfo("UTC")` or any non-UTC tz fails. Normalizing in
+/// Python first sidesteps both restrictions.
 fn pydatetime_to_tv(any: &Bound<PyAny>) -> PyResult<tv::DateTime> {
     let dt = any.downcast::<PyDateTime>()?;
     let nanos = if dt.get_tzinfo().is_some() {
