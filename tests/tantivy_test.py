@@ -794,7 +794,27 @@ class TestDocument(object):
     def test_document_with_date(self):
         date = datetime.datetime(2019, 8, 12, 13, 0, 0)
         doc = tantivy.Document(name="Bill", date=date)
-        assert doc["date"][0] == date
+        assert doc["date"][0] == date.replace(tzinfo=datetime.timezone.utc)
+
+    def test_document_with_aware_date(self):
+        eastern = datetime.timezone(datetime.timedelta(hours=-5))
+        date = datetime.datetime(2019, 8, 12, 13, 0, 0, tzinfo=eastern)
+        doc = tantivy.Document(name="Bill", date=date)
+        assert doc["date"][0] == date.astimezone(datetime.timezone.utc)
+
+    def test_document_with_offset_date_normalizes_to_utc(self):
+        ist = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+        date = datetime.datetime(2019, 8, 12, 13, 0, 0, tzinfo=ist)
+        doc = tantivy.Document(name="Bill", date=date)
+        expected = datetime.datetime(
+            2019, 8, 12, 7, 30, 0, tzinfo=datetime.timezone.utc
+        )
+        assert doc["date"][0] == expected
+
+    def test_document_date_microseconds_preserved(self):
+        date = datetime.datetime(2019, 8, 12, 13, 0, 0, 123456)
+        doc = tantivy.Document(name="Bill", date=date)
+        assert doc["date"][0] == date.replace(tzinfo=datetime.timezone.utc)
 
     def test_document_repr(self):
         doc = tantivy.Document(name="Bill", reference=[1, 2])
