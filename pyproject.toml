@@ -1,5 +1,5 @@
 [build-system]
-requires = ["maturin>=1.0,<2.0"]
+requires = ["maturin>=1.9.3,<2.0"]
 build-backend = "maturin"
 
 [project]
@@ -7,6 +7,8 @@ name = "tantivy"
 version = "0.26.0"
 description = "Official Python bindings for the Tantivy search engine"
 requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Damir Jelić", email="poljar@termina.org.uk" },
     { name = "Caleb Hattingh", email = "code@cjrh.info" },
