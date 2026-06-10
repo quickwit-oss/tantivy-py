@@ -130,7 +130,8 @@ impl Query {
         if others.is_empty() {
             return self.clone();
         }
-        let new_clauses = others.into_iter().map(|query| (other_occur, query.inner));
+        let new_clauses =
+            others.into_iter().map(|query| (other_occur, query.inner));
 
         if let Some(boolean_query) = self.inner.downcast_ref::<BooleanQuery>() {
             let minimum = boolean_query.get_minimum_number_should_match();
@@ -152,9 +153,11 @@ impl Query {
                     .collect::<Vec<_>>();
                 subqueries.extend(new_clauses);
                 return Query {
-                    inner: Box::new(BooleanQuery::with_minimum_required_clauses(
-                        subqueries, minimum,
-                    )),
+                    inner: Box::new(
+                        BooleanQuery::with_minimum_required_clauses(
+                            subqueries, minimum,
+                        ),
+                    ),
                 };
             }
         }
@@ -450,7 +453,10 @@ impl Query {
     /// given query. Accepts any number of queries, so a list can be passed
     /// with argument unpacking: `query.and_must_match(*queries)`.
     #[pyo3(signature = (*queries))]
-    pub(crate) fn and_must_match(&self, queries: Vec<Query>) -> PyResult<Query> {
+    pub(crate) fn and_must_match(
+        &self,
+        queries: Vec<Query>,
+    ) -> PyResult<Query> {
         Ok(self.combine_with(
             queries,
             tv::query::Occur::Must,
@@ -463,7 +469,10 @@ impl Query {
     /// the given queries. Accepts any number of queries, so a list can be
     /// passed with argument unpacking: `query.and_must_not_match(*queries)`.
     #[pyo3(signature = (*queries))]
-    pub(crate) fn and_must_not_match(&self, queries: Vec<Query>) -> PyResult<Query> {
+    pub(crate) fn and_must_not_match(
+        &self,
+        queries: Vec<Query>,
+    ) -> PyResult<Query> {
         Ok(self.combine_with(
             queries,
             tv::query::Occur::Must,
@@ -476,7 +485,10 @@ impl Query {
     /// the given queries. Accepts any number of queries, so a list can be
     /// passed with argument unpacking: `query.or_should_match(*queries)`.
     #[pyo3(signature = (*queries))]
-    pub(crate) fn or_should_match(&self, queries: Vec<Query>) -> PyResult<Query> {
+    pub(crate) fn or_should_match(
+        &self,
+        queries: Vec<Query>,
+    ) -> PyResult<Query> {
         Ok(self.combine_with(
             queries,
             tv::query::Occur::Should,
