@@ -50,23 +50,27 @@ OUT_DIR = HERE / "api"
 
 
 def _stabilize_member_order() -> None:
-    """Make pdoc emit class members in a deterministic (alphabetical) order.
+    """Sort module- and class-level members caselessly by name.
 
-    pdoc derives a class's member order from `cls.__dict__`, but for a compiled
-    pyo3 extension that order is randomized per process, so regenerating would
-    shuffle members and produce spurious diffs in the committed docs. Sorting by
-    name is stable and reads naturally for an API reference. (Module-level
-    members already come out sorted via `dir()`, so only classes need this.)
+    pdoc derives member order from the object's `__dict__`, but for a compiled
+    pyo3 extension that order is randomized per process. Left alone, regenerating
+    would shuffle members and produce spurious diffs in the committed docs, and
+    the mkdocs sidebar sub-tree (built from the per-member headings) would come
+    out in a different order every time. A caseless alphabetical sort is stable,
+    reads naturally for an API reference, and gives the sidebar a predictable
+    order. `Module` and `Class` each define their own `_member_objects`, so both
+    need wrapping.
     """
-    descriptor = pdoc_doc.Class._member_objects
-    original = descriptor.func
+    for owner in (pdoc_doc.Module, pdoc_doc.Class):
+        original = owner._member_objects.func
 
-    @functools.cached_property
-    def sorted_member_objects(self):
-        return dict(sorted(original(self).items()))
+        @functools.cached_property
+        def sorted_member_objects(self, _original=original):
+            items = _original(self).items()
+            return dict(sorted(items, key=lambda kv: kv[0].lower()))
 
-    sorted_member_objects.__set_name__(pdoc_doc.Class, "_member_objects")
-    pdoc_doc.Class._member_objects = sorted_member_objects
+        sorted_member_objects.__set_name__(owner, "_member_objects")
+        owner._member_objects = sorted_member_objects
 
 
 # pdoc renders each top-level member and the module preamble as a `<section>`;
@@ -129,7 +133,12 @@ def main() -> None:
         shutil.rmtree(OUT_DIR)
 
     _stabilize_member_order()
-    render.configure(template_directory=TEMPLATE_DIR)
+    # The docstrings use Google-style `Args:`/`Returns:`/`Raises:` sections.
+    # pdoc's default ("restructuredtext") leaves those as a single run-on
+    # paragraph; "google" turns each section into a heading plus a bullet list
+    # (it still runs the reStructuredText pass first, so `` `` ``-quoted literals
+    # keep rendering as inline code).
+    render.configure(template_directory=TEMPLATE_DIR, docformat="google")
     pdoc("tantivy", output_directory=OUT_DIR)
 
     # Rename pdoc's .html output to .md so mkdocs picks it up, then add the

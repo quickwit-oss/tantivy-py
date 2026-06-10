@@ -17,53 +17,81 @@ the sense it is not an off-the-shelf search engine server, but rather
 a library that can be used to build such a search engine.
 Tantivy is, in fact, strongly inspired by Lucene's design.</p>
 
-<p>Example:</p>
+<h6 id="example">Example:</h6>
 
 <blockquote>
-  <blockquote>
-    <blockquote>
-      <p>import json
-      import tantivy</p>
-
-<pre><code>&gt;&gt;&gt; builder = <a href="#SchemaBuilder">tantivy.SchemaBuilder()</a>
-
-&gt;&gt;&gt; title = builder.add_text_field("title", stored=True)
-&gt;&gt;&gt; body = builder.add_text_field("body")
-
-&gt;&gt;&gt; schema = builder.build()
-&gt;&gt;&gt; index = <a href="#Index">tantivy.Index</a>(schema)
-&gt;&gt;&gt; doc = <a href="#Document">tantivy.Document()</a>
-&gt;&gt;&gt; doc.add_text(title, "The Old Man and the Sea")
-&gt;&gt;&gt; doc.add_text(body, ("He was an old man who fished alone in a "
-                        "skiff in the Gulf Stream and he had gone "
-                        "eighty-four days now without taking a fish."))
-
-&gt;&gt;&gt; writer.add_document(doc)
-
-&gt;&gt;&gt; doc = schema.parse_document(json.dumps({
-       "title": ["Frankenstein", "The Modern Prometheus"],
-       "body": ("You will rejoice to hear that no disaster has "
-                "accompanied the commencement of an enterprise which "
-                "you have regarded with such evil forebodings.  "
-                "I arrived here yesterday, and my first task is to "
-                "assure my dear sister of my welfare and increasing "
-                "confidence in the success of my undertaking.")
-}))
-
-&gt;&gt;&gt; writer.add_document(doc)
-&gt;&gt;&gt; writer.commit()
-
-&gt;&gt;&gt; reader = index.reader()
-&gt;&gt;&gt; searcher = reader.searcher()
-
-&gt;&gt;&gt; query = index.parse_query("sea whale", [title, body])
-
-&gt;&gt;&gt; result = searcher.search(query, 10)
-
-&gt;&gt;&gt; assert len(result) == 1
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tantivy</span>
 </code></pre>
-    </blockquote>
-  </blockquote>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">builder</span> <span class="o">=</span> <span class="n"><a href="#SchemaBuilder">tantivy.SchemaBuilder</a></span><span class="p">()</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">title</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="n">stored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">body</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">)</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">schema</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n"><a href="#Index">tantivy.Index</a></span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document">tantivy.Document</a></span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="s2">&quot;The Old Man and the Sea&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;He was an old man who fished alone in a &quot;</span>
+<span class="go">                        &quot;skiff in the Gulf Stream and he had gone &quot;</span>
+<span class="go">                        &quot;eighty-four days now without taking a fish.&quot;))</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="o">.</span><span class="n">add_document</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">parse_document</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+<span class="go">       &quot;title&quot;: [&quot;Frankenstein&quot;, &quot;The Modern Prometheus&quot;],</span>
+<span class="go">       &quot;body&quot;: (&quot;You will rejoice to hear that no disaster has &quot;</span>
+<span class="go">                &quot;accompanied the commencement of an enterprise which &quot;</span>
+<span class="go">                &quot;you have regarded with such evil forebodings.  &quot;</span>
+<span class="go">                &quot;I arrived here yesterday, and my first task is to &quot;</span>
+<span class="go">                &quot;assure my dear sister of my welfare and increasing &quot;</span>
+<span class="go">                &quot;confidence in the success of my undertaking.&quot;)</span>
+<span class="go">}))</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="o">.</span><span class="n">add_document</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">reader</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">searcher</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">searcher</span><span class="p">()</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">query</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">parse_query</span><span class="p">(</span><span class="s2">&quot;sea whale&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">title</span><span class="p">,</span> <span class="n">body</span><span class="p">])</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">searcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+</code></pre>
+  </div>
 </blockquote>
 </div>
 
@@ -73,721 +101,68 @@ Tantivy is, in fact, strongly inspired by Lucene's design.</p>
             </section>
 </main>
 
-## Order
+## __version__
 
 <main class="pdoc">
-<section id="Order">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">Order</span>:
+<section id="__version__">
+                    <div class="attr variable">
+            <span class="name">__version__</span><span class="annotation">: str</span>        =
+<span class="default_value">&#39;tantivy v0.26.0, index_format v7&#39;</span>
 
         
     </div>
-    <a class="headerlink" href="#Order"></a>
-    
-            <div class="docstring"><p>Enum representing the direction in which something should be sorted.</p>
-</div>
-
-
-                            <div id="Order.Asc" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Asc</span>        =
-<span class="default_value"><a href="#Order.Asc">Order.Asc</a></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Order.Asc"></a>
+    <a class="headerlink" href="#__version__"></a>
     
     
-
-                            </div>
-                            <div id="Order.Desc" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Desc</span>        =
-<span class="default_value"><a href="#Order.Desc">Order.Desc</a></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Order.Desc"></a>
-    
-    
-
-                            </div>
-                </section>
-</main>
-
-## Schema
-
-<main class="pdoc">
-<section id="Schema">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">Schema</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#Schema"></a>
-    
-            <div class="docstring"><p>Tantivy schema.</p>
-
-<p>The schema is very strict. To build the schema the <code><a href="#SchemaBuilder">SchemaBuilder</a></code> class is
-provided.</p>
-</div>
-
 
                 </section>
 </main>
 
-## SchemaBuilder
+## DocAddress
 
 <main class="pdoc">
-<section id="SchemaBuilder">
+<section id="DocAddress">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">SchemaBuilder</span>:
+    <span class="name">DocAddress</span>:
 
         
     </div>
-    <a class="headerlink" href="#SchemaBuilder"></a>
+    <a class="headerlink" href="#DocAddress"></a>
     
-            <div class="docstring"><p>Tantivy has a very strict schema.
-You need to specify in advance whether a field is indexed or not,
-stored or not.</p>
+            <div class="docstring"><p>DocAddress contains all the necessary information to identify a document
+given a Searcher object.</p>
 
-<p>This is done by creating a schema object, and
-setting up the fields one by one.</p>
-
-<p>Examples:</p>
-
-<pre><code>&gt;&gt;&gt; builder = <a href="#SchemaBuilder">tantivy.SchemaBuilder()</a>
-
-&gt;&gt;&gt; title = builder.add_text_field("title", stored=True)
-&gt;&gt;&gt; body = builder.add_text_field("body")
-
-&gt;&gt;&gt; schema = builder.build()
-</code></pre>
+<p>It consists in an id identifying its segment, and its segment-local DocId.
+The id used for the segment is actually an ordinal in the list of segment
+hold by a Searcher.</p>
 </div>
 
 
-                            <div id="SchemaBuilder.add_boolean_field" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">add_boolean_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.add_boolean_field"></a>
-    
-            <div class="docstring"><p>Add a new boolean field to the schema.</p>
-
-<p>Args:
-    name (str): The name of the field.
-    stored (bool, optional): If true sets the field as stored, the
-        content of the field can be later restored from a Searcher.
-        Defaults to False.
-    indexed (bool, optional): If true sets the field to be indexed.
-    fast (bool, optional): Set the numeric options as a fast field. A
-        fast field is a column-oriented fashion storage for tantivy.
-        It is designed for the fast random access of some document
-        fields given a document id.</p>
-
-<p>Returns the associated field handle.
-Raises a ValueError if there was an error with the field creation.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.add_bytes_field" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">add_bytes_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">index_option</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;position&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.add_bytes_field"></a>
-    
-            <div class="docstring"><p>Add a fast bytes field to the schema.</p>
-
-<p>Args:
-    name (str): The name of the field.
-    stored (bool, optional): If true sets the field as stored, the
-        content of the field can be later restored from a Searcher.
-        Defaults to False.
-    indexed (bool, optional): If true sets the field to be indexed.
-    fast (bool, optional): Set the bytes options as a fast field. A fast
-        field is a column-oriented fashion storage for tantivy. It is
-        designed for the fast random access of some document fields
-        given a document id.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.add_date_field" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">add_date_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.add_date_field"></a>
-    
-            <div class="docstring"><p>Add a new date field to the schema.</p>
-
-<p>Args:
-    name (str): The name of the field.
-    stored (bool, optional): If true sets the field as stored, the
-        content of the field can be later restored from a Searcher.
-        Defaults to False.
-    indexed (bool, optional): If true sets the field to be indexed.
-    fast (bool, optional): Set the date options as a fast field. A fast
-        field is a column-oriented fashion storage for tantivy. It is
-        designed for the fast random access of some document fields
-        given a document id.</p>
-
-<p>Returns the associated field handle.
-Raises a ValueError if there was an error with the field creation.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.add_facet_field" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">add_facet_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.add_facet_field"></a>
-    
-            <div class="docstring"><p>Add a Facet field to the schema.
-Args:
-    name (str): The name of the field.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.add_float_field" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">add_float_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.add_float_field"></a>
-    
-            <div class="docstring"><p>Add a new float field to the schema.</p>
-
-<p>Args:
-    name (str): The name of the field.
-    stored (bool, optional): If true sets the field as stored, the
-        content of the field can be later restored from a Searcher.
-        Defaults to False.
-    indexed (bool, optional): If true sets the field to be indexed.
-    fast (bool, optional): Set the numeric options as a fast field. A
-        fast field is a column-oriented fashion storage for tantivy.
-        It is designed for the fast random access of some document
-        fields given a document id.</p>
-
-<p>Returns the associated field handle.
-Raises a ValueError if there was an error with the field creation.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.add_integer_field" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">add_integer_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.add_integer_field"></a>
-    
-            <div class="docstring"><p>Add a new signed integer field to the schema.</p>
-
-<p>Args:
-    name (str): The name of the field.
-    stored (bool, optional): If true sets the field as stored, the
-        content of the field can be later restored from a Searcher.
-        Defaults to False.
-    indexed (bool, optional): If true sets the field to be indexed.
-    fast (bool, optional): Set the numeric options as a fast field. A
-        fast field is a column-oriented fashion storage for tantivy.
-        It is designed for the fast random access of some document
-        fields given a document id.</p>
-
-<p>Returns the associated field handle.
-Raises a ValueError if there was an error with the field creation.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.add_ip_addr_field" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">add_ip_addr_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.add_ip_addr_field"></a>
-    
-            <div class="docstring"><p>Add an IP address field to the schema.</p>
-
-<p>Args:
-    name (str): The name of the field.
-    stored (bool, optional): If true sets the field as stored, the
-        content of the field can be later restored from a Searcher.
-        Defaults to False.
-    indexed (bool, optional): If true sets the field to be indexed.
-    fast (bool, optional): Set the IP address options as a fast field. A
-        fast field is a column-oriented fashion storage for tantivy. It
-        is designed for the fast random access of some document fields
-        given a document id.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.add_json_field" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">add_json_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">tokenizer_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>,</span><span class="param">    <span class="n">index_option</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;position&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.add_json_field"></a>
-    
-            <div class="docstring"><p>Add a new json field to the schema.</p>
-
-<p>Args:
-    name (str): the name of the field.
-    stored (bool, optional): If true sets the field as stored, the
-        content of the field can be later restored from a Searcher.
-        Defaults to False.
-    fast (bool, optional): Set the text options as a fast field. A
-        fast field is a column-oriented fashion storage for tantivy.
-        Text fast fields will have the term ids stored in the fast
-        field. The fast field will be a multivalued fast field.
-        It is recommended to use the "raw" tokenizer, since it will
-        store the original text unchanged. The "default" tokenizer will
-        store the terms as lower case and this will be reflected in the
-        dictionary.
-    tokenizer_name (str, optional): The name of the tokenizer that
-        should be used to process the field. Defaults to 'default'
-    index_option (str, optional): Sets which information should be
-        indexed with the tokens. Can be one of 'position', 'freq' or
-        'basic'. Defaults to 'position'. The 'basic' index_option
-        records only the document ID, the 'freq' option records the
-        document id and the term frequency, while the 'position' option
-        records the document id, term frequency and the positions of
-        the term occurrences in the document.</p>
-
-<p>Returns the associated field handle.
-Raises a ValueError if there was an error with the field creation.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.add_text_field" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">add_text_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">tokenizer_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>,</span><span class="param">    <span class="n">index_option</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;position&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.add_text_field"></a>
-    
-            <div class="docstring"><p>Add a new text field to the schema.</p>
-
-<p>Args:
-    name (str): The name of the field.
-    stored (bool, optional): If true sets the field as stored, the
-        content of the field can be later restored from a Searcher.
-        Defaults to False.
-    fast (bool, optional): Set the text options as a fast field. A
-        fast field is a column-oriented fashion storage for tantivy.
-        Text fast fields will have the term ids stored in the fast
-        field. The fast field will be a multivalued fast field.
-        It is recommended to use the "raw" tokenizer, since it will
-        store the original text unchanged. The "default" tokenizer will
-        store the terms as lower case and this will be reflected in the
-        dictionary.
-    tokenizer_name (str, optional): The name of the tokenizer that
-        should be used to process the field. Defaults to 'default'
-    index_option (str, optional): Sets which information should be
-        indexed with the tokens. Can be one of 'position', 'freq' or
-        'basic'. Defaults to 'position'. The 'basic' index_option
-        records only the document ID, the 'freq' option records the
-        document id and the term frequency, while the 'position' option
-        records the document id, term frequency and the positions of
-        the term occurrences in the document.</p>
-
-<p>Returns the associated field handle.
-Raises a ValueError if there was an error with the field creation.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.add_unsigned_field" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">add_unsigned_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.add_unsigned_field"></a>
-    
-            <div class="docstring"><p>Add a new unsigned integer field to the schema.</p>
-
-<p>Args:
-    name (str): The name of the field.
-    stored (bool, optional): If true sets the field as stored, the
-        content of the field can be later restored from a Searcher.
-        Defaults to False.
-    indexed (bool, optional): If true sets the field to be indexed.
-    fast (bool, optional): Set the numeric options as a fast field. A
-        fast field is a column-oriented fashion storage for tantivy.
-        It is designed for the fast random access of some document
-        fields given a document id.</p>
-
-<p>Returns the associated field handle.
-Raises a ValueError if there was an error with the field creation.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.build" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">build</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="n"><a href="#Schema">Schema</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.build"></a>
-    
-            <div class="docstring"><p>Finalize the creation of a Schema.</p>
-
-<p>Returns a Schema object. After this is called the SchemaBuilder cannot
-be used anymore.</p>
-</div>
-
-
-                            </div>
-                            <div id="SchemaBuilder.is_valid_field_name" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">is_valid_field_name</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#SchemaBuilder.is_valid_field_name"></a>
-    
-            <div class="docstring"><p>The type of the None singleton.</p>
-</div>
-
-
-                            </div>
-                </section>
-</main>
-
-## Searcher
-
-<main class="pdoc">
-<section id="Searcher">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">Searcher</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#Searcher"></a>
-    
-            <div class="docstring"><p>Tantivy's Searcher class</p>
-
-<p>A Searcher is used to search the index given a prepared Query.</p>
-</div>
-
-
-                            <div id="Searcher.aggregate" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">aggregate</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>, </span><span class="param"><span class="n">agg</span><span class="p">:</span> <span class="nb">dict</span></span><span class="return-annotation">) -> <span class="nb">dict</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Searcher.aggregate"></a>
-    
-            <div class="docstring"><p>Execute an aggregation query and return the results as a dict.</p>
-
-<p>Args:
-    query (Query): The query that filters the documents to aggregate over.
-    agg (dict): The aggregation specification as a Python dict.</p>
-
-<p>Returns a dict containing the aggregation results.</p>
-</div>
-
-
-                            </div>
-                            <div id="Searcher.cardinality" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">cardinality</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Searcher.cardinality"></a>
-    
-            <div class="docstring"><p>Returns the cardinality of a query.</p>
-
-<p>Args:
-    query (Query): The query that will be used for the search.
-    field_name (str): The field for which to compute the cardinality.</p>
-
-<p>Returns the cardinality.</p>
-</div>
-
-
-                            </div>
-                            <div id="Searcher.doc" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">doc</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">doc_address</span><span class="p">:</span> <span class="n"><a href="#DocAddress">DocAddress</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#Document">Document</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Searcher.doc"></a>
-    
-            <div class="docstring"><p>Fetches a document from Tantivy's store given a DocAddress.</p>
-
-<p>Args:
-    doc_address (DocAddress): The DocAddress that is associated with
-        the document that we wish to fetch.</p>
-
-<p>Returns the Document, raises ValueError if the document can't be found.</p>
-</div>
-
-
-                            </div>
-                            <div id="Searcher.doc_freq" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">doc_freq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">field_value</span><span class="p">:</span> <span class="n">Any</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Searcher.doc_freq"></a>
-    
-            <div class="docstring"><p>Return the overall number of documents containing
-the given term.</p>
-</div>
-
-
-                            </div>
-                            <div id="Searcher.fast_field_values" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">fast_field_values</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">doc_addresses</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="#DocAddress">DocAddress</a></span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Searcher.fast_field_values"></a>
-    
-            <div class="docstring"><p>Read a numeric fast field for a batch of DocAddresses without fetching
-stored documents.</p>
-
-<p>Fast fields are column-oriented and support O(1) random access by
-segment-local DocId.  Use this instead of doc().to_dict()[field] when
-you only need a single numeric field for many documents.</p>
-
-<p>The field type is resolved from the schema automatically: u64 and i64
-fields return Python int; f64 fields return Python float; bool fields
-return Python bool.</p>
-
-<p>Args:
-    field_name: Name of a u64, i64, f64, or bool field declared with fast=True.
-    doc_addresses: List of DocAddress objects (e.g. from search().hits).</p>
-
-<p>Returns:
-    A list of values in the same order as doc_addresses.
-    None is returned for any address where the column is absent
-    (e.g. a segment written before the field was added to the schema).</p>
-
-<p>Raises:
-    ValueError: if the field does not exist, is not a fast field, or
-        has an unsupported type (only u64, i64, f64, and bool are supported).</p>
-</div>
-
-
-                            </div>
-                            <div id="Searcher.num_docs" class="classattr">
+                            <div id="DocAddress.doc" class="classattr">
                                 <div class="attr variable">
-            <span class="name">num_docs</span><span class="annotation">: int</span>
+            <span class="name">doc</span><span class="annotation">: int</span>
 
         
     </div>
-    <a class="headerlink" href="#Searcher.num_docs"></a>
+    <a class="headerlink" href="#DocAddress.doc"></a>
     
-            <div class="docstring"><p>Returns the overall number of documents in the index.</p>
+            <div class="docstring"><p>The segment local DocId</p>
 </div>
 
 
                             </div>
-                            <div id="Searcher.num_segments" class="classattr">
+                            <div id="DocAddress.segment_ord" class="classattr">
                                 <div class="attr variable">
-            <span class="name">num_segments</span><span class="annotation">: int</span>
+            <span class="name">segment_ord</span><span class="annotation">: int</span>
 
         
     </div>
-    <a class="headerlink" href="#Searcher.num_segments"></a>
+    <a class="headerlink" href="#DocAddress.segment_ord"></a>
     
-            <div class="docstring"><p>Returns the number of segments in the index.</p>
-</div>
-
-
-                            </div>
-                            <div id="Searcher.search" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">search</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>,</span><span class="param">    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>,</span><span class="param">    <span class="n">count</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">    <span class="n">order_by_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>,</span><span class="param">    <span class="n">order</span><span class="p">:</span> <span class="n"><a href="#Order">Order</a></span> <span class="o">=</span> <span class="o">&lt;</span><span class="n"><a href="#Order.Desc">Order.Desc</a></span><span class="p">:</span> <span class="mi">2</span><span class="o">&gt;</span>,</span><span class="param">    <span class="n">weight_by_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#SearchResult">SearchResult</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Searcher.search"></a>
-    
-            <div class="docstring"><p>Search the index with the given query and collect results.</p>
-
-<p>Args:
-    query (Query): The query that will be used for the search.
-    limit (int, optional): The maximum number of search results to
-        return. Defaults to 10.
-    count (bool, optional): Should the number of documents that match
-        the query be returned as well. Defaults to true.
-    order_by_field (str, optional): Name of a field that the results
-        should be ordered by. The field must be declared as a fast field
-        when building the schema. Supported field types: Text, Unsigned,
-        Integer, Float, Boolean and Date.
-    offset (int, optional): The offset from which the results have
-        to be returned.
-    order (Order, optional): The order in which the results
-        should be sorted. If not specified, defaults to descending.
-    weight_by_field (str, optional): Name of a field that the results
-        should be weighted by. The field must be declared as a fast
-        field when building the schema. Note, this only works for
-        Float, Integer and Unsigned fields. The given field value is first
-        transformed using the formula <code>log2(2.0 + value)</code> and then
-        multiplied with the original score. This means that a weight field
-        value of 0.0 results in no change to the original score.
-        If the weight value is negative, it is treated as 0.0.</p>
-
-<p>Returns <code><a href="#SearchResult">SearchResult</a></code> object whose <code>hits</code> is a list of <code>(order_key,
-DocAddress)</code> tuples. When no <code>order_by_field</code> is given, <code>order_key</code> is
-a float score. When ordering by a field, <code>order_key</code> matches the
-field's Python type (int, float, bool, or str), except for date fields
-which return an int of nanoseconds since the epoch.</p>
-
-<p>Raises a ValueError if there was an error with the search.</p>
-</div>
-
-
-                            </div>
-                            <div id="Searcher.terms_with_prefix" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">terms_with_prefix</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Searcher.terms_with_prefix"></a>
-    
-            <div class="docstring"><p>Walk the term dictionary for <code>field_name</code> and return all terms that
-begin with <code>prefix</code>, together with their document frequencies.</p>
-
-<p>Args:
-    field_name: Name of an indexed text field in the schema.
-    prefix: Only terms beginning with this string are returned.
-        An empty string returns all terms in the field.
-    filter_query: Optional Query. When provided, each term's count
-        reflects only documents matched by the query (e.g. for
-        permission filtering). Counts are still summed across segments.
-    limit: If given, only the top-<code>limit</code> entries (by count) are returned.</p>
-
-<p>Returns:
-    <code>[(term, count), ...]</code> sorted by count descending, then
-    alphabetically. Terms present in multiple segments have their
-    counts summed.</p>
-
-<p>Raises:
-    ValueError: if the field does not exist or is not a text field.</p>
-</div>
-
-
-                            </div>
-                </section>
-</main>
-
-## SearchResult
-
-<main class="pdoc">
-<section id="SearchResult">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">SearchResult</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#SearchResult"></a>
-    
-            <div class="docstring"><p>Object holding a results successful search.</p>
-</div>
-
-
-                            <div id="SearchResult.count" class="classattr">
-                                <div class="attr variable">
-            <span class="name">count</span>
-
-        
-    </div>
-    <a class="headerlink" href="#SearchResult.count"></a>
-    
-            <div class="docstring"><p>How many documents matched the query. Only available if <code><a href="#SearchResult.count">count</a></code> was set
-to true during the search.</p>
-</div>
-
-
-                            </div>
-                            <div id="SearchResult.hits" class="classattr">
-                                <div class="attr variable">
-            <span class="name">hits</span><span class="annotation">: list[tuple[typing.Any, <a href="#DocAddress">DocAddress</a>]]</span>
-
-        
-    </div>
-    <a class="headerlink" href="#SearchResult.hits"></a>
-    
-            <div class="docstring"><p>The list of tuples that contains the scores and DocAddress of the
-search results.</p>
+            <div class="docstring"><p>The segment ordinal is an id identifying the segment hosting the
+document. It is only meaningful, in the context of a searcher.</p>
 </div>
 
 
@@ -813,32 +188,44 @@ search results.</p>
 <p>Documents are fundamentally a collection of unordered tuples
 (field_name, value). In this list, one field may appear more than once.</p>
 
-<p>Example:</p>
+<h6 id="example">Example:</h6>
 
-<pre><code>&gt;&gt;&gt; doc = <a href="#Document">tantivy.Document()</a>
-&gt;&gt;&gt; doc.add_text("title", "The Old Man and the Sea")
-&gt;&gt;&gt; doc.add_text("body", ("He was an old man who fished alone in a "
-...                       "skiff in the Gulf Stream and he had gone "
-...                       "eighty-four days now without taking a fish."))
-&gt;&gt;&gt; doc
-Document(body=[He was an ],title=[The Old Ma])
+<blockquote>
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document">tantivy.Document</a></span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;The Old Man and the Sea&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;He was an old man who fished alone in a &quot;</span>
+<span class="gp">... </span>                      <span class="s2">&quot;skiff in the Gulf Stream and he had gone &quot;</span>
+<span class="gp">... </span>                      <span class="s2">&quot;eighty-four days now without taking a fish.&quot;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span>
+<span class="go">Document(body=[He was an ],title=[The Old Ma])</span>
 </code></pre>
+  </div>
+</blockquote>
 
 <p>For simplicity, it is also possible to build a <code><a href="#Document">Document</a></code> by passing the field
 values directly as constructor arguments.</p>
 
-<p>Example:</p>
+<h6 id="example-2">Example:</h6>
 
-<pre><code>&gt;&gt;&gt; doc = <a href="#Document">tantivy.Document</a>(title=["The Old Man and the Sea"], body=["..."])
+<blockquote>
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document">tantivy.Document</a></span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;The Old Man and the Sea&quot;</span><span class="p">],</span> <span class="n">body</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;...&quot;</span><span class="p">])</span>
 </code></pre>
+  </div>
+</blockquote>
 
 <p>As syntactic sugar, tantivy also allows the user to pass a single values
 if there is only one. In other words, the following is also legal.</p>
 
-<p>Example:</p>
+<h6 id="example-3">Example:</h6>
 
-<pre><code>&gt;&gt;&gt; doc = <a href="#Document">tantivy.Document</a>(title="The Old Man and the Sea", body="...")
+<blockquote>
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document">tantivy.Document</a></span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;The Old Man and the Sea&quot;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="s2">&quot;...&quot;</span><span class="p">)</span>
 </code></pre>
+  </div>
+</blockquote>
 
 <p>For numeric fields, the [<code><a href="#Document">Document</a></code>] constructor does not have any
 information about the type and will try to guess the type.
@@ -846,20 +233,24 @@ Therefore, it is recommended to use the [<code>Document::from_dict()</code>],
 [<code>Document::extract()</code>], or <code>Document::add_*()</code> functions to provide
 explicit type information.</p>
 
-<p>Example:</p>
+<h6 id="example-4">Example:</h6>
 
-<pre><code>&gt;&gt;&gt; schema = (
-...     SchemaBuilder()
-...         .add_unsigned_field("unsigned")
-...         .add_integer_field("signed")
-...         .add_float_field("float")
-...         .build()
-... )
-&gt;&gt;&gt; doc = <a href="#Document.from_dict">tantivy.Document.from_dict</a>(
-...     {"unsigned": 1000, "signed": -5, "float": 0.4},
-...     schema,
-... )
+<blockquote>
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">schema</span> <span class="o">=</span> <span class="p">(</span>
+<span class="gp">... </span>    <span class="n">SchemaBuilder</span><span class="p">()</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">add_unsigned_field</span><span class="p">(</span><span class="s2">&quot;unsigned&quot;</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">add_integer_field</span><span class="p">(</span><span class="s2">&quot;signed&quot;</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">add_float_field</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">build</span><span class="p">()</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document.from_dict">tantivy.Document.from_dict</a></span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">{</span><span class="s2">&quot;unsigned&quot;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s2">&quot;signed&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;float&quot;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="n">schema</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
 </code></pre>
+  </div>
+</blockquote>
 </div>
 
 
@@ -875,9 +266,12 @@ explicit type information.</p>
     
             <div class="docstring"><p>Add a boolean value to the document.</p>
 
-<p>Args:
-    field_name (str): The field name for which we are adding the value.
-    value (bool): The boolean that will be added to the document.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field name for which we are adding the value.</li>
+<li><strong>value (bool):</strong>  The boolean that will be added to the document.</li>
+</ul>
 </div>
 
 
@@ -894,9 +288,12 @@ explicit type information.</p>
     
             <div class="docstring"><p>Add a bytes value to the document.</p>
 
-<p>Args:
-    field_name (str): The field for which we are adding the bytes.
-    value (bytes): The bytes that will be added to the document.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field for which we are adding the bytes.</li>
+<li><strong>value (bytes):</strong>  The bytes that will be added to the document.</li>
+</ul>
 </div>
 
 
@@ -913,9 +310,12 @@ explicit type information.</p>
     
             <div class="docstring"><p>Add a date value to the document.</p>
 
-<p>Args:
-    field_name (str): The field name for which we are adding the date.
-    value (datetime): The date that will be added to the document.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field name for which we are adding the date.</li>
+<li><strong>value (datetime):</strong>  The date that will be added to the document.</li>
+</ul>
 </div>
 
 
@@ -930,10 +330,14 @@ explicit type information.</p>
     </div>
     <a class="headerlink" href="#Document.add_facet"></a>
     
-            <div class="docstring"><p>Add a facet value to the document.
-Args:
-    field_name (str): The field name for which we are adding the facet.
-    value (Facet): The Facet that will be added to the document.</p>
+            <div class="docstring"><p>Add a facet value to the document.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field name for which we are adding the facet.</li>
+<li><strong>value (Facet):</strong>  The Facet that will be added to the document.</li>
+</ul>
 </div>
 
 
@@ -950,9 +354,12 @@ Args:
     
             <div class="docstring"><p>Add a float value to the document.</p>
 
-<p>Args:
-    field_name (str): The field name for which we are adding the value.
-    value (f64): The float that will be added to the document.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field name for which we are adding the value.</li>
+<li><strong>value (f64):</strong>  The float that will be added to the document.</li>
+</ul>
 </div>
 
 
@@ -969,9 +376,12 @@ Args:
     
             <div class="docstring"><p>Add a signed integer value to the document.</p>
 
-<p>Args:
-    field_name (str): The field name for which we are adding the integer.
-    value (int): The integer that will be added to the document.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field name for which we are adding the integer.</li>
+<li><strong>value (int):</strong>  The integer that will be added to the document.</li>
+</ul>
 </div>
 
 
@@ -988,10 +398,13 @@ Args:
     
             <div class="docstring"><p>Add an IP address value to the document.</p>
 
-<p>Args:
-    field_name (str): The field for which we are adding the IP address.
-    value (str): The IP address object that will be added
-        to the document.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field for which we are adding the IP address.</li>
+<li><strong>value (str):</strong>  The IP address object that will be added
+to the document.</li>
+</ul>
 
 <p>Raises a ValueError if the IP address is invalid.</p>
 </div>
@@ -1010,10 +423,13 @@ Args:
     
             <div class="docstring"><p>Add a JSON value to the document.</p>
 
-<p>Args:
-    field_name (str): The field for which we are adding the JSON.
-    value (str | Dict[str, Any]): The JSON object that will be added
-        to the document.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field for which we are adding the JSON.</li>
+<li><strong>value (str | Dict[str, Any]):</strong>  The JSON object that will be added
+to the document.</li>
+</ul>
 
 <p>Raises a ValueError if the JSON is invalid.</p>
 </div>
@@ -1032,9 +448,12 @@ Args:
     
             <div class="docstring"><p>Add a text value to the document.</p>
 
-<p>Args:
-    field_name (str): The field name for which we are adding the text.
-    text (str): The text that will be added to the document.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field name for which we are adding the text.</li>
+<li><strong>text (str):</strong>  The text that will be added to the document.</li>
+</ul>
 </div>
 
 
@@ -1051,9 +470,12 @@ Args:
     
             <div class="docstring"><p>Add an unsigned integer value to the document.</p>
 
-<p>Args:
-    field_name (str): The field name for which we are adding the unsigned integer.
-    value (int): The integer that will be added to the document.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field name for which we are adding the unsigned integer.</li>
+<li><strong>value (int):</strong>  The integer that will be added to the document.</li>
+</ul>
 </div>
 
 
@@ -1100,8 +522,11 @@ Args:
     
             <div class="docstring"><p>Get the all values associated with the given field.</p>
 
-<p>Args:
-    field (Field): The field for which we would like to get the values.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field (Field):</strong>  The field for which we would like to get the values.</li>
+</ul>
 
 <p>Returns a list of values.
 The type of the value depends on the field.</p>
@@ -1121,8 +546,11 @@ The type of the value depends on the field.</p>
     
             <div class="docstring"><p>Get the first value associated with the given field.</p>
 
-<p>Args:
-    field (Field): The field for which we would like to get the value.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field (Field):</strong>  The field for which we would like to get the value.</li>
+</ul>
 
 <p>Returns the value if one is found, otherwise None.
 The type of the value depends on the field.</p>
@@ -1181,6 +609,528 @@ a list of value for every field.</p>
                 </section>
 </main>
 
+## Explanation
+
+<main class="pdoc">
+<section id="Explanation">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">Explanation</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#Explanation"></a>
+    
+            <div class="docstring"><p>Represents an explanation of how a document matched a query.</p>
+</div>
+
+
+                            <div id="Explanation.to_json" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">to_json</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Explanation.to_json"></a>
+    
+            <div class="docstring"><p>Returns a JSON representation of the explanation.</p>
+</div>
+
+
+                            </div>
+                </section>
+</main>
+
+## Facet
+
+<main class="pdoc">
+<section id="Facet">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">Facet</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#Facet"></a>
+    
+            <div class="docstring"><p>A Facet represent a point in a given hierarchy.</p>
+
+<p>They are typically represented similarly to a filepath. For instance, an
+e-commerce website could have a Facet for /electronics/tv_and_video/led_tv.</p>
+
+<p>A document can be associated to any number of facets. The hierarchy
+implicitely imply that a document belonging to a facet also belongs to the
+ancestor of its facet. In the example above, /electronics/tv_and_video/
+and /electronics.</p>
+</div>
+
+
+                            <div id="Facet.from_encoded" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">from_encoded</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">encoded_bytes</span><span class="p">:</span> <span class="nb">bytes</span></span><span class="return-annotation">) -> <span class="n"><a href="#Facet">Facet</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Facet.from_encoded"></a>
+    
+            <div class="docstring"><p>Creates a <code><a href="#Facet">Facet</a></code> from its binary representation.</p>
+</div>
+
+
+                            </div>
+                            <div id="Facet.from_string" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">from_string</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span>, </span><span class="param"><span class="n">facet_string</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Facet">Facet</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Facet.from_string"></a>
+    
+            <div class="docstring"><p>Create a Facet object from a string.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>facet_string (str):</strong>  The string that contains a facet.</li>
+</ul>
+
+<p>Returns the created Facet.</p>
+</div>
+
+
+                            </div>
+                            <div id="Facet.is_prefix_of" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">is_prefix_of</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">other</span><span class="p">:</span> <span class="n"><a href="#Facet">Facet</a></span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Facet.is_prefix_of"></a>
+    
+            <div class="docstring"><p>Returns true if another Facet is a subfacet of this facet.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>other (Facet):</strong>  The Facet that we should check if this facet is a
+subset of.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="Facet.is_root" class="classattr">
+                                <div class="attr variable">
+            <span class="name">is_root</span><span class="annotation">: bool</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Facet.is_root"></a>
+    
+            <div class="docstring"><p>Returns true if the facet is the root facet /.</p>
+</div>
+
+
+                            </div>
+                            <div id="Facet.root" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">root</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span></span><span class="return-annotation">) -> <span class="n"><a href="#Facet">Facet</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Facet.root"></a>
+    
+            <div class="docstring"><p>Create a new instance of the "root facet" Equivalent to /.</p>
+</div>
+
+
+                            </div>
+                            <div id="Facet.to_path" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">to_path</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Facet.to_path"></a>
+    
+            <div class="docstring"><p>Returns the list of <code>segments</code> that forms a facet path.</p>
+
+<p>For instance <code>//europe/france</code> becomes <code>["europe", "france"]</code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="Facet.to_path_str" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">to_path_str</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Facet.to_path_str"></a>
+    
+            <div class="docstring"><p>Returns the facet string representation.</p>
+</div>
+
+
+                            </div>
+                </section>
+</main>
+
+## FieldType
+
+<main class="pdoc">
+<section id="FieldType">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">FieldType</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType"></a>
+    
+            <div class="docstring"><p>Tantivy's Type</p>
+</div>
+
+
+                            <div id="FieldType.Boolean" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Boolean</span>        =
+<span class="default_value"><a href="#FieldType.Boolean">FieldType.Boolean</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType.Boolean"></a>
+    
+    
+
+                            </div>
+                            <div id="FieldType.Bytes" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Bytes</span>        =
+<span class="default_value"><a href="#FieldType.Bytes">FieldType.Bytes</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType.Bytes"></a>
+    
+    
+
+                            </div>
+                            <div id="FieldType.Date" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Date</span>        =
+<span class="default_value"><a href="#FieldType.Date">FieldType.Date</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType.Date"></a>
+    
+    
+
+                            </div>
+                            <div id="FieldType.Facet" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Facet</span>        =
+<span class="default_value"><a href="#FieldType.Facet">FieldType.Facet</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType.Facet"></a>
+    
+    
+
+                            </div>
+                            <div id="FieldType.Float" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Float</span>        =
+<span class="default_value"><a href="#FieldType.Float">FieldType.Float</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType.Float"></a>
+    
+    
+
+                            </div>
+                            <div id="FieldType.Integer" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Integer</span>        =
+<span class="default_value"><a href="#FieldType.Integer">FieldType.Integer</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType.Integer"></a>
+    
+    
+
+                            </div>
+                            <div id="FieldType.IpAddr" class="classattr">
+                                <div class="attr variable">
+            <span class="name">IpAddr</span>        =
+<span class="default_value"><a href="#FieldType.IpAddr">FieldType.IpAddr</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType.IpAddr"></a>
+    
+    
+
+                            </div>
+                            <div id="FieldType.Json" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Json</span>        =
+<span class="default_value"><a href="#FieldType.Json">FieldType.Json</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType.Json"></a>
+    
+    
+
+                            </div>
+                            <div id="FieldType.Text" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Text</span>        =
+<span class="default_value"><a href="#FieldType.Text">FieldType.Text</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType.Text"></a>
+    
+    
+
+                            </div>
+                            <div id="FieldType.Unsigned" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Unsigned</span>        =
+<span class="default_value"><a href="#FieldType.Unsigned">FieldType.Unsigned</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldType.Unsigned"></a>
+    
+    
+
+                            </div>
+                </section>
+</main>
+
+## Filter
+
+<main class="pdoc">
+<section id="Filter">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">Filter</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#Filter"></a>
+    
+            <div class="docstring"><p>All Tantivy's builtin TokenFilters.</p>
+
+<h2 id="exmaple">Exmaple</h2>
+
+<div class="pdoc-code codehilite">
+<pre><span></span><code><span class="nb">filter</span> <span class="o">=</span> <span class="n">Filter</span><span class="o">.</span><span class="n">alpha_num</span><span class="p">()</span>
+</code></pre>
+</div>
+
+<h2 id="usage">Usage</h2>
+
+<p>In general, filter objects exist to
+be passed to the filter() method
+of a TextAnalyzerBuilder instance.</p>
+
+<p><a href="https://docs.rs/tantivy/latest/tantivy/tokenizer/index.html">https://docs.rs/tantivy/latest/tantivy/tokenizer/index.html</a></p>
+</div>
+
+
+                            <div id="Filter.alphanum_only" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">alphanum_only</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Filter.alphanum_only"></a>
+    
+            <div class="docstring"><p>AlphaNumOnlyFilter</p>
+</div>
+
+
+                            </div>
+                            <div id="Filter.ascii_fold" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">ascii_fold</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Filter.ascii_fold"></a>
+    
+            <div class="docstring"><p>AsciiFoldingFilter</p>
+</div>
+
+
+                            </div>
+                            <div id="Filter.custom_stopword" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">custom_stopword</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">stopwords</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Filter.custom_stopword"></a>
+    
+            <div class="docstring"><p>StopWordFilter (user-provided stop word list)</p>
+
+<p>This variant of <a href="#Filter.stopword">Filter.stopword()</a> lets you provide
+your own custom list of stopwords.</p>
+
+<p>Args:</p>
+
+<ul>
+<li>stopwords (list(str)): a list of words to be removed.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="Filter.lowercase" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">lowercase</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Filter.lowercase"></a>
+    
+            <div class="docstring"><p>The type of the None singleton.</p>
+</div>
+
+
+                            </div>
+                            <div id="Filter.remove_long" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">remove_long</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">length_limit</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Filter.remove_long"></a>
+    
+            <div class="docstring"><p>RemoveLongFilter</p>
+
+<p>Args:</p>
+
+<ul>
+<li>length_limit (int): max character length of token.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="Filter.split_compound" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">split_compound</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">constituent_words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Filter.split_compound"></a>
+    
+            <div class="docstring"><p>SplitCompoundWords</p>
+
+<p><a href="https://docs.rs/tantivy/latest/tantivy/tokenizer/struct.SplitCompoundWords.html">https://docs.rs/tantivy/latest/tantivy/tokenizer/struct.SplitCompoundWords.html</a></p>
+
+<p>Args:</p>
+
+<ul>
+<li>constituent_words (list(string)): words that make up compound word (must be in order).</li>
+</ul>
+
+<p>Example:</p>
+
+<div class="pdoc-code codehilite">
+<pre><span></span><code><span class="c1"># useless, contrived example:</span>
+<span class="n">compound_spliter</span> <span class="o">=</span> <span class="n">Filter</span><span class="o">.</span><span class="n">split_compounds</span><span class="p">([</span><span class="s1">&#39;butter&#39;</span><span class="p">,</span> <span class="s1">&#39;fly&#39;</span><span class="p">])</span>
+<span class="c1"># Will split &#39;butterfly&#39; -&gt; [&#39;butter&#39;, &#39;fly&#39;],</span>
+<span class="c1"># but won&#39;t split &#39;buttering&#39; or &#39;buttercupfly&#39;</span>
+</code></pre>
+</div>
+</div>
+
+
+                            </div>
+                            <div id="Filter.stemmer" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">stemmer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">language</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Filter.stemmer"></a>
+    
+            <div class="docstring"><p>Stemmer</p>
+</div>
+
+
+                            </div>
+                            <div id="Filter.stopword" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">stopword</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">language</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Filter.stopword"></a>
+    
+            <div class="docstring"><p>StopWordFilter (builtin stop word list)</p>
+
+<p>Args:</p>
+
+<ul>
+<li>language (string): Stop words list language.
+Valid values: {
+  "arabic", "danish", "dutch", "english", "finnish", "french", "german", "greek",
+  "hungarian", "italian", "norwegian", "portuguese", "romanian", "russian",
+  "spanish", "swedish", "tamil", "turkish"
+}</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
+</main>
+
 ## Index
 
 <main class="pdoc">
@@ -1196,12 +1146,15 @@ a list of value for every field.</p>
     
             <div class="docstring"><p>Create a new index object.</p>
 
-<p>Args:
-    schema (Schema): The schema of the index.
-    path (str, optional): The path where the index should be stored. If
-        no path is provided, the index will be stored in memory.
-    reuse (bool, optional): Should we open an existing index if one exists
-        or always create a new one.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>schema (Schema):</strong>  The schema of the index.</li>
+<li><strong>path (str, optional):</strong>  The path where the index should be stored. If
+no path is provided, the index will be stored in memory.</li>
+<li><strong>reuse (bool, optional):</strong>  Should we open an existing index if one exists
+or always create a new one.</li>
+</ul>
 
 <p>If an index already exists it will be opened and reused. Raises OSError
 if there was a problem during the opening or creation of the index.</p>
@@ -1220,11 +1173,14 @@ if there was a problem during the opening or creation of the index.</p>
     
             <div class="docstring"><p>Configure the index reader.</p>
 
-<p>Args:
-    reload_policy (str, optional): The reload policy that the
-        IndexReader should use. Can be <code>Manual</code> or <code>OnCommit</code>.
-    num_warmers (int, optional): The number of searchers that the
-        reader should create.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>reload_policy (str, optional):</strong>  The reload policy that the
+IndexReader should use. Can be <code>Manual</code> or <code>OnCommit</code>.</li>
+<li><strong>num_warmers (int, optional):</strong>  The number of searchers that the
+reader should create.</li>
+</ul>
 </div>
 
 
@@ -1239,9 +1195,13 @@ if there was a problem during the opening or creation of the index.</p>
     </div>
     <a class="headerlink" href="#Index.exists"></a>
     
-            <div class="docstring"><p>Check if the given path contains an existing index.
-Args:
-    path: The path where tantivy will search for an index.</p>
+            <div class="docstring"><p>Check if the given path contains an existing index.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>path:</strong>  The path where tantivy will search for an index.</li>
+</ul>
 
 <p>Returns True if an index exists at the given path, False otherwise.</p>
 
@@ -1277,26 +1237,23 @@ Args:
     
             <div class="docstring"><p>Parse a query</p>
 
-<p>Args:
-    query: the query, following the tantivy query language.</p>
+<h6 id="arguments">Arguments:</h6>
 
-<pre><code>default_fields_names (List[Field]): A list of fields used to search if no
-    field is specified in the query.
-
-field_boosts: A dictionary keyed on field names which provides default boosts
-    for the query constructed by this method.
-
-fuzzy_fields: A dictionary keyed on field names which provides (prefix, distance, transpose_cost_one)
-    triples making queries constructed by this method fuzzy against the given fields
-    and using the given parameters.
-    `prefix` determines if terms which are prefixes of the given term match the query.
-    `distance` determines the maximum Levenshtein distance between terms matching the query and the given term.
-    `transpose_cost_one` determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.
-
-conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
-
-allow_regexes: If true, allow regexes in queries.
-</code></pre>
+<ul>
+<li><strong>query:</strong>  the query, following the tantivy query language.</li>
+<li><strong>default_fields_names (List[Field]):</strong>  A list of fields used to search if no
+field is specified in the query.</li>
+<li><strong>field_boosts:</strong>  A dictionary keyed on field names which provides default boosts
+for the query constructed by this method.</li>
+<li><strong>fuzzy_fields:</strong>  A dictionary keyed on field names which provides (prefix, distance, transpose_cost_one)
+triples making queries constructed by this method fuzzy against the given fields
+and using the given parameters.
+<code>prefix</code> determines if terms which are prefixes of the given term match the query.
+<code>distance</code> determines the maximum Levenshtein distance between terms matching the query and the given term.
+<code>transpose_cost_one</code> determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.</li>
+<li><strong>conjunction_by_default:</strong>  If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.</li>
+<li><strong>allow_regexes:</strong>  If true, allow regexes in queries.</li>
+</ul>
 </div>
 
 
@@ -1318,26 +1275,23 @@ reasonably be executed (range query without field, searching on a non existing f
 searching without precising field when no default field is provided...), they may get turned
 into a "match-nothing" subquery.</p>
 
-<p>Args:
-    query: the query, following the tantivy query language.</p>
+<h6 id="arguments">Arguments:</h6>
 
-<pre><code>default_fields_names (List[Field]): A list of fields used to search if no
-    field is specified in the query.
-
-field_boosts: A dictionary keyed on field names which provides default boosts
-    for the query constructed by this method.
-
-fuzzy_fields: A dictionary keyed on field names which provides (prefix, distance, transpose_cost_one)
-    triples making queries constructed by this method fuzzy against the given fields
-    and using the given parameters.
-    `prefix` determines if terms which are prefixes of the given term match the query.
-    `distance` determines the maximum Levenshtein distance between terms matching the query and the given term.
-    `transpose_cost_one` determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.
-
-conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
-
-allow_regexes: If true, allow regexes in queries.
-</code></pre>
+<ul>
+<li><strong>query:</strong>  the query, following the tantivy query language.</li>
+<li><strong>default_fields_names (List[Field]):</strong>  A list of fields used to search if no
+field is specified in the query.</li>
+<li><strong>field_boosts:</strong>  A dictionary keyed on field names which provides default boosts
+for the query constructed by this method.</li>
+<li><strong>fuzzy_fields:</strong>  A dictionary keyed on field names which provides (prefix, distance, transpose_cost_one)
+triples making queries constructed by this method fuzzy against the given fields
+and using the given parameters.
+<code>prefix</code> determines if terms which are prefixes of the given term match the query.
+<code>distance</code> determines the maximum Levenshtein distance between terms matching the query and the given term.
+<code>transpose_cost_one</code> determines if transpositions of neighbouring characters are counted only once against the Levenshtein distance.</li>
+<li><strong>conjunction_by_default:</strong>  If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.</li>
+<li><strong>allow_regexes:</strong>  If true, allow regexes in queries.</li>
+</ul>
 
 <p>Returns a tuple containing the parsed query and a list of errors.</p>
 
@@ -1445,17 +1399,20 @@ The same searcher must be used for a given query, as it ensures the use of a con
 <p>The writer will be multithreaded and the provided heap size will be
 split between the given number of threads.</p>
 
-<p>Args:
-    overall_heap_size (int, optional): The total target heap memory usage of
-        the writer. Tantivy requires that this can't be less
-        than 3000000 <em>per thread</em>. Lower values will result in more
-        frequent internal commits when adding documents (slowing down
-        write progress), and larger values will results in fewer
-        commits but greater memory usage. The best value will depend
-        on your specific use case.
-    num_threads (int, optional): The number of threads that the writer
-        should use. If this value is 0, tantivy will choose
-        automatically the number of threads.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>overall_heap_size (int, optional):</strong>  The total target heap memory usage of
+the writer. Tantivy requires that this can't be less
+than 3000000 <em>per thread</em>. Lower values will result in more
+frequent internal commits when adding documents (slowing down
+write progress), and larger values will results in fewer
+commits but greater memory usage. The best value will depend
+on your specific use case.</li>
+<li><strong>num_threads (int, optional):</strong>  The number of threads that the writer
+should use. If this value is 0, tantivy will choose
+automatically the number of threads.</li>
+</ul>
 
 <p>Raises ValueError if there was an error while creating the writer.</p>
 </div>
@@ -1613,9 +1570,10 @@ for searchers.</p>
     
             <div class="docstring"><p>Delete all documents matching a given query.</p>
 
-<p>Example:</p>
+<h6 id="example">Example:</h6>
 
-<pre><code><div class="pdoc-code codehilite">
+<blockquote>
+  <div class="pdoc-code codehilite">
 <pre><span></span><code><span class="n">schema_builder</span> <span class="o">=</span> <span class="n">SchemaBuilder</span><span class="p">()</span>
 <span class="n">schema_builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">schema</span> <span class="o">=</span> <span class="n">schema_builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
@@ -1634,11 +1592,14 @@ for searchers.</p>
 <span class="n">writer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 <span class="n">writer</span><span class="o">.</span><span class="n">wait_merging_threads</span><span class="p">()</span>
 </code></pre>
-</div>
-</code></pre>
+  </div>
+</blockquote>
 
-<p>Args:
-   query (Query): The query to filter the deleted documents.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>query (Query):</strong>  The query to filter the deleted documents.</li>
+</ul>
 
 <p>If the query is not valid raises ValueError exception.
 If the query is not supported raises Exception.</p>
@@ -1671,9 +1632,12 @@ want tokenization to be applied, it is recommended to instead use the
 <code><a href="#IndexWriter.delete_documents_by_query">delete_documents_by_query</a></code> method instead, which will delete documents
 matching the given query using the same query parser as used in search queries.</p>
 
-<p>Args:
-    field_name (str): The field name for which we want to filter deleted docs.
-    field_value (PyAny): Python object with the value we want to filter.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field name for which we want to filter deleted docs.</li>
+<li><strong>field_value (PyAny):</strong>  Python object with the value we want to filter.</li>
+</ul>
 
 <p>If the field_name is not on the schema raises ValueError exception.
 If the field_value is not supported raises Exception.</p>
@@ -1737,195 +1701,175 @@ object will result in an error.</p>
                 </section>
 </main>
 
-## DocAddress
+## Occur
 
 <main class="pdoc">
-<section id="DocAddress">
+<section id="Occur">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">DocAddress</span>:
+    <span class="name">Occur</span>:
 
         
     </div>
-    <a class="headerlink" href="#DocAddress"></a>
+    <a class="headerlink" href="#Occur"></a>
     
-            <div class="docstring"><p>DocAddress contains all the necessary information to identify a document
-given a Searcher object.</p>
-
-<p>It consists in an id identifying its segment, and its segment-local DocId.
-The id used for the segment is actually an ordinal in the list of segment
-hold by a Searcher.</p>
+            <div class="docstring"><p>Tantivy's Occur</p>
 </div>
 
 
-                            <div id="DocAddress.doc" class="classattr">
+                            <div id="Occur.Must" class="classattr">
                                 <div class="attr variable">
-            <span class="name">doc</span><span class="annotation">: int</span>
+            <span class="name">Must</span>        =
+<span class="default_value"><a href="#Occur.Must">Occur.Must</a></span>
 
         
     </div>
-    <a class="headerlink" href="#DocAddress.doc"></a>
+    <a class="headerlink" href="#Occur.Must"></a>
     
-            <div class="docstring"><p>The segment local DocId</p>
-</div>
-
+    
 
                             </div>
-                            <div id="DocAddress.segment_ord" class="classattr">
+                            <div id="Occur.MustNot" class="classattr">
                                 <div class="attr variable">
-            <span class="name">segment_ord</span><span class="annotation">: int</span>
+            <span class="name">MustNot</span>        =
+<span class="default_value"><a href="#Occur.MustNot">Occur.MustNot</a></span>
 
         
     </div>
-    <a class="headerlink" href="#DocAddress.segment_ord"></a>
+    <a class="headerlink" href="#Occur.MustNot"></a>
     
-            <div class="docstring"><p>The segment ordinal is an id identifying the segment hosting the
-document. It is only meaningful, in the context of a searcher.</p>
-</div>
+    
 
+                            </div>
+                            <div id="Occur.Should" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Should</span>        =
+<span class="default_value"><a href="#Occur.Should">Occur.Should</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Occur.Should"></a>
+    
+    
 
                             </div>
                 </section>
 </main>
 
-## Facet
+## Order
 
 <main class="pdoc">
-<section id="Facet">
+<section id="Order">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">Facet</span>:
+    <span class="name">Order</span>:
 
         
     </div>
-    <a class="headerlink" href="#Facet"></a>
+    <a class="headerlink" href="#Order"></a>
     
-            <div class="docstring"><p>A Facet represent a point in a given hierarchy.</p>
-
-<p>They are typically represented similarly to a filepath. For instance, an
-e-commerce website could have a Facet for /electronics/tv_and_video/led_tv.</p>
-
-<p>A document can be associated to any number of facets. The hierarchy
-implicitely imply that a document belonging to a facet also belongs to the
-ancestor of its facet. In the example above, /electronics/tv_and_video/
-and /electronics.</p>
+            <div class="docstring"><p>Enum representing the direction in which something should be sorted.</p>
 </div>
 
 
-                            <div id="Facet.from_encoded" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">from_encoded</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">encoded_bytes</span><span class="p">:</span> <span class="nb">bytes</span></span><span class="return-annotation">) -> <span class="n"><a href="#Facet">Facet</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Facet.from_encoded"></a>
-    
-            <div class="docstring"><p>Creates a <code><a href="#Facet">Facet</a></code> from its binary representation.</p>
-</div>
-
-
-                            </div>
-                            <div id="Facet.from_string" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">from_string</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span>, </span><span class="param"><span class="n">facet_string</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Facet">Facet</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Facet.from_string"></a>
-    
-            <div class="docstring"><p>Create a Facet object from a string.
-Args:
-    facet_string (str): The string that contains a facet.</p>
-
-<p>Returns the created Facet.</p>
-</div>
-
-
-                            </div>
-                            <div id="Facet.is_prefix_of" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">is_prefix_of</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">other</span><span class="p">:</span> <span class="n"><a href="#Facet">Facet</a></span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Facet.is_prefix_of"></a>
-    
-            <div class="docstring"><p>Returns true if another Facet is a subfacet of this facet.
-Args:
-    other (Facet): The Facet that we should check if this facet is a
-        subset of.</p>
-</div>
-
-
-                            </div>
-                            <div id="Facet.is_root" class="classattr">
+                            <div id="Order.Asc" class="classattr">
                                 <div class="attr variable">
-            <span class="name">is_root</span><span class="annotation">: bool</span>
+            <span class="name">Asc</span>        =
+<span class="default_value"><a href="#Order.Asc">Order.Asc</a></span>
 
         
     </div>
-    <a class="headerlink" href="#Facet.is_root"></a>
+    <a class="headerlink" href="#Order.Asc"></a>
     
-            <div class="docstring"><p>Returns true if the facet is the root facet /.</p>
-</div>
-
+    
 
                             </div>
-                            <div id="Facet.root" class="classattr">
-                                <div class="attr function">
+                            <div id="Order.Desc" class="classattr">
+                                <div class="attr variable">
+            <span class="name">Desc</span>        =
+<span class="default_value"><a href="#Order.Desc">Order.Desc</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Order.Desc"></a>
+    
+    
+
+                            </div>
+                </section>
+</main>
+
+## parse_query
+
+<main class="pdoc">
+<section id="parse_query">
+                    <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">root</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span></span><span class="return-annotation">) -> <span class="n"><a href="#Facet">Facet</a></span>:</span></span>
+        <span class="name">parse_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
         
     </div>
-    <a class="headerlink" href="#Facet.root"></a>
+    <a class="headerlink" href="#parse_query"></a>
     
-            <div class="docstring"><p>Create a new instance of the "root facet" Equivalent to /.</p>
+            <div class="docstring"><p>Parse a query string into an abstract syntax tree (AST).</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>query:</strong>  The query string to parse.</li>
+</ul>
+
+<h6 id="returns">Returns:</h6>
+
+<blockquote>
+  <p>A dictionary representing the parsed query AST.</p>
+</blockquote>
+
+<h6 id="raises">Raises:</h6>
+
+<ul>
+<li><strong>ValueError:</strong>  If the query has invalid syntax.</li>
+</ul>
 </div>
 
 
-                            </div>
-                            <div id="Facet.to_path" class="classattr">
-                                <div class="attr function">
+                </section>
+</main>
+
+## parse_query_lenient
+
+<main class="pdoc">
+<section id="parse_query_lenient">
+                    <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">to_path</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>:</span></span>
+        <span class="name">parse_query_lenient</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]]]</span>:</span></span>
 
         
     </div>
-    <a class="headerlink" href="#Facet.to_path"></a>
+    <a class="headerlink" href="#parse_query_lenient"></a>
     
-            <div class="docstring"><p>Returns the list of <code>segments</code> that forms a facet path.</p>
+            <div class="docstring"><p>Parse a query string leniently, recovering from syntax errors.</p>
 
-<p>For instance <code>//europe/france</code> becomes <code>["europe", "france"]</code>.</p>
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>query:</strong>  The query string to parse.</li>
+</ul>
+
+<h6 id="returns">Returns:</h6>
+
+<blockquote>
+  <p>A tuple containing:
+      - A dictionary representing the parsed query AST
+      - A list of error dictionaries describing syntax errors</p>
+</blockquote>
 </div>
 
 
-                            </div>
-                            <div id="Facet.to_path_str" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">to_path_str</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Facet.to_path_str"></a>
-    
-            <div class="docstring"><p>Returns the facet string representation.</p>
-</div>
-
-
-                            </div>
                 </section>
 </main>
 
@@ -2350,34 +2294,748 @@ bound is <code>None</code> is an error—unbounded sides are always inclusive by
                 </section>
 </main>
 
-## Explanation
+## Schema
 
 <main class="pdoc">
-<section id="Explanation">
+<section id="Schema">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">Explanation</span>:
+    <span class="name">Schema</span>:
 
         
     </div>
-    <a class="headerlink" href="#Explanation"></a>
+    <a class="headerlink" href="#Schema"></a>
     
-            <div class="docstring"><p>Represents an explanation of how a document matched a query.</p>
+            <div class="docstring"><p>Tantivy schema.</p>
+
+<p>The schema is very strict. To build the schema the <code><a href="#SchemaBuilder">SchemaBuilder</a></code> class is
+provided.</p>
 </div>
 
 
-                            <div id="Explanation.to_json" class="classattr">
-                                <div class="attr function">
+                </section>
+</main>
+
+## SchemaBuilder
+
+<main class="pdoc">
+<section id="SchemaBuilder">
+                    <div class="attr class">
             
-        <span class="def">def</span>
-        <span class="name">to_json</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+    <span class="def">class</span>
+    <span class="name">SchemaBuilder</span>:
 
         
     </div>
-    <a class="headerlink" href="#Explanation.to_json"></a>
+    <a class="headerlink" href="#SchemaBuilder"></a>
     
-            <div class="docstring"><p>Returns a JSON representation of the explanation.</p>
+            <div class="docstring"><p>Tantivy has a very strict schema.
+You need to specify in advance whether a field is indexed or not,
+stored or not.</p>
+
+<p>This is done by creating a schema object, and
+setting up the fields one by one.</p>
+
+<h6 id="examples">Examples:</h6>
+
+<blockquote>
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">builder</span> <span class="o">=</span> <span class="n"><a href="#SchemaBuilder">tantivy.SchemaBuilder</a></span><span class="p">()</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">title</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="n">stored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">body</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">)</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">schema</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+</code></pre>
+  </div>
+</blockquote>
+</div>
+
+
+                            <div id="SchemaBuilder.add_boolean_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_boolean_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_boolean_field"></a>
+    
+            <div class="docstring"><p>Add a new boolean field to the schema.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the field.</li>
+<li><strong>stored (bool, optional):</strong>  If true sets the field as stored, the
+content of the field can be later restored from a Searcher.
+Defaults to False.</li>
+<li><strong>indexed (bool, optional):</strong>  If true sets the field to be indexed.</li>
+<li><strong>fast (bool, optional):</strong>  Set the numeric options as a fast field. A
+fast field is a column-oriented fashion storage for tantivy.
+It is designed for the fast random access of some document
+fields given a document id.</li>
+</ul>
+
+<p>Returns the associated field handle.
+Raises a ValueError if there was an error with the field creation.</p>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.add_bytes_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_bytes_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">index_option</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;position&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_bytes_field"></a>
+    
+            <div class="docstring"><p>Add a fast bytes field to the schema.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the field.</li>
+<li><strong>stored (bool, optional):</strong>  If true sets the field as stored, the
+content of the field can be later restored from a Searcher.
+Defaults to False.</li>
+<li><strong>indexed (bool, optional):</strong>  If true sets the field to be indexed.</li>
+<li><strong>fast (bool, optional):</strong>  Set the bytes options as a fast field. A fast
+field is a column-oriented fashion storage for tantivy. It is
+designed for the fast random access of some document fields
+given a document id.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.add_date_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_date_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_date_field"></a>
+    
+            <div class="docstring"><p>Add a new date field to the schema.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the field.</li>
+<li><strong>stored (bool, optional):</strong>  If true sets the field as stored, the
+content of the field can be later restored from a Searcher.
+Defaults to False.</li>
+<li><strong>indexed (bool, optional):</strong>  If true sets the field to be indexed.</li>
+<li><strong>fast (bool, optional):</strong>  Set the date options as a fast field. A fast
+field is a column-oriented fashion storage for tantivy. It is
+designed for the fast random access of some document fields
+given a document id.</li>
+</ul>
+
+<p>Returns the associated field handle.
+Raises a ValueError if there was an error with the field creation.</p>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.add_facet_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_facet_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_facet_field"></a>
+    
+            <div class="docstring"><p>Add a Facet field to the schema.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the field.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.add_float_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_float_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_float_field"></a>
+    
+            <div class="docstring"><p>Add a new float field to the schema.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the field.</li>
+<li><strong>stored (bool, optional):</strong>  If true sets the field as stored, the
+content of the field can be later restored from a Searcher.
+Defaults to False.</li>
+<li><strong>indexed (bool, optional):</strong>  If true sets the field to be indexed.</li>
+<li><strong>fast (bool, optional):</strong>  Set the numeric options as a fast field. A
+fast field is a column-oriented fashion storage for tantivy.
+It is designed for the fast random access of some document
+fields given a document id.</li>
+</ul>
+
+<p>Returns the associated field handle.
+Raises a ValueError if there was an error with the field creation.</p>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.add_integer_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_integer_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_integer_field"></a>
+    
+            <div class="docstring"><p>Add a new signed integer field to the schema.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the field.</li>
+<li><strong>stored (bool, optional):</strong>  If true sets the field as stored, the
+content of the field can be later restored from a Searcher.
+Defaults to False.</li>
+<li><strong>indexed (bool, optional):</strong>  If true sets the field to be indexed.</li>
+<li><strong>fast (bool, optional):</strong>  Set the numeric options as a fast field. A
+fast field is a column-oriented fashion storage for tantivy.
+It is designed for the fast random access of some document
+fields given a document id.</li>
+</ul>
+
+<p>Returns the associated field handle.
+Raises a ValueError if there was an error with the field creation.</p>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.add_ip_addr_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_ip_addr_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_ip_addr_field"></a>
+    
+            <div class="docstring"><p>Add an IP address field to the schema.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the field.</li>
+<li><strong>stored (bool, optional):</strong>  If true sets the field as stored, the
+content of the field can be later restored from a Searcher.
+Defaults to False.</li>
+<li><strong>indexed (bool, optional):</strong>  If true sets the field to be indexed.</li>
+<li><strong>fast (bool, optional):</strong>  Set the IP address options as a fast field. A
+fast field is a column-oriented fashion storage for tantivy. It
+is designed for the fast random access of some document fields
+given a document id.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.add_json_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_json_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">tokenizer_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>,</span><span class="param">    <span class="n">index_option</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;position&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_json_field"></a>
+    
+            <div class="docstring"><p>Add a new json field to the schema.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  the name of the field.</li>
+<li><strong>stored (bool, optional):</strong>  If true sets the field as stored, the
+content of the field can be later restored from a Searcher.
+Defaults to False.</li>
+<li><strong>fast (bool, optional):</strong>  Set the text options as a fast field. A
+fast field is a column-oriented fashion storage for tantivy.
+Text fast fields will have the term ids stored in the fast
+field. The fast field will be a multivalued fast field.
+It is recommended to use the "raw" tokenizer, since it will
+store the original text unchanged. The "default" tokenizer will
+store the terms as lower case and this will be reflected in the
+dictionary.</li>
+<li><strong>tokenizer_name (str, optional):</strong>  The name of the tokenizer that
+should be used to process the field. Defaults to 'default'</li>
+<li><strong>index_option (str, optional):</strong>  Sets which information should be
+indexed with the tokens. Can be one of 'position', 'freq' or
+'basic'. Defaults to 'position'. The 'basic' index_option
+records only the document ID, the 'freq' option records the
+document id and the term frequency, while the 'position' option
+records the document id, term frequency and the positions of
+the term occurrences in the document.</li>
+</ul>
+
+<p>Returns the associated field handle.
+Raises a ValueError if there was an error with the field creation.</p>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.add_text_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_text_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">tokenizer_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>,</span><span class="param">    <span class="n">index_option</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;position&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_text_field"></a>
+    
+            <div class="docstring"><p>Add a new text field to the schema.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the field.</li>
+<li><strong>stored (bool, optional):</strong>  If true sets the field as stored, the
+content of the field can be later restored from a Searcher.
+Defaults to False.</li>
+<li><strong>fast (bool, optional):</strong>  Set the text options as a fast field. A
+fast field is a column-oriented fashion storage for tantivy.
+Text fast fields will have the term ids stored in the fast
+field. The fast field will be a multivalued fast field.
+It is recommended to use the "raw" tokenizer, since it will
+store the original text unchanged. The "default" tokenizer will
+store the terms as lower case and this will be reflected in the
+dictionary.</li>
+<li><strong>tokenizer_name (str, optional):</strong>  The name of the tokenizer that
+should be used to process the field. Defaults to 'default'</li>
+<li><strong>index_option (str, optional):</strong>  Sets which information should be
+indexed with the tokens. Can be one of 'position', 'freq' or
+'basic'. Defaults to 'position'. The 'basic' index_option
+records only the document ID, the 'freq' option records the
+document id and the term frequency, while the 'position' option
+records the document id, term frequency and the positions of
+the term occurrences in the document.</li>
+</ul>
+
+<p>Returns the associated field handle.
+Raises a ValueError if there was an error with the field creation.</p>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.add_unsigned_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_unsigned_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_unsigned_field"></a>
+    
+            <div class="docstring"><p>Add a new unsigned integer field to the schema.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the field.</li>
+<li><strong>stored (bool, optional):</strong>  If true sets the field as stored, the
+content of the field can be later restored from a Searcher.
+Defaults to False.</li>
+<li><strong>indexed (bool, optional):</strong>  If true sets the field to be indexed.</li>
+<li><strong>fast (bool, optional):</strong>  Set the numeric options as a fast field. A
+fast field is a column-oriented fashion storage for tantivy.
+It is designed for the fast random access of some document
+fields given a document id.</li>
+</ul>
+
+<p>Returns the associated field handle.
+Raises a ValueError if there was an error with the field creation.</p>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.build" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">build</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="n"><a href="#Schema">Schema</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.build"></a>
+    
+            <div class="docstring"><p>Finalize the creation of a Schema.</p>
+
+<p>Returns a Schema object. After this is called the SchemaBuilder cannot
+be used anymore.</p>
+</div>
+
+
+                            </div>
+                            <div id="SchemaBuilder.is_valid_field_name" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">is_valid_field_name</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.is_valid_field_name"></a>
+    
+            <div class="docstring"><p>The type of the None singleton.</p>
+</div>
+
+
+                            </div>
+                </section>
+</main>
+
+## Searcher
+
+<main class="pdoc">
+<section id="Searcher">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">Searcher</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#Searcher"></a>
+    
+            <div class="docstring"><p>Tantivy's Searcher class</p>
+
+<p>A Searcher is used to search the index given a prepared Query.</p>
+</div>
+
+
+                            <div id="Searcher.aggregate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">aggregate</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>, </span><span class="param"><span class="n">agg</span><span class="p">:</span> <span class="nb">dict</span></span><span class="return-annotation">) -> <span class="nb">dict</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Searcher.aggregate"></a>
+    
+            <div class="docstring"><p>Execute an aggregation query and return the results as a dict.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>query (Query):</strong>  The query that filters the documents to aggregate over.</li>
+<li><strong>agg (dict):</strong>  The aggregation specification as a Python dict.</li>
+</ul>
+
+<p>Returns a dict containing the aggregation results.</p>
+</div>
+
+
+                            </div>
+                            <div id="Searcher.cardinality" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">cardinality</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Searcher.cardinality"></a>
+    
+            <div class="docstring"><p>Returns the cardinality of a query.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>query (Query):</strong>  The query that will be used for the search.</li>
+<li><strong>field_name (str):</strong>  The field for which to compute the cardinality.</li>
+</ul>
+
+<p>Returns the cardinality.</p>
+</div>
+
+
+                            </div>
+                            <div id="Searcher.doc" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">doc</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">doc_address</span><span class="p">:</span> <span class="n"><a href="#DocAddress">DocAddress</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#Document">Document</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Searcher.doc"></a>
+    
+            <div class="docstring"><p>Fetches a document from Tantivy's store given a DocAddress.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>doc_address (DocAddress):</strong>  The DocAddress that is associated with
+the document that we wish to fetch.</li>
+</ul>
+
+<p>Returns the Document, raises ValueError if the document can't be found.</p>
+</div>
+
+
+                            </div>
+                            <div id="Searcher.doc_freq" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">doc_freq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">field_value</span><span class="p">:</span> <span class="n">Any</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Searcher.doc_freq"></a>
+    
+            <div class="docstring"><p>Return the overall number of documents containing
+the given term.</p>
+</div>
+
+
+                            </div>
+                            <div id="Searcher.fast_field_values" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fast_field_values</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">doc_addresses</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="#DocAddress">DocAddress</a></span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Searcher.fast_field_values"></a>
+    
+            <div class="docstring"><p>Read a numeric fast field for a batch of DocAddresses without fetching
+stored documents.</p>
+
+<p>Fast fields are column-oriented and support O(1) random access by
+segment-local DocId.  Use this instead of doc().to_dict()[field] when
+you only need a single numeric field for many documents.</p>
+
+<p>The field type is resolved from the schema automatically: u64 and i64
+fields return Python int; f64 fields return Python float; bool fields
+return Python bool.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name:</strong>  Name of a u64, i64, f64, or bool field declared with fast=True.</li>
+<li><strong>doc_addresses:</strong>  List of DocAddress objects (e.g. from search().hits).</li>
+</ul>
+
+<h6 id="returns">Returns:</h6>
+
+<blockquote>
+  <p>A list of values in the same order as doc_addresses.
+  None is returned for any address where the column is absent
+  (e.g. a segment written before the field was added to the schema).</p>
+</blockquote>
+
+<h6 id="raises">Raises:</h6>
+
+<ul>
+<li><strong>ValueError:</strong>  if the field does not exist, is not a fast field, or
+has an unsupported type (only u64, i64, f64, and bool are supported).</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="Searcher.num_docs" class="classattr">
+                                <div class="attr variable">
+            <span class="name">num_docs</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Searcher.num_docs"></a>
+    
+            <div class="docstring"><p>Returns the overall number of documents in the index.</p>
+</div>
+
+
+                            </div>
+                            <div id="Searcher.num_segments" class="classattr">
+                                <div class="attr variable">
+            <span class="name">num_segments</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Searcher.num_segments"></a>
+    
+            <div class="docstring"><p>Returns the number of segments in the index.</p>
+</div>
+
+
+                            </div>
+                            <div id="Searcher.search" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">search</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>,</span><span class="param">    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>,</span><span class="param">    <span class="n">count</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">    <span class="n">order_by_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>,</span><span class="param">    <span class="n">order</span><span class="p">:</span> <span class="n"><a href="#Order">Order</a></span> <span class="o">=</span> <span class="o">&lt;</span><span class="n"><a href="#Order.Desc">Order.Desc</a></span><span class="p">:</span> <span class="mi">2</span><span class="o">&gt;</span>,</span><span class="param">    <span class="n">weight_by_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#SearchResult">SearchResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Searcher.search"></a>
+    
+            <div class="docstring"><p>Search the index with the given query and collect results.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>query (Query):</strong>  The query that will be used for the search.</li>
+<li><strong>limit (int, optional):</strong>  The maximum number of search results to
+return. Defaults to 10.</li>
+<li><strong>count (bool, optional):</strong>  Should the number of documents that match
+the query be returned as well. Defaults to true.</li>
+<li><strong>order_by_field (str, optional):</strong>  Name of a field that the results
+should be ordered by. The field must be declared as a fast field
+when building the schema. Supported field types: Text, Unsigned,
+Integer, Float, Boolean and Date.</li>
+<li><strong>offset (int, optional):</strong>  The offset from which the results have
+to be returned.</li>
+<li><strong>order (Order, optional):</strong>  The order in which the results
+should be sorted. If not specified, defaults to descending.</li>
+<li><strong>weight_by_field (str, optional):</strong>  Name of a field that the results
+should be weighted by. The field must be declared as a fast
+field when building the schema. Note, this only works for
+Float, Integer and Unsigned fields. The given field value is first
+transformed using the formula <code>log2(2.0 + value)</code> and then
+multiplied with the original score. This means that a weight field
+value of 0.0 results in no change to the original score.
+If the weight value is negative, it is treated as 0.0.</li>
+</ul>
+
+<p>Returns <code><a href="#SearchResult">SearchResult</a></code> object whose <code>hits</code> is a list of <code>(order_key,
+DocAddress)</code> tuples. When no <code>order_by_field</code> is given, <code>order_key</code> is
+a float score. When ordering by a field, <code>order_key</code> matches the
+field's Python type (int, float, bool, or str), except for date fields
+which return an int of nanoseconds since the epoch.</p>
+
+<p>Raises a ValueError if there was an error with the search.</p>
+</div>
+
+
+                            </div>
+                            <div id="Searcher.terms_with_prefix" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">terms_with_prefix</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Searcher.terms_with_prefix"></a>
+    
+            <div class="docstring"><p>Walk the term dictionary for <code>field_name</code> and return all terms that
+begin with <code>prefix</code>, together with their document frequencies.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name:</strong>  Name of an indexed text field in the schema.</li>
+<li><strong>prefix:</strong>  Only terms beginning with this string are returned.
+An empty string returns all terms in the field.</li>
+<li><strong>filter_query:</strong>  Optional Query. When provided, each term's count
+reflects only documents matched by the query (e.g. for
+permission filtering). Counts are still summed across segments.</li>
+<li><strong>limit:</strong>  If given, only the top-<code>limit</code> entries (by count) are returned.</li>
+</ul>
+
+<h6 id="returns">Returns:</h6>
+
+<blockquote>
+  <p><code>[(term, count), ...]</code> sorted by count descending, then
+  alphabetically. Terms present in multiple segments have their
+  counts summed.</p>
+</blockquote>
+
+<h6 id="raises">Raises:</h6>
+
+<ul>
+<li><strong>ValueError:</strong>  if the field does not exist or is not a text field.</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
+</main>
+
+## SearchResult
+
+<main class="pdoc">
+<section id="SearchResult">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">SearchResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#SearchResult"></a>
+    
+            <div class="docstring"><p>Object holding a results successful search.</p>
+</div>
+
+
+                            <div id="SearchResult.count" class="classattr">
+                                <div class="attr variable">
+            <span class="name">count</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SearchResult.count"></a>
+    
+            <div class="docstring"><p>How many documents matched the query. Only available if <code><a href="#SearchResult.count">count</a></code> was set
+to true during the search.</p>
+</div>
+
+
+                            </div>
+                            <div id="SearchResult.hits" class="classattr">
+                                <div class="attr variable">
+            <span class="name">hits</span><span class="annotation">: list[tuple[typing.Any, <a href="#DocAddress">DocAddress</a>]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SearchResult.hits"></a>
+    
+            <div class="docstring"><p>The list of tuples that contains the scores and DocAddress of the
+search results.</p>
 </div>
 
 
@@ -2519,197 +3177,141 @@ not the original document text.</p>
                 </section>
 </main>
 
-## Occur
+## TextAnalyzer
 
 <main class="pdoc">
-<section id="Occur">
+<section id="TextAnalyzer">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">Occur</span>:
+    <span class="name">TextAnalyzer</span>:
 
         
     </div>
-    <a class="headerlink" href="#Occur"></a>
+    <a class="headerlink" href="#TextAnalyzer"></a>
     
-            <div class="docstring"><p>Tantivy's Occur</p>
+            <div class="docstring"><p>Tantivy's TextAnalyzer</p>
+
+<p>Do not instantiate this class directly.
+Use the <code><a href="#TextAnalyzerBuilder">TextAnalyzerBuilder</a></code> class instead.</p>
 </div>
 
 
-                            <div id="Occur.Must" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Must</span>        =
-<span class="default_value"><a href="#Occur.Must">Occur.Must</a></span>
+                            <div id="TextAnalyzer.analyze" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">analyze</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">text</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>:</span></span>
 
         
     </div>
-    <a class="headerlink" href="#Occur.Must"></a>
+    <a class="headerlink" href="#TextAnalyzer.analyze"></a>
     
-    
+            <div class="docstring"><p>Tokenize a string
+Args:</p>
 
-                            </div>
-                            <div id="Occur.MustNot" class="classattr">
-                                <div class="attr variable">
-            <span class="name">MustNot</span>        =
-<span class="default_value"><a href="#Occur.MustNot">Occur.MustNot</a></span>
+<ul>
+<li>text (string): text to tokenize.
+Returns:</li>
+<li>list(string): a list of tokens/words.</li>
+</ul>
+</div>
 
-        
-    </div>
-    <a class="headerlink" href="#Occur.MustNot"></a>
-    
-    
-
-                            </div>
-                            <div id="Occur.Should" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Should</span>        =
-<span class="default_value"><a href="#Occur.Should">Occur.Should</a></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Occur.Should"></a>
-    
-    
 
                             </div>
                 </section>
 </main>
 
-## FieldType
+## TextAnalyzerBuilder
 
 <main class="pdoc">
-<section id="FieldType">
+<section id="TextAnalyzerBuilder">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">FieldType</span>:
+    <span class="name">TextAnalyzerBuilder</span>:
 
         
     </div>
-    <a class="headerlink" href="#FieldType"></a>
+    <a class="headerlink" href="#TextAnalyzerBuilder"></a>
     
-            <div class="docstring"><p>Tantivy's Type</p>
+            <div class="docstring"><p>Tantivy's TextAnalyzerBuilder</p>
+
+<h1 id="example">Example</h1>
+
+<div class="pdoc-code codehilite">
+<pre><span></span><code><span class="n">my_analyzer</span><span class="p">:</span> <span class="n">TextAnalyzer</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">TextAnalyzerBuilder</span><span class="p">(</span><span class="n"><a href="#Tokenizer.simple">Tokenizer.simple</a></span><span class="p">())</span>
+    <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n"><a href="#Filter.lowercase">Filter.lowercase</a></span><span class="p">())</span>
+    <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Filter</span><span class="o">.</span><span class="n">ngram</span><span class="p">())</span>
+    <span class="o">.</span><span class="n">build</span><span class="p">()</span>
+<span class="p">)</span>
+</code></pre>
+</div>
+
+<p><a href="https://docs.rs/tantivy/latest/tantivy/tokenizer/struct.TextAnalyzerBuilder.html">https://docs.rs/tantivy/latest/tantivy/tokenizer/struct<a href="#TextAnalyzerBuilder">.TextAnalyzerBuilder</a>.html</a></p>
 </div>
 
 
-                            <div id="FieldType.Boolean" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Boolean</span>        =
-<span class="default_value"><a href="#FieldType.Boolean">FieldType.Boolean</a></span>
+                            <div id="TextAnalyzerBuilder.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">TextAnalyzerBuilder</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">tokenizer</span><span class="p">:</span> <span class="n"><a href="#Tokenizer">Tokenizer</a></span></span>)</span>
 
         
     </div>
-    <a class="headerlink" href="#FieldType.Boolean"></a>
+    <a class="headerlink" href="#TextAnalyzerBuilder.__init__"></a>
     
     
 
                             </div>
-                            <div id="FieldType.Bytes" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Bytes</span>        =
-<span class="default_value"><a href="#FieldType.Bytes">FieldType.Bytes</a></span>
+                            <div id="TextAnalyzerBuilder.build" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">build</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="n"><a href="#TextAnalyzer">TextAnalyzer</a></span>:</span></span>
 
         
     </div>
-    <a class="headerlink" href="#FieldType.Bytes"></a>
+    <a class="headerlink" href="#TextAnalyzerBuilder.build"></a>
     
-    
+            <div class="docstring"><p>Build final TextAnalyzer object.</p>
+
+<p>Returns:</p>
+
+<ul>
+<li>TextAnalyzer with tokenizer and filters baked in.</li>
+</ul>
+
+<p>Tip: TextAnalyzer's <code>analyze(text) -&gt; tokens</code> method lets you
+easily check if your analyzer is working as expected.</p>
+</div>
+
 
                             </div>
-                            <div id="FieldType.Date" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Date</span>        =
-<span class="default_value"><a href="#FieldType.Date">FieldType.Date</a></span>
+                            <div id="TextAnalyzerBuilder.filter" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">filter</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="nb">filter</span><span class="p">:</span> <span class="n"><a href="#Filter">Filter</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#TextAnalyzerBuilder">TextAnalyzerBuilder</a></span>:</span></span>
 
         
     </div>
-    <a class="headerlink" href="#FieldType.Date"></a>
+    <a class="headerlink" href="#TextAnalyzerBuilder.filter"></a>
     
-    
+            <div class="docstring"><p>Add filter to the builder.</p>
 
-                            </div>
-                            <div id="FieldType.Facet" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Facet</span>        =
-<span class="default_value"><a href="#FieldType.Facet">FieldType.Facet</a></span>
+<p>Args:</p>
 
-        
-    </div>
-    <a class="headerlink" href="#FieldType.Facet"></a>
-    
-    
+<ul>
+<li>filter (Filter): a Filter object.
+Returns:</li>
+<li>TextAnalyzerBuilder: A new instance of the builder</li>
+</ul>
 
-                            </div>
-                            <div id="FieldType.Float" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Float</span>        =
-<span class="default_value"><a href="#FieldType.Float">FieldType.Float</a></span>
+<p>Note: The builder is _not_ mutated in-place.</p>
+</div>
 
-        
-    </div>
-    <a class="headerlink" href="#FieldType.Float"></a>
-    
-    
-
-                            </div>
-                            <div id="FieldType.Integer" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Integer</span>        =
-<span class="default_value"><a href="#FieldType.Integer">FieldType.Integer</a></span>
-
-        
-    </div>
-    <a class="headerlink" href="#FieldType.Integer"></a>
-    
-    
-
-                            </div>
-                            <div id="FieldType.IpAddr" class="classattr">
-                                <div class="attr variable">
-            <span class="name">IpAddr</span>        =
-<span class="default_value"><a href="#FieldType.IpAddr">FieldType.IpAddr</a></span>
-
-        
-    </div>
-    <a class="headerlink" href="#FieldType.IpAddr"></a>
-    
-    
-
-                            </div>
-                            <div id="FieldType.Json" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Json</span>        =
-<span class="default_value"><a href="#FieldType.Json">FieldType.Json</a></span>
-
-        
-    </div>
-    <a class="headerlink" href="#FieldType.Json"></a>
-    
-    
-
-                            </div>
-                            <div id="FieldType.Text" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Text</span>        =
-<span class="default_value"><a href="#FieldType.Text">FieldType.Text</a></span>
-
-        
-    </div>
-    <a class="headerlink" href="#FieldType.Text"></a>
-    
-    
-
-                            </div>
-                            <div id="FieldType.Unsigned" class="classattr">
-                                <div class="attr variable">
-            <span class="name">Unsigned</span>        =
-<span class="default_value"><a href="#FieldType.Unsigned">FieldType.Unsigned</a></span>
-
-        
-    </div>
-    <a class="headerlink" href="#FieldType.Unsigned"></a>
-    
-    
 
                             </div>
                 </section>
@@ -2847,419 +3449,6 @@ TextAnalyzerBuilder(tokenizer=<tokenizer>)</p>
 
 
                             </div>
-                </section>
-</main>
-
-## TextAnalyzerBuilder
-
-<main class="pdoc">
-<section id="TextAnalyzerBuilder">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">TextAnalyzerBuilder</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#TextAnalyzerBuilder"></a>
-    
-            <div class="docstring"><p>Tantivy's TextAnalyzerBuilder</p>
-
-<h1 id="example">Example</h1>
-
-<div class="pdoc-code codehilite">
-<pre><span></span><code><span class="n">my_analyzer</span><span class="p">:</span> <span class="n">TextAnalyzer</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">TextAnalyzerBuilder</span><span class="p">(</span><span class="n"><a href="#Tokenizer.simple">Tokenizer.simple</a></span><span class="p">())</span>
-    <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n"><a href="#Filter.lowercase">Filter.lowercase</a></span><span class="p">())</span>
-    <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Filter</span><span class="o">.</span><span class="n">ngram</span><span class="p">())</span>
-    <span class="o">.</span><span class="n">build</span><span class="p">()</span>
-<span class="p">)</span>
-</code></pre>
-</div>
-
-<p><a href="https://docs.rs/tantivy/latest/tantivy/tokenizer/struct.TextAnalyzerBuilder.html">https://docs.rs/tantivy/latest/tantivy/tokenizer/struct<a href="#TextAnalyzerBuilder">.TextAnalyzerBuilder</a>.html</a></p>
-</div>
-
-
-                            <div id="TextAnalyzerBuilder.__init__" class="classattr">
-                                <div class="attr function">
-            
-        <span class="name">TextAnalyzerBuilder</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">tokenizer</span><span class="p">:</span> <span class="n"><a href="#Tokenizer">Tokenizer</a></span></span>)</span>
-
-        
-    </div>
-    <a class="headerlink" href="#TextAnalyzerBuilder.__init__"></a>
-    
-    
-
-                            </div>
-                            <div id="TextAnalyzerBuilder.build" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">build</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="n"><a href="#TextAnalyzer">TextAnalyzer</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#TextAnalyzerBuilder.build"></a>
-    
-            <div class="docstring"><p>Build final TextAnalyzer object.</p>
-
-<p>Returns:</p>
-
-<ul>
-<li>TextAnalyzer with tokenizer and filters baked in.</li>
-</ul>
-
-<p>Tip: TextAnalyzer's <code>analyze(text) -&gt; tokens</code> method lets you
-easily check if your analyzer is working as expected.</p>
-</div>
-
-
-                            </div>
-                            <div id="TextAnalyzerBuilder.filter" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">filter</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="nb">filter</span><span class="p">:</span> <span class="n"><a href="#Filter">Filter</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#TextAnalyzerBuilder">TextAnalyzerBuilder</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#TextAnalyzerBuilder.filter"></a>
-    
-            <div class="docstring"><p>Add filter to the builder.</p>
-
-<p>Args:</p>
-
-<ul>
-<li>filter (Filter): a Filter object.
-Returns:</li>
-<li>TextAnalyzerBuilder: A new instance of the builder</li>
-</ul>
-
-<p>Note: The builder is _not_ mutated in-place.</p>
-</div>
-
-
-                            </div>
-                </section>
-</main>
-
-## Filter
-
-<main class="pdoc">
-<section id="Filter">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">Filter</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#Filter"></a>
-    
-            <div class="docstring"><p>All Tantivy's builtin TokenFilters.</p>
-
-<h2 id="exmaple">Exmaple</h2>
-
-<div class="pdoc-code codehilite">
-<pre><span></span><code><span class="nb">filter</span> <span class="o">=</span> <span class="n">Filter</span><span class="o">.</span><span class="n">alpha_num</span><span class="p">()</span>
-</code></pre>
-</div>
-
-<h2 id="usage">Usage</h2>
-
-<p>In general, filter objects exist to
-be passed to the filter() method
-of a TextAnalyzerBuilder instance.</p>
-
-<p><a href="https://docs.rs/tantivy/latest/tantivy/tokenizer/index.html">https://docs.rs/tantivy/latest/tantivy/tokenizer/index.html</a></p>
-</div>
-
-
-                            <div id="Filter.alphanum_only" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">alphanum_only</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Filter.alphanum_only"></a>
-    
-            <div class="docstring"><p>AlphaNumOnlyFilter</p>
-</div>
-
-
-                            </div>
-                            <div id="Filter.ascii_fold" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">ascii_fold</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Filter.ascii_fold"></a>
-    
-            <div class="docstring"><p>AsciiFoldingFilter</p>
-</div>
-
-
-                            </div>
-                            <div id="Filter.custom_stopword" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">custom_stopword</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">stopwords</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Filter.custom_stopword"></a>
-    
-            <div class="docstring"><p>StopWordFilter (user-provided stop word list)</p>
-
-<p>This variant of <a href="#Filter.stopword">Filter.stopword()</a> lets you provide
-your own custom list of stopwords.</p>
-
-<p>Args:</p>
-
-<ul>
-<li>stopwords (list(str)): a list of words to be removed.</li>
-</ul>
-</div>
-
-
-                            </div>
-                            <div id="Filter.lowercase" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">lowercase</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Filter.lowercase"></a>
-    
-            <div class="docstring"><p>The type of the None singleton.</p>
-</div>
-
-
-                            </div>
-                            <div id="Filter.remove_long" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">remove_long</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">length_limit</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Filter.remove_long"></a>
-    
-            <div class="docstring"><p>RemoveLongFilter</p>
-
-<p>Args:</p>
-
-<ul>
-<li>length_limit (int): max character length of token.</li>
-</ul>
-</div>
-
-
-                            </div>
-                            <div id="Filter.split_compound" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">split_compound</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">constituent_words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Filter.split_compound"></a>
-    
-            <div class="docstring"><p>SplitCompoundWords</p>
-
-<p><a href="https://docs.rs/tantivy/latest/tantivy/tokenizer/struct.SplitCompoundWords.html">https://docs.rs/tantivy/latest/tantivy/tokenizer/struct.SplitCompoundWords.html</a></p>
-
-<p>Args:</p>
-
-<ul>
-<li>constituent_words (list(string)): words that make up compound word (must be in order).</li>
-</ul>
-
-<p>Example:</p>
-
-<div class="pdoc-code codehilite">
-<pre><span></span><code><span class="c1"># useless, contrived example:</span>
-<span class="n">compound_spliter</span> <span class="o">=</span> <span class="n">Filter</span><span class="o">.</span><span class="n">split_compounds</span><span class="p">([</span><span class="s1">&#39;butter&#39;</span><span class="p">,</span> <span class="s1">&#39;fly&#39;</span><span class="p">])</span>
-<span class="c1"># Will split &#39;butterfly&#39; -&gt; [&#39;butter&#39;, &#39;fly&#39;],</span>
-<span class="c1"># but won&#39;t split &#39;buttering&#39; or &#39;buttercupfly&#39;</span>
-</code></pre>
-</div>
-</div>
-
-
-                            </div>
-                            <div id="Filter.stemmer" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">stemmer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">language</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Filter.stemmer"></a>
-    
-            <div class="docstring"><p>Stemmer</p>
-</div>
-
-
-                            </div>
-                            <div id="Filter.stopword" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">stopword</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">language</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#Filter.stopword"></a>
-    
-            <div class="docstring"><p>StopWordFilter (builtin stop word list)</p>
-
-<p>Args:</p>
-
-<ul>
-<li>language (string): Stop words list language.
-Valid values: {
-  "arabic", "danish", "dutch", "english", "finnish", "french", "german", "greek",
-  "hungarian", "italian", "norwegian", "portuguese", "romanian", "russian",
-  "spanish", "swedish", "tamil", "turkish"
-}</li>
-</ul>
-</div>
-
-
-                            </div>
-                </section>
-</main>
-
-## TextAnalyzer
-
-<main class="pdoc">
-<section id="TextAnalyzer">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">TextAnalyzer</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#TextAnalyzer"></a>
-    
-            <div class="docstring"><p>Tantivy's TextAnalyzer</p>
-
-<p>Do not instantiate this class directly.
-Use the <code><a href="#TextAnalyzerBuilder">TextAnalyzerBuilder</a></code> class instead.</p>
-</div>
-
-
-                            <div id="TextAnalyzer.analyze" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">analyze</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">text</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#TextAnalyzer.analyze"></a>
-    
-            <div class="docstring"><p>Tokenize a string
-Args:</p>
-
-<ul>
-<li>text (string): text to tokenize.
-Returns:</li>
-<li>list(string): a list of tokens/words.</li>
-</ul>
-</div>
-
-
-                            </div>
-                </section>
-</main>
-
-## parse_query
-
-<main class="pdoc">
-<section id="parse_query">
-                    <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">parse_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#parse_query"></a>
-    
-            <div class="docstring"><p>Parse a query string into an abstract syntax tree (AST).</p>
-
-<p>Args:
-    query: The query string to parse.</p>
-
-<p>Returns:
-    A dictionary representing the parsed query AST.</p>
-
-<p>Raises:
-    ValueError: If the query has invalid syntax.</p>
-</div>
-
-
-                </section>
-</main>
-
-## parse_query_lenient
-
-<main class="pdoc">
-<section id="parse_query_lenient">
-                    <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">parse_query_lenient</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]]]</span>:</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#parse_query_lenient"></a>
-    
-            <div class="docstring"><p>Parse a query string leniently, recovering from syntax errors.</p>
-
-<p>Args:
-    query: The query string to parse.</p>
-
-<p>Returns:
-    A tuple containing:
-        - A dictionary representing the parsed query AST
-        - A list of error dictionaries describing syntax errors</p>
-</div>
-
-
-                </section>
-</main>
-
-## __version__
-
-<main class="pdoc">
-<section id="__version__">
-                    <div class="attr variable">
-            <span class="name">__version__</span><span class="annotation">: str</span>        =
-<span class="default_value">&#39;tantivy v0.26.0, index_format v7&#39;</span>
-
-        
-    </div>
-    <a class="headerlink" href="#__version__"></a>
-    
-    
-
                 </section>
 </main>
 

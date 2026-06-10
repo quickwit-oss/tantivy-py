@@ -11,34 +11,47 @@ title: tantivy.query_parser_error
                         <div class="docstring"><p>Submodule containing all the possible errors that can be raised during
 query parsing.</p>
 
-<p>Example:</p>
+<h6 id="example">Example:</h6>
 
 <blockquote>
-  <blockquote>
-    <blockquote>
-      <p>import tantivy
-      from tantivy import query_parser_error</p>
-
-<pre><code>&gt;&gt;&gt; builder = tantivy.SchemaBuilder()
-
-&gt;&gt;&gt; title = builder.add_text_field("title", stored=True)
-&gt;&gt;&gt; body = builder.add_text_field("body")
-&gt;&gt;&gt; id = builder.add_unsigned_field("id")
-&gt;&gt;&gt; rating = builder.add_float_field("rating")
-
-&gt;&gt;&gt; schema = builder.build()
-&gt;&gt;&gt; index = tantivy.Index(schema)
-
-&gt;&gt;&gt; query, errors = index.parse_query_lenient(
-        "bod:'world' AND id:&lt;3.5 AND rating:5.0"
-    )
-
-&gt;&gt;&gt; assert len(errors) == 2
-&gt;&gt;&gt; assert isinstance(errors[0], query_parser_error.FieldDoesNotExistError)
-&gt;&gt;&gt; assert isinstance(errors[1], query_parser_error.ExpectedIntError)
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tantivy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tantivy</span><span class="w"> </span><span class="kn">import</span> <span class="n">query_parser_error</span>
 </code></pre>
-    </blockquote>
-  </blockquote>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">builder</span> <span class="o">=</span> <span class="n">tantivy</span><span class="o">.</span><span class="n">SchemaBuilder</span><span class="p">()</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">title</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="n">stored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">body</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">id</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_unsigned_field</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rating</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_float_field</span><span class="p">(</span><span class="s2">&quot;rating&quot;</span><span class="p">)</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">schema</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n">tantivy</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">query</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">parse_query_lenient</span><span class="p">(</span>
+<span class="go">        &quot;bod:&#39;world&#39; AND id:&lt;3.5 AND rating:5.0&quot;</span>
+<span class="go">    )</span>
+</code></pre>
+  </div>
+  
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">errors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">errors</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">query_parser_error</span><span class="o">.</span><span class="n">FieldDoesNotExistError</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">errors</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">query_parser_error</span><span class="o">.</span><span class="n">ExpectedIntError</span><span class="p">)</span>
+</code></pre>
+  </div>
 </blockquote>
 </div>
 
@@ -48,178 +61,43 @@ query parsing.</p>
             </section>
 </main>
 
-## SyntaxError
+## AllButQueryForbiddenError
 
 <main class="pdoc">
-<section id="SyntaxError">
+<section id="AllButQueryForbiddenError">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">SyntaxError</span>:
+    <span class="name">AllButQueryForbiddenError</span>:
 
         
     </div>
-    <a class="headerlink" href="#SyntaxError"></a>
+    <a class="headerlink" href="#AllButQueryForbiddenError"></a>
     
-            <div class="docstring"><p>Error in the query syntax.</p>
+            <div class="docstring"><p>It is forbidden queries that are only "excluding". (e.g. -title:pop)</p>
 </div>
 
 
-                            <div id="SyntaxError.inner_message" class="classattr">
-                                <div class="attr variable">
-            <span class="name">inner_message</span>
-
-        
-    </div>
-    <a class="headerlink" href="#SyntaxError.inner_message"></a>
-    
-    
-
-                            </div>
                 </section>
 </main>
 
-## UnsupportedQueryError
+## DateFormatError
 
 <main class="pdoc">
-<section id="UnsupportedQueryError">
+<section id="DateFormatError">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">UnsupportedQueryError</span>:
+    <span class="name">DateFormatError</span>:
 
         
     </div>
-    <a class="headerlink" href="#UnsupportedQueryError"></a>
+    <a class="headerlink" href="#DateFormatError"></a>
     
-            <div class="docstring"><p>This query is unsupported.</p>
+            <div class="docstring"><p>The format for the date field is not RFC 3339 compliant.</p>
 </div>
 
 
-                            <div id="UnsupportedQueryError.inner_message" class="classattr">
-                                <div class="attr variable">
-            <span class="name">inner_message</span>
-
-        
-    </div>
-    <a class="headerlink" href="#UnsupportedQueryError.inner_message"></a>
-    
-    
-
-                            </div>
-                </section>
-</main>
-
-## FieldDoesNotExistError
-
-<main class="pdoc">
-<section id="FieldDoesNotExistError">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">FieldDoesNotExistError</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#FieldDoesNotExistError"></a>
-    
-            <div class="docstring"><p>The query references a field that is not in the schema.</p>
-</div>
-
-
-                            <div id="FieldDoesNotExistError.field" class="classattr">
-                                <div class="attr variable">
-            <span class="name">field</span>
-
-        
-    </div>
-    <a class="headerlink" href="#FieldDoesNotExistError.field"></a>
-    
-            <div class="docstring"><p>The name of the field causing the error.</p>
-</div>
-
-
-                            </div>
-                </section>
-</main>
-
-## ExpectedIntError
-
-<main class="pdoc">
-<section id="ExpectedIntError">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">ExpectedIntError</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#ExpectedIntError"></a>
-    
-            <div class="docstring"><p>The query contains a term for a <code>u64</code> or <code>i64</code>-field, but the value is neither.</p>
-</div>
-
-
-                            <div id="ExpectedIntError.caused_by_empty" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">caused_by_empty</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#ExpectedIntError.caused_by_empty"></a>
-    
-            <div class="docstring"><p>If <code>true</code>, the value being parsed was empty.</p>
-</div>
-
-
-                            </div>
-                            <div id="ExpectedIntError.caused_by_invalid_digit" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">caused_by_invalid_digit</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#ExpectedIntError.caused_by_invalid_digit"></a>
-    
-            <div class="docstring"><p>If <code>true</code>, an invalid digit was found.</p>
-</div>
-
-
-                            </div>
-                            <div id="ExpectedIntError.caused_by_neg_overflow" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">caused_by_neg_overflow</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#ExpectedIntError.caused_by_neg_overflow"></a>
-    
-            <div class="docstring"><p>If <code>true</code>, the value being parsed was too small.</p>
-</div>
-
-
-                            </div>
-                            <div id="ExpectedIntError.caused_by_pos_overflow" class="classattr">
-                                <div class="attr function">
-            
-        <span class="def">def</span>
-        <span class="name">caused_by_pos_overflow</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
-
-        
-    </div>
-    <a class="headerlink" href="#ExpectedIntError.caused_by_pos_overflow"></a>
-    
-            <div class="docstring"><p>If <code>true</code>, the value being parsed was too large.</p>
-</div>
-
-
-                            </div>
                 </section>
 </main>
 
@@ -336,26 +214,6 @@ canonical, or present when it must be absent, etc.</p>
                 </section>
 </main>
 
-## ExpectedFloatError
-
-<main class="pdoc">
-<section id="ExpectedFloatError">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">ExpectedFloatError</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#ExpectedFloatError"></a>
-    
-            <div class="docstring"><p>The query contains a term for a <code>f64</code>-field, but the value is not a f64.</p>
-</div>
-
-
-                </section>
-</main>
-
 ## ExpectedBoolError
 
 <main class="pdoc">
@@ -376,74 +234,152 @@ canonical, or present when it must be absent, etc.</p>
                 </section>
 </main>
 
-## AllButQueryForbiddenError
+## ExpectedFloatError
 
 <main class="pdoc">
-<section id="AllButQueryForbiddenError">
+<section id="ExpectedFloatError">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">AllButQueryForbiddenError</span>:
+    <span class="name">ExpectedFloatError</span>:
 
         
     </div>
-    <a class="headerlink" href="#AllButQueryForbiddenError"></a>
+    <a class="headerlink" href="#ExpectedFloatError"></a>
     
-            <div class="docstring"><p>It is forbidden queries that are only "excluding". (e.g. -title:pop)</p>
+            <div class="docstring"><p>The query contains a term for a <code>f64</code>-field, but the value is not a f64.</p>
 </div>
 
 
                 </section>
 </main>
 
-## NoDefaultFieldDeclaredError
+## ExpectedIntError
 
 <main class="pdoc">
-<section id="NoDefaultFieldDeclaredError">
+<section id="ExpectedIntError">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">NoDefaultFieldDeclaredError</span>:
+    <span class="name">ExpectedIntError</span>:
 
         
     </div>
-    <a class="headerlink" href="#NoDefaultFieldDeclaredError"></a>
+    <a class="headerlink" href="#ExpectedIntError"></a>
     
-            <div class="docstring"><p>If no default field is declared, running a query without any field specified is forbbidden.</p>
+            <div class="docstring"><p>The query contains a term for a <code>u64</code> or <code>i64</code>-field, but the value is neither.</p>
 </div>
 
 
-                </section>
-</main>
-
-## FieldNotIndexedError
-
-<main class="pdoc">
-<section id="FieldNotIndexedError">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">FieldNotIndexedError</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#FieldNotIndexedError"></a>
-    
-            <div class="docstring"><p>The field searched for is not declared as indexed in the schema.</p>
-</div>
-
-
-                            <div id="FieldNotIndexedError.field" class="classattr">
+                            <div id="ExpectedIntError.caused_by_empty" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
+        <span class="name">caused_by_empty</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
-    <a class="headerlink" href="#FieldNotIndexedError.field"></a>
+    <a class="headerlink" href="#ExpectedIntError.caused_by_empty"></a>
     
-            <div class="docstring"><p>The type of the None singleton.</p>
+            <div class="docstring"><p>If <code>true</code>, the value being parsed was empty.</p>
+</div>
+
+
+                            </div>
+                            <div id="ExpectedIntError.caused_by_invalid_digit" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">caused_by_invalid_digit</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ExpectedIntError.caused_by_invalid_digit"></a>
+    
+            <div class="docstring"><p>If <code>true</code>, an invalid digit was found.</p>
+</div>
+
+
+                            </div>
+                            <div id="ExpectedIntError.caused_by_neg_overflow" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">caused_by_neg_overflow</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ExpectedIntError.caused_by_neg_overflow"></a>
+    
+            <div class="docstring"><p>If <code>true</code>, the value being parsed was too small.</p>
+</div>
+
+
+                            </div>
+                            <div id="ExpectedIntError.caused_by_pos_overflow" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">caused_by_pos_overflow</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ExpectedIntError.caused_by_pos_overflow"></a>
+    
+            <div class="docstring"><p>If <code>true</code>, the value being parsed was too large.</p>
+</div>
+
+
+                            </div>
+                </section>
+</main>
+
+## FacetFormatError
+
+<main class="pdoc">
+<section id="FacetFormatError">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">FacetFormatError</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#FacetFormatError"></a>
+    
+            <div class="docstring"><p>The format for the facet field is invalid.</p>
+</div>
+
+
+                </section>
+</main>
+
+## FieldDoesNotExistError
+
+<main class="pdoc">
+<section id="FieldDoesNotExistError">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">FieldDoesNotExistError</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#FieldDoesNotExistError"></a>
+    
+            <div class="docstring"><p>The query references a field that is not in the schema.</p>
+</div>
+
+
+                            <div id="FieldDoesNotExistError.field" class="classattr">
+                                <div class="attr variable">
+            <span class="name">field</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldDoesNotExistError.field"></a>
+    
+            <div class="docstring"><p>The name of the field causing the error.</p>
 </div>
 
 
@@ -483,6 +419,81 @@ canonical, or present when it must be absent, etc.</p>
 
 
                             </div>
+                </section>
+</main>
+
+## FieldNotIndexedError
+
+<main class="pdoc">
+<section id="FieldNotIndexedError">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">FieldNotIndexedError</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#FieldNotIndexedError"></a>
+    
+            <div class="docstring"><p>The field searched for is not declared as indexed in the schema.</p>
+</div>
+
+
+                            <div id="FieldNotIndexedError.field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FieldNotIndexedError.field"></a>
+    
+            <div class="docstring"><p>The type of the None singleton.</p>
+</div>
+
+
+                            </div>
+                </section>
+</main>
+
+## IpFormatError
+
+<main class="pdoc">
+<section id="IpFormatError">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">IpFormatError</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#IpFormatError"></a>
+    
+            <div class="docstring"><p>The format for the ip field is invalid.</p>
+</div>
+
+
+                </section>
+</main>
+
+## NoDefaultFieldDeclaredError
+
+<main class="pdoc">
+<section id="NoDefaultFieldDeclaredError">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">NoDefaultFieldDeclaredError</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#NoDefaultFieldDeclaredError"></a>
+    
+            <div class="docstring"><p>If no default field is declared, running a query without any field specified is forbbidden.</p>
+</div>
+
+
                 </section>
 </main>
 
@@ -531,6 +542,58 @@ canonical, or present when it must be absent, etc.</p>
             <div class="docstring"><p>The type of the None singleton.</p>
 </div>
 
+
+                            </div>
+                </section>
+</main>
+
+## RangeMustNotHavePhraseError
+
+<main class="pdoc">
+<section id="RangeMustNotHavePhraseError">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">RangeMustNotHavePhraseError</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#RangeMustNotHavePhraseError"></a>
+    
+            <div class="docstring"><p>The query contains a range query with a phrase as one of the bounds. Only terms can be used as
+bounds.</p>
+</div>
+
+
+                </section>
+</main>
+
+## SyntaxError
+
+<main class="pdoc">
+<section id="SyntaxError">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">SyntaxError</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#SyntaxError"></a>
+    
+            <div class="docstring"><p>Error in the query syntax.</p>
+</div>
+
+
+                            <div id="SyntaxError.inner_message" class="classattr">
+                                <div class="attr variable">
+            <span class="name">inner_message</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SyntaxError.inner_message"></a>
+    
+    
 
                             </div>
                 </section>
@@ -586,84 +649,34 @@ canonical, or present when it must be absent, etc.</p>
                 </section>
 </main>
 
-## RangeMustNotHavePhraseError
+## UnsupportedQueryError
 
 <main class="pdoc">
-<section id="RangeMustNotHavePhraseError">
+<section id="UnsupportedQueryError">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">RangeMustNotHavePhraseError</span>:
+    <span class="name">UnsupportedQueryError</span>:
 
         
     </div>
-    <a class="headerlink" href="#RangeMustNotHavePhraseError"></a>
+    <a class="headerlink" href="#UnsupportedQueryError"></a>
     
-            <div class="docstring"><p>The query contains a range query with a phrase as one of the bounds. Only terms can be used as
-bounds.</p>
+            <div class="docstring"><p>This query is unsupported.</p>
 </div>
 
 
-                </section>
-</main>
-
-## DateFormatError
-
-<main class="pdoc">
-<section id="DateFormatError">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">DateFormatError</span>:
+                            <div id="UnsupportedQueryError.inner_message" class="classattr">
+                                <div class="attr variable">
+            <span class="name">inner_message</span>
 
         
     </div>
-    <a class="headerlink" href="#DateFormatError"></a>
+    <a class="headerlink" href="#UnsupportedQueryError.inner_message"></a>
     
-            <div class="docstring"><p>The format for the date field is not RFC 3339 compliant.</p>
-</div>
-
-
-                </section>
-</main>
-
-## FacetFormatError
-
-<main class="pdoc">
-<section id="FacetFormatError">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">FacetFormatError</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#FacetFormatError"></a>
     
-            <div class="docstring"><p>The format for the facet field is invalid.</p>
-</div>
 
-
-                </section>
-</main>
-
-## IpFormatError
-
-<main class="pdoc">
-<section id="IpFormatError">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">IpFormatError</span>:
-
-        
-    </div>
-    <a class="headerlink" href="#IpFormatError"></a>
-    
-            <div class="docstring"><p>The format for the ip field is invalid.</p>
-</div>
-
-
+                            </div>
                 </section>
 </main>
 
