@@ -14,7 +14,7 @@ nav:
   - Explanation: explanation.md
   - Reference:
       - Query Language: reference.md
-      - API: api/tantivy.md
+      - API: api/tantivy/tantivy.md
   - Contributing: contributing.md
   - About: about.md
 theme: readthedocs

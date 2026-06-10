@@ -36,15 +36,38 @@ under, and the theme would show nothing. pdoc's own raw-HTML module title is
 removed so the page has exactly one title.
 """
 
+import functools
 import re
 import shutil
 from pathlib import Path
 
+import pdoc.doc as pdoc_doc
 from pdoc import pdoc, render
 
 HERE = Path(__file__).parent
 TEMPLATE_DIR = HERE / "pdoc-template"
 OUT_DIR = HERE / "api"
+
+
+def _stabilize_member_order() -> None:
+    """Make pdoc emit class members in a deterministic (alphabetical) order.
+
+    pdoc derives a class's member order from `cls.__dict__`, but for a compiled
+    pyo3 extension that order is randomized per process, so regenerating would
+    shuffle members and produce spurious diffs in the committed docs. Sorting by
+    name is stable and reads naturally for an API reference. (Module-level
+    members already come out sorted via `dir()`, so only classes need this.)
+    """
+    descriptor = pdoc_doc.Class._member_objects
+    original = descriptor.func
+
+    @functools.cached_property
+    def sorted_member_objects(self):
+        return dict(sorted(original(self).items()))
+
+    sorted_member_objects.__set_name__(pdoc_doc.Class, "_member_objects")
+    pdoc_doc.Class._member_objects = sorted_member_objects
+
 
 # pdoc renders each top-level member and the module preamble as a `<section>`;
 # methods/attributes are plain `<div>`s, so sections never nest and a
@@ -56,6 +79,9 @@ _FRONTMATTER = re.compile(r"\A---\n.*?\n---\n", re.DOTALL)
 _TITLE = re.compile(r"^title:\s*(.+)$", re.MULTILINE)
 _MODULE_H1 = re.compile(r'<h1 class="modulename">.*?</h1>', re.DOTALL)
 _STYLE = re.compile(r"<style>.*?</style>", re.DOTALL)
+# The compiled extension lives at `tantivy.tantivy`, so pdoc titles the page
+# with that doubled name; collapse `x.x` back to `x` for display.
+_DOUBLED = re.compile(r"\b(\w+)\.\1\b")
 
 
 def _add_nav_headings(md_file: Path) -> None:
@@ -67,16 +93,26 @@ def _add_nav_headings(md_file: Path) -> None:
     member sections (e.g. the redirect index) are left untouched.
     """
     text = md_file.read_text()
+    # pdoc indents multi-line signatures with tab characters. Python-Markdown
+    # would expand each tab to a column-dependent number of spaces, producing
+    # ragged indentation; replace them with a fixed indent up front.
+    text = text.replace("\t", "    ")
     sections = _SECTION.findall(text)
     if not sections:
         return
 
     frontmatter = (m.group(0) if (m := _FRONTMATTER.match(text)) else "")
     title = (m.group(1).strip() if (m := _TITLE.search(frontmatter)) else "API")
+    title = _DOUBLED.sub(r"\1", title)
     styles = "".join(_STYLE.findall(text))
 
     parts = [frontmatter.rstrip("\n"), "", f"# {title}", ""]
     for section in sections:
+        # Drop pdoc's client-side search template: it carries unrendered
+        # `${...}` JavaScript placeholders and is useless here -- mkdocs
+        # provides its own search.
+        if 'class="search-result"' in section[:60]:
+            continue
         section = _MODULE_H1.sub("", section)  # drop pdoc's duplicate page title
         if name := _MEMBER_ID.match(section):
             parts += [f"## {name.group(1)}", ""]
@@ -92,6 +128,7 @@ def main() -> None:
     if OUT_DIR.exists():
         shutil.rmtree(OUT_DIR)
 
+    _stabilize_member_order()
     render.configure(template_directory=TEMPLATE_DIR)
     pdoc("tantivy", output_directory=OUT_DIR)
 
