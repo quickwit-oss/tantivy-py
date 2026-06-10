@@ -296,13 +296,13 @@ class Query:
     ) -> Query:
         pass
 
-    def and_must_match(self, query: Query) -> Query:
+    def and_must_match(self, *queries: Query) -> Query:
         pass
 
-    def and_must_not_match(self, query: Query) -> Query:
+    def and_must_not_match(self, *queries: Query) -> Query:
         pass
 
-    def or_should_match(self, query: Query) -> Query:
+    def or_should_match(self, *queries: Query) -> Query:
         pass
 
     @staticmethod
