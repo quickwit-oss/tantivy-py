@@ -1296,6 +1296,128 @@ class TestQuery(object):
                 ]
             )
 
+    def test_boolean_query_helpers(self, ram_index: tantivy.Index):
+        index = ram_index
+        searcher = index.searcher()
+
+        # Queries for testing
+        query_sea = Query.term_query(index.schema, "title", "sea")  # Matches "The Old Man and the Sea"
+        query_mice = Query.term_query(index.schema, "title", "mice")  # Matches "Of Mice and Men"
+        query_old = Query.term_query(index.schema, "title", "old")  # Matches "The Old Man and the Sea"
+        query_man = Query.term_query(index.schema, "title", "man")  # Matches "The Old Man and the Sea"
+
+        # Test and_must_match
+        # No document contains both "sea" and "mice" in the title
+        combined_must = query_sea.and_must_match(query_mice)
+        result = searcher.search(combined_must, 10)
+        assert len(result.hits) == 0
+
+        # "The Old Man and the Sea" contains both "old" and "man"
+        combined_must = query_old.and_must_match(query_man)
+        result = searcher.search(combined_must, 10)
+        assert len(result.hits) == 1
+        searched_doc = searcher.doc(result.hits[0][1])
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        # "The Old Man and the Sea" contains both "old" and "man"
+        # (but with many chains)
+        combined_must = (
+            query_old
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+            .and_must_match(query_man)
+        )
+        result = searcher.search(combined_must, 10)
+        assert len(result.hits) == 1
+        searched_doc = searcher.doc(result.hits[0][1])
+        assert searched_doc["title"] == ["The Old Man and the Sea"]
+
+        # Test or_should_match
+        # Should match documents containing either "sea" or "mice"
+        combined_should = query_sea.or_should_match(query_mice)
+        result = searcher.search(combined_should, 10)
+        assert len(result.hits) == 2
+        titles = {searcher.doc(hit[1])["title"][0] for hit in result.hits}
+        assert "The Old Man and the Sea" in titles
+        assert "Of Mice and Men" in titles
+
+        # Test and_must_not_match
+        # All 3 docs contain "and" in the body. We exclude the one with "sea" in the title.
+        query_and_body = Query.term_query(index.schema, "body", "and")
+        combined_must_not = query_and_body.and_must_not_match(query_sea)
+        result = searcher.search(combined_must_not, 10)
+        assert len(result.hits) == 2
+        titles = {searcher.doc(hit[1])["title"][0] for hit in result.hits}
+        assert "The Old Man and the Sea" not in titles
+
+    def test_boolean_query_helpers_multiple_queries(self, ram_index: tantivy.Index):
+        index = ram_index
+        searcher = index.searcher()
+
+        query_sea = Query.term_query(index.schema, "title", "sea")
+        query_mice = Query.term_query(index.schema, "title", "mice")
+        query_old = Query.term_query(index.schema, "title", "old")
+        query_man = Query.term_query(index.schema, "title", "man")
+        query_frankenstein = Query.term_query(index.schema, "title", "frankenstein")
+        query_and_body = Query.term_query(index.schema, "body", "and")
+
+        # Multiple queries in a single call
+        combined_must = query_old.and_must_match(query_man, query_sea)
+        result = searcher.search(combined_must, 10)
+        assert len(result.hits) == 1
+        assert searcher.doc(result.hits[0][1])["title"] == ["The Old Man and the Sea"]
+
+        combined_should = query_old.or_should_match(query_mice, query_frankenstein)
+        result = searcher.search(combined_should, 10)
+        assert len(result.hits) == 3
+
+        # A list of queries can be passed with argument unpacking.
+        # All 3 docs contain "and" in the body; exclude "sea" and "mice" titles.
+        excluded = [query_sea, query_mice]
+        combined_must_not = query_and_body.and_must_not_match(*excluded)
+        result = searcher.search(combined_must_not, 10)
+        assert len(result.hits) == 1
+        assert "Frankenstein" in searcher.doc(result.hits[0][1])["title"]
+
+        # Calling with no queries returns an equivalent query
+        result = searcher.search(query_old.and_must_match(), 10)
+        assert len(result.hits) == 1
+
+    def test_boolean_query_helpers_mixed_chains(self, ram_index: tantivy.Index):
+        """Chains mixing AND and OR must group the left-hand side correctly."""
+        index = ram_index
+        searcher = index.searcher()
+
+        query_mice = Query.term_query(index.schema, "title", "mice")
+        query_old = Query.term_query(index.schema, "title", "old")
+        query_man = Query.term_query(index.schema, "title", "man")
+        query_frankenstein = Query.term_query(index.schema, "title", "frankenstein")
+
+        # (old OR mice) AND frankenstein: no document satisfies both sides,
+        # so this must match nothing. The OR group must remain required and
+        # not degrade into optional scoring clauses next to the MUST clause.
+        combined = query_old.or_should_match(query_mice).and_must_match(
+            query_frankenstein
+        )
+        result = searcher.search(combined, 10)
+        assert len(result.hits) == 0
+
+        # (old AND man) OR mice: the AND group must stay grouped, with the
+        # OR applying to the whole of it.
+        combined = query_old.and_must_match(query_man).or_should_match(query_mice)
+        result = searcher.search(combined, 10)
+        assert len(result.hits) == 2
+        titles = {searcher.doc(hit[1])["title"][0] for hit in result.hits}
+        assert titles == {"The Old Man and the Sea", "Of Mice and Men"}
+
     def test_disjunction_max_query(self, ram_index):
         index = ram_index
 

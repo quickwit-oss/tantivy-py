@@ -296,6 +296,15 @@ class Query:
     ) -> Query:
         pass
 
+    def and_must_match(self, *queries: Query) -> Query:
+        pass
+
+    def and_must_not_match(self, *queries: Query) -> Query:
+        pass
+
+    def or_should_match(self, *queries: Query) -> Query:
+        pass
+
     @staticmethod
     def disjunction_max_query(
         subqueries: Sequence[Query], tie_breaker: Optional[float] = None
