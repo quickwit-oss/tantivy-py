@@ -184,12 +184,99 @@ complex_query = Query.boolean_query(
 
 <!--TODO: Update the reference link to the query parser docs when available.-->
 
+## Combining Queries with the Boolean Helper Methods
+
+`Query.boolean_query(...)` shown above is the most general way to combine
+queries, but for the common AND, OR and AND-NOT combinations there are three
+convenience methods that read more naturally:
+
+- `q.and_must_match(*queries)` matches documents that match `q` and every
+  given query (AND)
+- `q.and_must_not_match(*queries)` matches documents that match `q` and none
+  of the given queries (AND NOT)
+- `q.or_should_match(*queries)` matches documents that match `q` or any of
+  the given queries (OR)
+
+Each method returns a new `Query`, leaving the originals untouched.
+
+```python
+from tantivy import Query
+
+query_old = Query.term_query(schema, "title", "old")
+query_man = Query.term_query(schema, "title", "man")
+query_whale = Query.term_query(schema, "title", "whale")
+
+# Match documents whose title contains both "old" AND "man"
+combined = query_old.and_must_match(query_man)
+(score, doc_address) = searcher.search(combined, 3).hits[0]
+assert searcher.doc(doc_address)["title"] == ["The Old Man and the Sea"]
+
+# Match documents whose title contains "old" but NOT "whale"
+combined = query_old.and_must_not_match(query_whale)
+assert len(searcher.search(combined, 3).hits) > 0
+
+# Match documents whose title contains "old" OR "whale"
+combined = query_old.or_should_match(query_whale)
+assert len(searcher.search(combined, 3).hits) > 0
+```
+
+The methods accept any number of queries, so a list of queries can be applied
+in a single call using argument unpacking:
+
+```python
+query_sea = Query.term_query(schema, "title", "sea")
+
+# Equivalent to query_old.and_must_match(query_man, query_sea)
+queries = [query_man, query_sea]
+combined = query_old.and_must_match(*queries)
+assert len(searcher.search(combined, 3).hits) > 0
+```
+
+The methods can also be chained:
+
+```python
+combined = (
+    query_old
+    .and_must_match(query_man)
+    .and_must_not_match(query_whale)
+    .or_should_match(query_sea)
+)
+assert len(searcher.search(combined, 3).hits) > 0
+```
+
+Note how the precedence works: each call in the chain applies to the whole
+query built so far, not just to the preceding step. So the
+`or_should_match(query_sea)` call above applies to the combination of the
+first three queries, and the chain matches documents satisfying
+"(old AND man AND NOT whale) OR sea". There is no AND-before-OR operator
+precedence as in the boolean expressions of most programming languages;
+grouping simply follows the order of the method calls, left to right. For any
+other grouping, build the groups as separate queries first and then combine
+them:
+
+```python
+# old AND (man OR sea)
+man_or_sea = query_man.or_should_match(query_sea)
+combined = query_old.and_must_match(man_or_sea)
+assert len(searcher.search(combined, 3).hits) > 0
+```
+
+Although you can think of each call as wrapping the query built so far in a
+new boolean query, the helpers avoid building one level of nesting per call
+where they can: when the query being extended is already a boolean query, the
+new clauses are appended to it directly, provided that doing so matches the
+same documents. This is the case for `and_must_match` and
+`and_must_not_match` chains generally, and for `or_should_match` when the
+query built so far is a pure OR. So a long chain of AND clauses produces a
+single flat boolean query rather than a deeply nested one. This is purely an
+internal optimization — the matched documents are the same either way.
+
 ## Debugging Queries with explain()
 
 When working with search queries, it's often useful to understand why a particular document matched a query and how its score was calculated. The `explain()` method provides detailed information about the scoring process.
 
 ```python
-# Continuing from the previous example, let's search and get the top result
+# Let's search with the complex_query built earlier and get the top result
 result = searcher.search(complex_query, 10)
 if result.hits:
     score, doc_address = result.hits[0]
