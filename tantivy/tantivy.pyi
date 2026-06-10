@@ -475,6 +475,9 @@ class IndexWriter:
         pass
 
     def delete_documents(self, field_name: str, field_value: Any) -> int:
+        """Deprecated alias of ``delete_documents_by_term``; emits a
+        ``DeprecationWarning``. Use ``delete_documents_by_term`` or
+        ``delete_documents_by_query`` instead."""
         pass
 
     def delete_documents_by_term(self, field_name: str, field_value: Any) -> int:

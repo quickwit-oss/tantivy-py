@@ -158,15 +158,21 @@ impl IndexWriter {
         py.detach(move || Ok(self.inner()?.commit_opstamp()))
     }
 
-    #[deprecated(
-        note = "This method is deprecated and will be removed in the future. Use either delete_documents_by_term, or delete_documents_by_query."
-    )]
+    /// Deprecated alias of `delete_documents_by_term`. Calling it emits a
+    /// `DeprecationWarning`; use `delete_documents_by_term` or
+    /// `delete_documents_by_query` instead.
     fn delete_documents(
         &mut self,
         py: Python,
         field_name: &str,
         field_value: &Bound<PyAny>,
     ) -> PyResult<u64> {
+        PyErr::warn(
+            py,
+            &py.get_type::<exceptions::PyDeprecationWarning>(),
+            c"delete_documents is deprecated; use delete_documents_by_term or delete_documents_by_query instead",
+            1,
+        )?;
         self.delete_documents_by_term(py, field_name, field_value)
     }
 
@@ -513,6 +519,8 @@ impl Index {
     ///
     ///     allow_regexes: If true, allow regexes in queries.
     #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false, allow_regexes = false))]
+    // Each argument is a distinct keyword in the exposed Python API.
+    #[allow(clippy::too_many_arguments)]
     pub fn parse_query(
         &self,
         py: Python,
@@ -569,6 +577,8 @@ impl Index {
     ///
     /// Raises ValueError if a field in `default_field_names` is not defined or marked as indexed.
     #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false, allow_regexes = false))]
+    // Each argument is a distinct keyword in the exposed Python API.
+    #[allow(clippy::too_many_arguments)]
     pub fn parse_query_lenient(
         &self,
         py: Python,
