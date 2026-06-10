@@ -1,4 +1,5 @@
 maturin
-pdoc
+pdoc==16.0.0
+typing_extensions
 pytest>=4.0
 mktestdocs==0.2.1

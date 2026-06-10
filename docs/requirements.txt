@@ -1,3 +1,2 @@
-mkdocs==1.4.3
+mkdocs==1.6.1
 mktestdocs==0.2.1
-pdoc==14.3.0
