@@ -1,11 +1,20 @@
 site_name: tantivy-py
 # site_url: https://example.com
+
+# The API reference pages (docs/api/) are pre-generated HTML from pdoc that we
+# serve as raw markdown. pdoc writes plain `*.html` cross-links, so disable
+# directory URLs to keep the rendered file names as `*.html` and let those
+# links resolve. Regenerate the API pages with `just docs-api`.
+use_directory_urls: false
+
 nav:
   - Home: index.md
   - Tutorials: tutorials.md
   - How-to Guides: howto.md
   - Explanation: explanation.md
-  - Reference: reference.md
+  - Reference:
+      - Query Language: reference.md
+      - API: api/tantivy/tantivy.md
   - Contributing: contributing.md
   - About: about.md
 theme: readthedocs
@@ -14,3 +23,6 @@ theme: readthedocs
 # - 'User Guide':
 #     - 'Writing your docs': 'writing-your-docs.md'
 #     - 'Styling your docs': 'styling-your-docs.md'
+#
+plugins:
+- search

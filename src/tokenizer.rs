@@ -105,7 +105,7 @@ impl Tokenizer {
 
 /// All Tantivy's builtin TokenFilters.
 ///
-/// ## Exmaple
+/// ## Example
 ///
 /// ```python
 /// filter = Filter.alpha_num()

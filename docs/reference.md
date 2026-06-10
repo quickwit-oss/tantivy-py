@@ -1,4 +1,4 @@
-# Reference
+# Query Language
 
 ## Setup
 
