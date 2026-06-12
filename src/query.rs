@@ -49,6 +49,9 @@ impl Query {
         &self.inner
     }
 
+    // Arguments mirror tantivy's MoreLikeThisQuery builder options one-to-one;
+    // a config struct here would only duplicate that builder.
+    #[allow(clippy::too_many_arguments)]
     fn more_like_this_builder(
         min_doc_frequency: Option<u64>,
         max_doc_frequency: Option<u64>,
@@ -652,6 +655,8 @@ impl Query {
     /// * `use_inverted_index` - If `True`, use an inverted index range query instead of a fast-field range query.
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, field_type, lower_bound=None, upper_bound=None, include_lower = true, include_upper = true, use_inverted_index = false))]
+    // Each argument is a distinct keyword in the exposed Python API.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn range_query(
         schema: &Schema,
         field_name: &str,

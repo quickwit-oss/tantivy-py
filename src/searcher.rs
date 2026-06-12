@@ -133,18 +133,18 @@ enum Fruit {
 impl std::fmt::Debug for Fruit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Fruit::Score(s) => f.write_str(&format!("{s}")),
-            Fruit::OrderU64(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::Score(s) => write!(f, "{s}"),
+            Fruit::OrderU64(Some(v)) => write!(f, "{v}"),
             Fruit::OrderU64(None) => f.write_str("None"),
-            Fruit::OrderI64(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderI64(Some(v)) => write!(f, "{v}"),
             Fruit::OrderI64(None) => f.write_str("None"),
-            Fruit::OrderF64(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderF64(Some(v)) => write!(f, "{v}"),
             Fruit::OrderF64(None) => f.write_str("None"),
-            Fruit::OrderBool(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderBool(Some(v)) => write!(f, "{v}"),
             Fruit::OrderBool(None) => f.write_str("None"),
-            Fruit::OrderDate(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderDate(Some(v)) => write!(f, "{v}"),
             Fruit::OrderDate(None) => f.write_str("None"),
-            Fruit::OrderStr(Some(v)) => f.write_str(&format!("{v}")),
+            Fruit::OrderStr(Some(v)) => write!(f, "{v}"),
             Fruit::OrderStr(None) => f.write_str("None"),
         }
     }
@@ -207,6 +207,10 @@ impl From<Order> for tv::Order {
     }
 }
 
+/// A search hit as exposed to Python: the (score or sort key) object paired
+/// with the address of the matching document.
+type PyHit = (Py<PyAny>, DocAddress);
+
 #[pyclass(frozen, module = "tantivy.tantivy")]
 #[derive(Clone, Default, Deserialize, PartialEq, Serialize)]
 /// Object holding a results successful search.
@@ -223,7 +227,7 @@ impl SearchResult {
     #[new]
     fn new(
         py: Python,
-        hits: Vec<(Py<PyAny>, DocAddress)>,
+        hits: Vec<PyHit>,
         count: Option<usize>,
     ) -> PyResult<Self> {
         let hits = hits
@@ -260,14 +264,14 @@ impl SearchResult {
     fn __getnewargs__(
         &self,
         py: Python,
-    ) -> PyResult<(Vec<(Py<PyAny>, DocAddress)>, Option<usize>)> {
+    ) -> PyResult<(Vec<PyHit>, Option<usize>)> {
         Ok((self.hits(py)?, self.count))
     }
 
     #[getter]
     /// The list of tuples that contains the scores and DocAddress of the
     /// search results.
-    fn hits(&self, py: Python) -> PyResult<Vec<(Py<PyAny>, DocAddress)>> {
+    fn hits(&self, py: Python) -> PyResult<Vec<PyHit>> {
         let ret = self
             .hits
             .iter()
@@ -820,7 +824,7 @@ impl Searcher {
             if let Some(ref sets) = filter_sets {
                 if sets
                     .iter()
-                    .all(|s| s.as_ref().map_or(true, |bs| bs.len() == 0))
+                    .all(|s| s.as_ref().is_none_or(|bs| bs.len() == 0))
                 {
                     return Ok(vec![]);
                 }
