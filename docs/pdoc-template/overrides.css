@@ -1,0 +1,19 @@
+/*
+Match the readthedocs theme's code typography.
+
+The theme styles only the code blocks it generates itself -- its rule targets
+`.rst-content div[class^="highlight"] pre` (SFMono stack, 12px, line-height 1.4).
+pdoc emits code blocks as `div.pdoc-code.codehilite > pre` and signatures as
+`span.signature`, neither of which that selector matches, so they fall back to
+the theme's base `pre`/body font (~16px, plain monospace) and render noticeably
+larger and in a different face than the hand-written examples elsewhere in the
+docs. Re-applying the theme's code typography here makes the two look identical.
+*/
+.pdoc pre,
+.pdoc code,
+.pdoc .signature {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", Courier, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}

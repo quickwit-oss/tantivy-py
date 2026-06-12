@@ -39,12 +39,9 @@ use tokenizer::{Filter, TextAnalyzer, TextAnalyzerBuilder, Tokenizer};
 /// Example:
 ///     >>> import json
 ///     >>> import tantivy
-///
 ///     >>> builder = tantivy.SchemaBuilder()
-///
 ///     >>> title = builder.add_text_field("title", stored=True)
 ///     >>> body = builder.add_text_field("body")
-///
 ///     >>> schema = builder.build()
 ///     >>> index = tantivy.Index(schema)
 ///     >>> doc = tantivy.Document()
@@ -52,9 +49,7 @@ use tokenizer::{Filter, TextAnalyzer, TextAnalyzerBuilder, Tokenizer};
 ///     >>> doc.add_text(body, ("He was an old man who fished alone in a "
 ///                             "skiff in the Gulf Stream and he had gone "
 ///                             "eighty-four days now without taking a fish."))
-///
 ///     >>> writer.add_document(doc)
-///
 ///     >>> doc = schema.parse_document(json.dumps({
 ///            "title": ["Frankenstein", "The Modern Prometheus"],
 ///            "body": ("You will rejoice to hear that no disaster has "
@@ -64,17 +59,12 @@ use tokenizer::{Filter, TextAnalyzer, TextAnalyzerBuilder, Tokenizer};
 ///                     "assure my dear sister of my welfare and increasing "
 ///                     "confidence in the success of my undertaking.")
 ///     }))
-///
 ///     >>> writer.add_document(doc)
 ///     >>> writer.commit()
-///
 ///     >>> reader = index.reader()
 ///     >>> searcher = reader.searcher()
-///
 ///     >>> query = index.parse_query("sea whale", [title, body])
-///
 ///     >>> result = searcher.search(query, 10)
-///
 ///     >>> assert len(result) == 1
 ///
 #[pymodule]

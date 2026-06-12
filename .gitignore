@@ -12,6 +12,7 @@ tantivy.egg-info/
 .venv
 .envrc
 site/
+uv.lock
 
 /.claude
 .vscode/
