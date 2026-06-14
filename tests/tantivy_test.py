@@ -1902,6 +1902,63 @@ class TestQuery(object):
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
 
+    def test_term_query_dates(self, ram_index_with_date_field):
+        index = ram_index_with_date_field
+
+        # A naive datetime is interpreted as UTC and matches the doc indexed
+        # with the same wall-clock value.
+        query = Query.term_query(
+            index.schema,
+            "date",
+            datetime.datetime(2021, 1, 1),
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, addr = result.hits[0]
+        assert index.searcher().doc(addr)["id"] == [1]
+
+        # A tz-aware datetime pointing at the same instant matches the same
+        # doc, exercising the datetime -> tantivy DateTime conversion in the
+        # query path.
+        aware = datetime.datetime(
+            2021, 1, 1, tzinfo=datetime.timezone.utc
+        )
+        query = Query.term_query(index.schema, "date", aware)
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+        _, addr = result.hits[0]
+        assert index.searcher().doc(addr)["id"] == [1]
+
+        # A datetime that no document was indexed with matches nothing.
+        query = Query.term_query(
+            index.schema,
+            "date",
+            datetime.datetime(2021, 1, 3),
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+    def test_term_set_query_dates(self, ram_index_with_date_field):
+        index = ram_index_with_date_field
+
+        # A set of datetimes matches every document indexed with one of them.
+        # The first is tz-aware and the second naive, so both the aware and
+        # naive conversion paths are covered.
+        query = Query.term_set_query(
+            index.schema,
+            "date",
+            [
+                datetime.datetime(2021, 1, 1, tzinfo=datetime.timezone.utc),
+                datetime.datetime(2021, 1, 2),
+            ],
+        )
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 2
+        ids = sorted(
+            index.searcher().doc(addr)["id"][0] for _, addr in result.hits
+        )
+        assert ids == [1, 2]
+
     def test_range_query_ip_addrs(self, ram_index_with_ip_addr_field):
         index = ram_index_with_ip_addr_field
 
