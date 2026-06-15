@@ -526,6 +526,10 @@ class Index:
     def exists(path: str) -> bool:
         pass
 
+    @staticmethod
+    def is_compatible(path: str) -> bool:
+        pass
+
     @property
     def schema(self) -> Schema:
         pass
