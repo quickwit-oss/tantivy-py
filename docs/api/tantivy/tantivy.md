@@ -1170,6 +1170,40 @@ reader should create.</li>
 
 
                             </div>
+                            <div id="Index.is_compatible" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">is_compatible</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Index.is_compatible"></a>
+    
+            <div class="docstring"><p>Check whether the index stored at <code>path</code> can be opened by this version
+of tantivy.</p>
+
+<p>Tantivy stores the index format version in each segment file. When that
+version falls outside the range supported by the installed tantivy, the
+index cannot be opened. This method reports that without raising, so a
+caller can decide how to handle an incompatible index (for example, by
+rebuilding it).</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>path (str):</strong>  The directory containing the index.</li>
+</ul>
+
+<p>Returns True if the index is compatible, False if it was built with an
+unsupported index format version.</p>
+
+<p>Raises ValueError if no index could be found at the given path or if it
+could not be read for any other reason.</p>
+</div>
+
+
+                            </div>
                             <div id="Index.open" class="classattr">
                                 <div class="attr function">
             
@@ -1513,7 +1547,9 @@ for searchers.</p>
     </div>
     <a class="headerlink" href="#IndexWriter.delete_documents"></a>
     
-            <div class="docstring"><p>The type of the None singleton.</p>
+            <div class="docstring"><p>Deprecated alias of <code><a href="#IndexWriter.delete_documents_by_term">delete_documents_by_term</a></code>; emits a
+<code>DeprecationWarning</code>. Use <code><a href="#IndexWriter.delete_documents_by_term">delete_documents_by_term</a></code> or
+<code><a href="#IndexWriter.delete_documents_by_query">delete_documents_by_query</a></code> instead.</p>
 </div>
 
 
