@@ -694,6 +694,15 @@ class TestFromDiskClass(object):
         index = Index(build_schema(), str(index_dir), reuse=True)
         assert index.searcher().num_docs == 3
 
+    def test_is_compatible_for_current_index(self, dir_index):
+        index_dir, _ = dir_index
+
+        assert Index.is_compatible(str(index_dir)) is True
+
+    def test_is_compatible_raises_for_missing_index(self, tmp_path):
+        with pytest.raises(ValueError):
+            Index.is_compatible(str(tmp_path / "does-not-exist"))
+
     def test_create_readers(self):
         # not sure what is the point of this test.
         idx = Index(build_schema())
