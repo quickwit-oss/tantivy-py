@@ -56,6 +56,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "base64"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b25655df2c3cdd83c5e5b293b88acd880332b2ddadd7c30ac43144fdc0033da9"
+
+[[package]]
 name = "bitflags"
 version = "2.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1011,7 +1017,7 @@ dependencies = [
 name = "tantivy"
 version = "0.26.0"
 dependencies = [
- "base64",
+ "base64 0.23.0",
  "chrono",
  "futures",
  "itertools 0.15.0",
@@ -1032,7 +1038,7 @@ checksum = "778da245841522199d512d19511b041425d8cff3a8f262b4e1516fceb050289a"
 dependencies = [
  "aho-corasick",
  "arc-swap",
- "base64",
+ "base64 0.22.1",
  "bitpacking",
  "bon",
  "byteorder",
