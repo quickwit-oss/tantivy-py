@@ -73,8 +73,10 @@ class SchemaBuilder:
         self,
         name: str,
         stored: bool = False,
+        fast: bool = False,
         tokenizer_name: str = "default",
         index_option: str = "position",
+        expand_dots_enabled: bool = False,
     ) -> SchemaBuilder:
         pass
 
@@ -230,12 +232,29 @@ class Query:
         field_value: Any,
         index_option: str = "position",
     ) -> Query:
+        """Construct a TermQuery.
+
+        `field_name` accepts a JSON subpath (e.g. "attrs.user") to address a
+        key inside a JSON field. A literal field named "attrs.user" takes
+        precedence over the subpath interpretation. Values are not tokenized.
+
+        For a JSON field, a string `field_value` that parses as a number,
+        bool, or RFC3339 date is interpreted as that typed value - matching
+        how such a value would have been indexed - not as literal text. A
+        JSON string leaf whose content happens to look numeric/bool/date-like
+        (e.g. the string "5") is therefore currently not reachable through
+        `term_query`; `index.parse_query()` can match it because the query
+        parser tries both interpretations, but a single `Term` cannot
+        represent that union.
+        """
         pass
 
     @staticmethod
     def term_set_query(
         schema: Schema, field_name: str, field_values: Sequence[Any]
     ) -> Query:
+        """Construct a TermSetQuery. `field_name` accepts a JSON subpath the
+        same way `term_query` does."""
         pass
 
     @staticmethod
@@ -261,6 +280,8 @@ class Query:
         transposition_cost_one: bool = True,
         prefix=False,
     ) -> Query:
+        """Construct a FuzzyTermQuery. `field_name` accepts a JSON subpath the
+        same way `term_query` does."""
         pass
 
     @staticmethod
@@ -270,6 +291,8 @@ class Query:
         words: list[Union[str, tuple[int, str]]],
         slop: int = 0,
     ) -> Query:
+        """Construct a PhraseQuery. `field_name` accepts a JSON subpath the
+        same way `term_query` does."""
         pass
 
     @staticmethod
@@ -278,6 +301,8 @@ class Query:
         field_name: str,
         words: list[Union[str, tuple[int, str]]],
     ) -> Query:
+        """Construct a PhrasePrefixQuery. `field_name` accepts a JSON subpath
+        the same way `term_query` does."""
         pass
 
     @staticmethod
@@ -437,6 +462,9 @@ class Searcher:
         pass
 
     def doc_freq(self, field_name: str, field_value: Any) -> int:
+        """Return the overall number of documents containing the given term.
+        `field_name` accepts a JSON subpath the same way `Query.term_query`
+        does."""
         pass
 
     def terms_with_prefix(
