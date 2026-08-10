@@ -637,6 +637,9 @@ impl Searcher {
 
     /// Return the overall number of documents containing
     /// the given term.
+    ///
+    /// `field_name` accepts a JSON subpath the same way `Query.term_query`
+    /// does, e.g. `"attrs.user"`.
     #[pyo3(signature = (field_name, field_value))]
     fn doc_freq(
         &self,

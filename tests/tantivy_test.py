@@ -901,6 +901,308 @@ class TestJsonField:
         # result = index.searcher().search(query, 2)
         # assert len(result.hits) == 1
 
+    def test_json_field_expand_dots_enabled(self):
+        # Without expand_dots, a literal "." in a JSON key is NOT treated as
+        # a path separator - querying it as a path must fail to match, and
+        # the literal key must be reachable only via an escaped dot.
+        plain_schema = SchemaBuilder().add_json_field("attrs", stored=True).build()
+        plain_index = Index(plain_schema)
+        writer = plain_index.writer()
+        doc = Document()
+        doc.add_json("attrs", {"a.b": "hello"})
+        writer.add_document(doc)
+        writer.commit()
+        plain_index.reload()
+
+        query = plain_index.parse_query("attrs.a.b:hello", ["attrs"])
+        result = plain_index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        escaped_query = plain_index.parse_query(r"attrs.a\.b:hello", ["attrs"])
+        result = plain_index.searcher().search(escaped_query, 10)
+        assert len(result.hits) == 1
+
+        # With expand_dots enabled, the same flat key "a.b" is treated as a
+        # nested path a -> b, so the unescaped dotted query now matches.
+        expand_schema = (
+            SchemaBuilder()
+            .add_json_field("attrs", stored=True, expand_dots_enabled=True)
+            .build()
+        )
+        expand_index = Index(expand_schema)
+        writer = expand_index.writer()
+        doc = Document()
+        doc.add_json("attrs", {"a.b": "hello"})
+        writer.add_document(doc)
+        writer.commit()
+        expand_index.reload()
+
+        query = expand_index.parse_query("attrs.a.b:hello", ["attrs"])
+        result = expand_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+
+class TestJsonPathTermQueries:
+    @pytest.fixture
+    def json_index(self):
+        schema = (
+            SchemaBuilder()
+            .add_json_field("attrs", stored=True)
+            .add_text_field("title", stored=True)
+            .build()
+        )
+        index = Index(schema)
+        writer = index.writer()
+
+        doc1 = Document()
+        doc1.add_json(
+            "attrs",
+            {
+                "user": "alice",
+                "count": 5,
+                "flag": True,
+                "deep": {"k": "v"},
+                "description": "the best vacuum cleaner ever",
+                "note": "version 5 released",
+                "code": "5",
+                "big": 18446744073709551000,
+                "ts": "2021-01-01T00:00:00.500Z",
+            },
+        )
+        doc1.add_text("title", "alpha")
+        writer.add_document(doc1)
+
+        doc2 = Document()
+        doc2.add_json(
+            "attrs",
+            {
+                "user": "bob",
+                "count": 7,
+                "flag": False,
+                "deep": {"k": "w"},
+                "description": "a mediocre toaster",
+            },
+        )
+        doc2.add_text("title", "beta")
+        writer.add_document(doc2)
+
+        writer.commit()
+        index.reload()
+        return index
+
+    def test_term_query_json_subpath(self, json_index):
+        query = Query.term_query(json_index.schema, "attrs.user", "alice")
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.term_query(json_index.schema, "attrs.user", "bob")
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.term_query(json_index.schema, "attrs.user", "carol")
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+    def test_term_query_nested_json_subpath(self, json_index):
+        query = Query.term_query(json_index.schema, "attrs.deep.k", "v")
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+    def test_term_query_typed_values(self, json_index):
+        # int matches the indexed numeric leaf
+        query = Query.term_query(json_index.schema, "attrs.count", 5)
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        # ... and does not match a document with a different numeric value
+        query = Query.term_query(json_index.schema, "attrs.count", 6)
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        # str "5" falls back through the same fast-value conversion the
+        # string query parser uses, so it matches the same document as int 5
+        query = Query.term_query(json_index.schema, "attrs.count", "5")
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.term_query(json_index.schema, "attrs.count", "6")
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        # bool
+        query = Query.term_query(json_index.schema, "attrs.flag", True)
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.term_query(json_index.schema, "attrs.flag", False)
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+    def test_term_query_json_subpath_date_python_datetime(self, json_index):
+        # The indexed value is truncated to whole-second precision by
+        # tantivy's JSON indexer, so a Python datetime with sub-second
+        # precision must be truncated the same way when building the term,
+        # or it can never match what's actually stored.
+        value = datetime.datetime(
+            2021, 1, 1, 0, 0, 0, 500000, tzinfo=datetime.timezone.utc
+        )
+        query = Query.term_query(json_index.schema, "attrs.ts", value)
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+    def test_term_query_json_subpath_date_rfc3339_string(self, json_index):
+        # A string value goes through the same fast-value conversion the
+        # string query parser uses (truncate_date_for_search=True), so a
+        # sub-second RFC3339 string must match the same document.
+        query = Query.term_query(
+            json_index.schema, "attrs.ts", "2021-01-01T00:00:00.500Z"
+        )
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+    def test_phrase_query_json_subpath(self, json_index):
+        query = Query.phrase_query(
+            json_index.schema, "attrs.description", ["best", "vacuum"]
+        )
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.phrase_query(
+            json_index.schema, "attrs.description", ["vacuum", "best"]
+        )
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+    def test_phrase_query_json_subpath_numeric_looking_word(self, json_index):
+        # A phrase word is always text, even when it looks like a number: it
+        # has to match the tokenized text posting, not a typed fast value.
+        query = Query.phrase_query(
+            json_index.schema, "attrs.note", ["version", "5"]
+        )
+        term_hits = {
+            addr.doc for _, addr in json_index.searcher().search(query, 10).hits
+        }
+        assert len(term_hits) == 1
+
+        parsed_q = json_index.parse_query('attrs.note:"version 5"', ["attrs"])
+        parsed_hits = {
+            addr.doc
+            for _, addr in json_index.searcher().search(parsed_q, 10).hits
+        }
+        assert term_hits == parsed_hits
+
+    def test_term_query_json_string_leaf_looking_numeric(self, json_index):
+        # Documented limitation: a single Term can't represent the union the
+        # query parser builds, so a JSON *string* leaf whose content looks
+        # numeric is not reachable via term_query -- the value is interpreted
+        # as the typed number instead.
+        query = Query.term_query(json_index.schema, "attrs.code", "5")
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        parsed_q = json_index.parse_query("attrs.code:5", ["attrs"])
+        result = json_index.searcher().search(parsed_q, 10)
+        assert len(result.hits) == 1
+
+    def test_term_query_json_subpath_large_u64(self, json_index):
+        # An int above i64::MAX but within u64 must not be routed through f64
+        # (which would round it) -- the JSON indexer stores it as u64.
+        value = 18446744073709551000
+        query = Query.term_query(json_index.schema, "attrs.big", value)
+        term_hits = {
+            addr.doc for _, addr in json_index.searcher().search(query, 10).hits
+        }
+        assert len(term_hits) == 1
+
+        parsed_q = json_index.parse_query(f"attrs.big:{value}", ["attrs"])
+        parsed_hits = {
+            addr.doc
+            for _, addr in json_index.searcher().search(parsed_q, 10).hits
+        }
+        assert term_hits == parsed_hits
+
+    def test_term_query_exact_name_precedence(self):
+        # A real field literally named "a.b" must win over splitting "a.b"
+        # into JSON field "a" with json_path "b".
+        schema = (
+            SchemaBuilder()
+            .add_text_field("a.b", stored=True)
+            .add_json_field("a", stored=True)
+            .build()
+        )
+        index = Index(schema)
+        writer = index.writer()
+
+        doc = Document()
+        # Single-token values, deliberately without punctuation: the default
+        # tokenizer would otherwise split a hyphenated value like
+        # "literal-value" into several terms, which is irrelevant to what
+        # this test checks (field resolution) and would make the assertions
+        # below fail for an unrelated reason.
+        doc.add_text("a.b", "literalvalue")
+        doc.add_json("a", {"b": "jsonvalue"})
+        writer.add_document(doc)
+        writer.commit()
+        index.reload()
+
+        query = Query.term_query(schema, "a.b", "literalvalue")
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.term_query(schema, "a.b", "jsonvalue")
+        result = index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+    def test_term_query_unknown_root_raises(self, json_index):
+        with pytest.raises(ValueError):
+            Query.term_query(json_index.schema, "nope.user", "alice")
+
+    def test_term_query_path_on_non_json_field_raises(self, json_index):
+        with pytest.raises(ValueError):
+            Query.term_query(json_index.schema, "title.user", "alice")
+
+    def test_term_query_json_subpath_matches_parse_query(self, json_index):
+        cases = [
+            ("attrs.user", "alice", "attrs.user:alice"),
+            ("attrs.deep.k", "v", "attrs.deep.k:v"),
+            ("attrs.count", 5, "attrs.count:5"),
+            (
+                "attrs.ts",
+                "2021-01-01T00:00:00.500Z",
+                'attrs.ts:"2021-01-01T00:00:00.500Z"',
+            ),
+        ]
+        for field_name, value, query_str in cases:
+            term_q = Query.term_query(json_index.schema, field_name, value)
+            parsed_q = json_index.parse_query(query_str, ["attrs"])
+            term_hits = {
+                addr.doc for _, addr in json_index.searcher().search(term_q, 10).hits
+            }
+            parsed_hits = {
+                addr.doc for _, addr in json_index.searcher().search(parsed_q, 10).hits
+            }
+            assert term_hits == parsed_hits, query_str
+
+    def test_doc_freq_json_subpath(self, json_index):
+        searcher = json_index.searcher()
+        assert searcher.doc_freq("attrs.user", "alice") == 1
+        assert searcher.doc_freq("attrs.user", "carol") == 0
+
+    def test_fuzzy_term_query_json_subpath(self, json_index):
+        # tantivy's FuzzyTermQuery already handles json-path terms natively;
+        # this only needs to confirm the binding passes such a term through.
+        query = Query.fuzzy_term_query(json_index.schema, "attrs.user", "alicee", distance=1)
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+    def test_fuzzy_term_query_json_subpath_numeric_looking_text(self, json_index):
+        # a JSON string leaf that looks numeric ("code": "5") must still be
+        # matched as text for fuzzy queries, not converted to a typed fast
+        # value (which would make the term un-fuzzy-matchable).
+        query = Query.fuzzy_term_query(json_index.schema, "attrs.code", "5", distance=1)
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
 
 @pytest.mark.parametrize("bytes_kwarg", [True, False])
 @pytest.mark.parametrize(

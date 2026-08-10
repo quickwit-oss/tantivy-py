@@ -15,7 +15,7 @@ mod searcher;
 mod snippet;
 mod tokenizer;
 
-use document::{extract_value_for_type, Document};
+use document::{extract_value, extract_value_for_type, Document};
 use explanation::Explanation;
 use facet::Facet;
 use index::{Index, IndexWriter};
@@ -169,7 +169,48 @@ pub(crate) fn make_term(
     field_name: &str,
     field_value: &Bound<PyAny>,
 ) -> PyResult<tv::Term> {
-    let field = get_field(schema, field_name)?;
+    make_term_impl(schema, field_name, field_value, false)
+}
+
+/// Like `make_term`, but for a single word inside a phrase
+/// (`Query.phrase_query` / `Query.phrase_prefix_query`). For a JSON subpath,
+/// a phrase word is always treated as text, never as a typed fast value —
+/// mirroring tantivy's own query parser, which only ever tokenizes phrase
+/// content as text. Without this, a phrase word that happens to look
+/// numeric/bool/date-like (e.g. "5") would silently become an untokenized
+/// typed term that can never match the indexed text posting for that word.
+pub(crate) fn make_term_for_phrase_word(
+    schema: &tv::schema::Schema,
+    field_name: &str,
+    field_value: &Bound<PyAny>,
+) -> PyResult<tv::Term> {
+    make_term_impl(schema, field_name, field_value, true)
+}
+
+fn make_term_impl(
+    schema: &tv::schema::Schema,
+    field_name: &str,
+    field_value: &Bound<PyAny>,
+    json_path_text_only: bool,
+) -> PyResult<tv::Term> {
+    let (field, json_path) =
+        schema.find_field(field_name).ok_or_else(|| {
+            exceptions::PyValueError::new_err(format!(
+                "Field `{field_name}` is not defined in the schema."
+            ))
+        })?;
+
+    if !json_path.is_empty() {
+        return make_json_path_term(
+            schema,
+            field,
+            field_name,
+            json_path,
+            field_value,
+            json_path_text_only,
+        );
+    }
+
     // Look up the actual field type from the schema so that Python integers
     // are extracted as the correct numeric type (u64 vs i64).  The generic
     // extract_value() path always infers integers as i64 because Python ints
@@ -192,6 +233,100 @@ pub(crate) fn make_term(
             )))
         }
     };
+
+    Ok(term)
+}
+
+/// Builds a `Term` addressing a JSON subpath, e.g. `field_name` = `"notes.user"`
+/// resolving to the `notes` field with `json_path` `"user"`.
+///
+/// A JSON field has no single declared value type, so unlike the plain-field
+/// path in `make_term`, the Python value is read with its own type
+/// (`extract_value`) rather than coerced to a schema-declared one. Numeric and
+/// string handling mirrors tantivy's query parser (`generate_literals_for_json_object`
+/// in `query_parser.rs`): a string is first tried as a typed fast value
+/// (int/float/bool/date) and only kept as text if that fails; a float that is
+/// a whole number is normalized to the same int representation the JSON
+/// indexer would have stored it as.
+///
+/// When `text_only` is set (phrase words), a string value is always kept as
+/// text and never reinterpreted as a typed fast value.
+fn make_json_path_term(
+    schema: &tv::schema::Schema,
+    field: tv::schema::Field,
+    field_name: &str,
+    json_path: &str,
+    field_value: &Bound<PyAny>,
+    text_only: bool,
+) -> PyResult<tv::Term> {
+    let json_options = match schema.get_field_entry(field).field_type() {
+        tv::schema::FieldType::JsonObject(json_options) => json_options,
+        _ => {
+            return Err(exceptions::PyValueError::new_err(format!(
+                "Field `{field_name}` is not defined in the schema."
+            )))
+        }
+    };
+
+    let mut term = Term::from_field_json_path(
+        field,
+        json_path,
+        json_options.is_expand_dots_enabled(),
+    );
+
+    let value = if !field_value.is_instance_of::<pyo3::types::PyBool>()
+        && field_value.extract::<i64>().is_err()
+    {
+        // extract_value() only ever produces Value::I64 for Python ints (it
+        // tries i64, then falls through to f64), which silently loses
+        // precision for ints between i64::MAX and u64::MAX -- the JSON
+        // indexer itself stores such a value as u64. Intercept that one case
+        // before generic extraction.
+        match field_value.extract::<u64>() {
+            Ok(num) => Value::U64(num),
+            Err(_) => extract_value(field_value)?,
+        }
+    } else {
+        extract_value(field_value)?
+    };
+    match value {
+        Value::Str(text) => {
+            if text_only {
+                term.append_type_and_str(&text);
+            } else {
+                match tv::json_utils::convert_to_fast_value_and_append_to_json_term(
+                    &term, &text, true,
+                ) {
+                    Some(fast_term) => term = fast_term,
+                    None => term.append_type_and_str(&text),
+                }
+            }
+        }
+        Value::U64(num) => term.append_type_and_fast_value(num),
+        Value::Bool(b) => term.append_type_and_fast_value(b),
+        Value::I64(num) => term.append_type_and_fast_value(num),
+        Value::F64(num) => {
+            match tv::columnar::NumericalValue::F64(num).normalize() {
+                tv::columnar::NumericalValue::I64(v) => {
+                    term.append_type_and_fast_value(v)
+                }
+                tv::columnar::NumericalValue::U64(v) => {
+                    term.append_type_and_fast_value(v)
+                }
+                tv::columnar::NumericalValue::F64(v) => {
+                    term.append_type_and_fast_value(v)
+                }
+            }
+        }
+        Value::Date(d) => {
+            term.append_type_and_fast_value(d.truncate(tv::schema::DATE_TIME_PRECISION_INDEXED))
+        }
+        _ => {
+            return Err(exceptions::PyValueError::new_err(format!(
+                "Can't create a term for Field `{field_name}` with value `{field_value}`."
+            )))
+        }
+    }
 
     Ok(term)
 }
