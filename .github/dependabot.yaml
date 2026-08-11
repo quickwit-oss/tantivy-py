@@ -4,8 +4,33 @@ updates:
   directory: "/"
   schedule:
     interval: "weekly"
+  cooldown:
+    default-days: 7
+  groups:
+    # codeql-action's init/autobuild/analyze/upload-sarif steps must all run the
+    # same version, so they have to be bumped in a single PR. Listed first
+    # because a dependency joins the first group it matches.
+    codeql-action:
+      patterns:
+      - "github/codeql-action*"
+    actions:
+      patterns:
+      - "*"
+      update-types:
+      - "minor"
+      - "patch"
 
 - package-ecosystem: cargo
   directory: "/"
   schedule:
     interval: "weekly"
+  cooldown:
+    default-days: 7
+    semver-major-days: 14
+  groups:
+    cargo:
+      patterns:
+      - "*"
+      update-types:
+      - "minor"
+      - "patch"
