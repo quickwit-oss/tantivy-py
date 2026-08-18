@@ -901,6 +901,46 @@ class TestJsonField:
         # result = index.searcher().search(query, 2)
         # assert len(result.hits) == 1
 
+    def test_json_field_expand_dots_enabled(self):
+        # Without expand_dots, a literal "." in a JSON key is NOT treated as
+        # a path separator - querying it as a path must fail to match, and
+        # the literal key must be reachable only via an escaped dot.
+        plain_schema = SchemaBuilder().add_json_field("attrs", stored=True).build()
+        plain_index = Index(plain_schema)
+        writer = plain_index.writer()
+        doc = Document()
+        doc.add_json("attrs", {"a.b": "hello"})
+        writer.add_document(doc)
+        writer.commit()
+        plain_index.reload()
+
+        query = plain_index.parse_query("attrs.a.b:hello", ["attrs"])
+        result = plain_index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+        escaped_query = plain_index.parse_query(r"attrs.a\.b:hello", ["attrs"])
+        result = plain_index.searcher().search(escaped_query, 10)
+        assert len(result.hits) == 1
+
+        # With expand_dots enabled, the same flat key "a.b" is treated as a
+        # nested path a -> b, so the unescaped dotted query now matches.
+        expand_schema = (
+            SchemaBuilder()
+            .add_json_field("attrs", stored=True, expand_dots_enabled=True)
+            .build()
+        )
+        expand_index = Index(expand_schema)
+        writer = expand_index.writer()
+        doc = Document()
+        doc.add_json("attrs", {"a.b": "hello"})
+        writer.add_document(doc)
+        writer.commit()
+        expand_index.reload()
+
+        query = expand_index.parse_query("attrs.a.b:hello", ["attrs"])
+        result = expand_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
 
 @pytest.mark.parametrize("bytes_kwarg", [True, False])
 @pytest.mark.parametrize(
