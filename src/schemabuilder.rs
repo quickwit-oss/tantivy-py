@@ -5,7 +5,7 @@ use pyo3::{exceptions, prelude::*};
 use crate::schema::Schema;
 use std::sync::{Arc, RwLock};
 use tantivy::schema::{
-    self, BytesOptions, DateOptions, IpAddrOptions, INDEXED,
+    self, BytesOptions, DateOptions, IpAddrOptions, JsonObjectOptions, INDEXED,
 };
 
 /// Tantivy has a very strict schema.
@@ -325,6 +325,13 @@ impl SchemaBuilder {
     ///         document id and the term frequency, while the 'position' option
     ///         records the document id, term frequency and the positions of
     ///         the term occurrences in the document.
+    ///     expand_dots_enabled (bool, optional): If true, a "." in a JSON
+    ///         object key is treated as a path separator, the same as a "."
+    ///         between keys in a query string or in `field_name` passed to
+    ///         `Query.term_query`. E.g. `{"a.b": "hello"}` is then indexed as
+    ///         if it was `{"a": {"b": "hello"}}`, reachable via `attrs.a.b`
+    ///         instead of the default `attrs.a\.b` escaped form. Defaults to
+    ///         False.
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
@@ -333,7 +340,8 @@ impl SchemaBuilder {
         stored = false,
         fast = false,
         tokenizer_name = TOKENIZER,
-        index_option = RECORD
+        index_option = RECORD,
+        expand_dots_enabled = false
     ))]
     fn add_json_field(
         &mut self,
@@ -342,17 +350,23 @@ impl SchemaBuilder {
         fast: bool,
         tokenizer_name: &str,
         index_option: &str,
+        expand_dots_enabled: bool,
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
-        let options = SchemaBuilder::build_text_option(
+        let text_options = SchemaBuilder::build_text_option(
             stored,
             fast,
             tokenizer_name,
             index_option,
         )?;
 
+        let mut json_options: JsonObjectOptions = text_options.into();
+        if expand_dots_enabled {
+            json_options = json_options.set_expand_dots_enabled();
+        }
+
         if let Some(builder) = builder.write().unwrap().as_mut() {
-            builder.add_json_field(name, options);
+            builder.add_json_field(name, json_options);
         } else {
             return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",

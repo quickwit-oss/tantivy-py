@@ -73,8 +73,10 @@ class SchemaBuilder:
         self,
         name: str,
         stored: bool = False,
+        fast: bool = False,
         tokenizer_name: str = "default",
         index_option: str = "position",
+        expand_dots_enabled: bool = False,
     ) -> SchemaBuilder:
         pass
 
