@@ -513,6 +513,10 @@ class Index:
     def open(path: str) -> Index:
         pass
 
+    @staticmethod
+    def open_read_only(path: str) -> Index:
+        pass
+
     def writer(self, heap_size: int = 128_000_000, num_threads: int = 0) -> IndexWriter:
         pass
 

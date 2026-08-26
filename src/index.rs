@@ -341,6 +341,20 @@ impl Index {
         })
     }
 
+    /// Open an existing immutable index from a read-only directory.
+    #[staticmethod]
+    fn open_read_only(py: Python, path: &str) -> PyResult<Index> {
+        py.detach(move || {
+            let index =
+                tv::Index::open_read_only_in_dir(path).map_err(to_pyerr)?;
+
+            Index::register_custom_text_analyzers(&index);
+
+            let reader = index.reader().map_err(to_pyerr)?;
+            Ok(Index { index, reader })
+        })
+    }
+
     #[new]
     #[pyo3(signature = (schema, path = None, reuse = true))]
     fn new(

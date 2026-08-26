@@ -694,6 +694,17 @@ class TestFromDiskClass(object):
         index = Index(build_schema(), str(index_dir), reuse=True)
         assert index.searcher().num_docs == 3
 
+    def test_opens_read_only_from_dir(self, dir_index):
+        index_dir, _ = dir_index
+
+        index = Index.open_read_only(str(index_dir))
+        query = index.parse_query("sea whale", ["title", "body"])
+        assert len(index.searcher().search(query, 10).hits) == 1
+        index.reload()
+
+        with pytest.raises(ValueError, match="directory is read-only"):
+            index.writer()
+
     def test_is_compatible_for_current_index(self, dir_index):
         index_dir, _ = dir_index
 
