@@ -184,6 +184,37 @@ complex_query = Query.boolean_query(
 
 <!--TODO: Update the reference link to the query parser docs when available.-->
 
+## Querying JSON fields programmatically
+
+`Query.term_query` (and `term_set_query`, `phrase_query`, `phrase_prefix_query`,
+`Searcher.doc_freq`) accept a JSON subpath as `field_name`, the same paths
+`index.parse_query()` understands:
+
+```python
+from tantivy import SchemaBuilder, Index, Query, Document
+
+json_schema = SchemaBuilder().add_json_field("attrs", stored=True).build()
+json_index = Index(json_schema)
+json_writer = json_index.writer()
+json_doc = Document()
+json_doc.add_json("attrs", {"user": "alice", "count": 5})
+json_writer.add_document(json_doc)
+json_writer.commit()
+json_index.reload()
+
+json_query = Query.term_query(json_schema, "attrs.user", "alice")
+json_result = json_index.searcher().search(json_query, 10)
+assert len(json_result.hits) == 1
+```
+
+A field literally named `"attrs.user"` always takes precedence over the
+subpath interpretation. A path given for a field that isn't JSON, or a root
+that doesn't resolve to any field, raises `ValueError`. A JSON string value
+that looks like a number, bool, or date (e.g. `"5"`) is matched as that typed
+value, not as literal text — unlike `index.parse_query()`, which tries both.
+If you need to match such a string literally, use `index.parse_query()`
+instead.
+
 ## Combining Queries with the Boolean Helper Methods
 
 `Query.boolean_query(...)` shown above is the most general way to combine
