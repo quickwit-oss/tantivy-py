@@ -16,7 +16,7 @@ pyo3-build-config = "0.29.0"
 [dependencies]
 base64 = "0.22"
 chrono = "0.4.44"
-tantivy = "0.26.0"
+tantivy = { git = "https://github.com/shashankbrgowda/tantivy", rev = "e6e93b0a25c64b44afcb4ed40cadfe71aafd7178" }
 tantivy-common = "0.11"
 itertools = "0.15.0"
 futures = "0.3.32"
