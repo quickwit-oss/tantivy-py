@@ -2264,6 +2264,15 @@ class TestTokenizers:
         doc_text = "the bad wolf buys an axe"
         assert ["bad", "wolf", "buys", "axe"] == analyzer.analyze(doc_text)
 
+    @pytest.mark.parametrize(
+        "language", ["arabic", "greek", "romanian", "tamil", "turkish"]
+    )
+    def test_build_tokenizer_w_stopword_filter_no_builtin_list(self, language):
+        # These languages have a stemmer, but tantivy has no builtin stop word list
+        builder = tantivy.TextAnalyzerBuilder(tokenizer=tantivy.Tokenizer.simple())
+        with pytest.raises(ValueError, match="stop word list"):
+            builder.filter(tantivy.Filter.stopword(language))
+
     def test_build_tokenizer_w_custom_stopwords_filter(self):
         analyzer = (
             tantivy.TextAnalyzerBuilder(tokenizer=tantivy.Tokenizer.simple())
