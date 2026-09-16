@@ -1009,7 +1009,7 @@ dependencies = [
 
 [[package]]
 name = "tantivy"
-version = "0.26.0"
+version = "0.26.2"
 dependencies = [
  "base64",
  "chrono",
@@ -1020,15 +1020,15 @@ dependencies = [
  "pythonize",
  "serde",
  "serde_json",
- "tantivy 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tantivy 0.26.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tantivy-common",
 ]
 
 [[package]]
 name = "tantivy"
-version = "0.26.0"
+version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "778da245841522199d512d19511b041425d8cff3a8f262b4e1516fceb050289a"
+checksum = "861facfabd71044968f364837f9a083b56464ba5a59079f88706ee5c451ca069"
 dependencies = [
  "aho-corasick",
  "arc-swap",
