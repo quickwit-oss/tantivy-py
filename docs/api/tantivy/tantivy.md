@@ -1079,11 +1079,13 @@ your own custom list of stopwords.</p>
 <ul>
 <li>language (string): Stop words list language.
 Valid values: {
-  "arabic", "danish", "dutch", "english", "finnish", "french", "german", "greek",
-  "hungarian", "italian", "norwegian", "portuguese", "romanian", "russian",
-  "spanish", "swedish", "tamil", "turkish"
+  "danish", "dutch", "english", "finnish", "french", "german", "hungarian",
+  "italian", "norwegian", "portuguese", "russian", "spanish", "swedish"
 }</li>
 </ul>
+
+<p>Adding this filter to a builder raises ValueError for any other language,
+including stemmer languages without a builtin stop word list.</p>
 </div>
 
 
