@@ -6,6 +6,7 @@ build-backend = "maturin"
 name = "tantivy"
 version = "0.26.2"
 description = "Official Python bindings for the Tantivy search engine"
+readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -15,6 +16,13 @@ authors = [
     { name = "Cam Parry", email = "cam.parry@kapiche.com"}
 ]
 optional-dependencies = { dev = ["nox"] }
+
+[project.urls]
+Homepage = "https://github.com/quickwit-oss/tantivy-py"
+Repository = "https://github.com/quickwit-oss/tantivy-py"
+Documentation = "https://tantivy-py.readthedocs.io/en/latest/"
+Issues = "https://github.com/quickwit-oss/tantivy-py/issues"
+Changelog = "https://github.com/quickwit-oss/tantivy-py/releases"
 
 [tool.maturin]
 bindings = "pyo3"
