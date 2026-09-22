@@ -127,6 +127,7 @@ jobs:
             pkg-containers.githubusercontent.com:443
             pypi.org:443
             quay.io:443
+            raw.githubusercontent.com:443
             sh.rustup.rs:443
             static.crates.io:443
             static.rust-lang.org:443
