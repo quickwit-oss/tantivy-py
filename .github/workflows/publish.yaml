@@ -39,7 +39,18 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after a couple of runs
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            files.pythonhosted.org:443
+            github.com:443
+            index.crates.io:443
+            pypi.org:443
+            raw.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+            releases.astral.sh:443
+            static.crates.io:443
+            static.rust-lang.org:443
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -232,7 +243,7 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          egress-policy: audit # Harden-Runner supports audit mode only on macOS runners
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -294,7 +305,15 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1
         with:
-          egress-policy: audit # TODO: change to 'egress-policy: block' after a couple of runs
+          # Harden-Runner can only block on x64 Linux: macOS and Windows are audit-only, and
+          # ARM runners are not supported.
+          egress-policy: ${{ matrix.runner == 'ubuntu-latest' && 'block' || 'audit' }}
+          allowed-endpoints: >
+            files.pythonhosted.org:443
+            github.com:443
+            pypi.org:443
+            raw.githubusercontent.com:443
+            releases.astral.sh:443
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
