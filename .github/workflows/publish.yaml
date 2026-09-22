@@ -117,6 +117,10 @@ jobs:
             manylinux: auto
           - platform: 'aarch64-unknown-linux-gnu'
             manylinux: auto
+          - platform: 'x86_64-unknown-linux-musl'
+            manylinux: musllinux_1_2
+          - platform: 'aarch64-unknown-linux-musl'
+            manylinux: musllinux_1_2
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1
