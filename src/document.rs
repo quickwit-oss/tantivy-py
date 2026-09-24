@@ -40,7 +40,7 @@ use std::{
 /// — a `zoneinfo.ZoneInfo("UTC")` or any non-UTC tz fails. Normalizing in
 /// Python first sidesteps both restrictions.
 fn pydatetime_to_tv(any: &Bound<PyAny>) -> PyResult<tv::DateTime> {
-    let dt = any.downcast::<PyDateTime>()?;
+    let dt = any.cast::<PyDateTime>()?;
     let nanos = if dt.get_tzinfo().is_some() {
         let utc_tz = PyTzInfo::utc(dt.py())?;
         let utc_dt = dt.call_method1("astimezone", (utc_tz,))?;
@@ -75,7 +75,7 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
     if let Ok(num) = any.extract::<f64>() {
         return Ok(Value::F64(num));
     }
-    if any.downcast::<PyDateTime>().is_ok() {
+    if any.cast::<PyDateTime>().is_ok() {
         return Ok(Value::Date(pydatetime_to_tv(any)?));
     }
     if let Ok(facet) = any.extract::<Facet>() {
@@ -84,7 +84,7 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
     if let Ok(b) = any.extract::<Vec<u8>>() {
         return Ok(Value::Bytes(b));
     }
-    if let Ok(dict) = any.downcast::<PyDict>() {
+    if let Ok(dict) = any.cast::<PyDict>() {
         if let Ok(json_dict) =
             pythonize::depythonize::<BTreeMap<String, Value>>(dict.as_ref())
         {
@@ -143,9 +143,11 @@ pub(crate) fn extract_value_for_type(
                 .map_err(to_pyerr_for_type("DateTime", field_name, any))?,
         ),
         tv::schema::Type::Facet => Value::Facet(
-            any.extract::<Facet>()
+            any.cast::<Facet>()
                 .map_err(to_pyerr_for_type("Facet", field_name, any))?
-                .inner,
+                .borrow()
+                .inner
+                .clone(),
         ),
         tv::schema::Type::Bytes => Value::Bytes(
             any.extract::<Vec<u8>>()
@@ -161,7 +163,7 @@ pub(crate) fn extract_value_for_type(
             }
 
             let dict = any
-                .downcast::<PyDict>()
+                .cast::<PyDict>()
                 .map_err(to_pyerr_for_type("Json", field_name, any))?;
             let map = pythonize::depythonize::<BTreeMap<String, Value>>(
                 dict.as_ref(),
@@ -187,7 +189,7 @@ pub(crate) fn extract_value_for_type(
 }
 
 fn extract_value_single_or_list(any: &Bound<PyAny>) -> PyResult<Vec<Value>> {
-    if let Ok(values) = any.downcast::<PyList>() {
+    if let Ok(values) = any.cast::<PyList>() {
         values.iter().map(|v| extract_value(&v)).collect()
     } else {
         Ok(vec![extract_value(any)?])
@@ -200,7 +202,7 @@ fn extract_value_single_or_list_for_type(
     field_name: &str,
 ) -> PyResult<Vec<Value>> {
     // Check if a numeric fast field supports multivalues.
-    if let Ok(values) = any.downcast::<PyList>() {
+    if let Ok(values) = any.cast::<PyList>() {
         // Process an array of integers as a single entry if it is a bytes field.
         if field_type.value_type() == tv::schema::Type::Bytes
             && values
@@ -931,7 +933,7 @@ impl Document {
         // out_field_values.reserve(py_dict.len());
 
         for key_value_any in py_dict.items() {
-            if let Ok(key_value) = key_value_any.downcast::<PyTuple>() {
+            if let Ok(key_value) = key_value_any.cast::<PyTuple>() {
                 if key_value.len() != 2 {
                     continue;
                 }
@@ -982,7 +984,7 @@ impl Document {
         let mut field_values = BTreeMap::new();
 
         for key_value_any in py_dict.items() {
-            let key_value = key_value_any.downcast::<PyTuple>()?;
+            let key_value = key_value_any.cast::<PyTuple>()?;
             if key_value.len() != 2 {
                 continue;
             }
