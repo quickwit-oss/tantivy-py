@@ -156,6 +156,11 @@ class Document:
     def add_text(self, field_name: str, text: str) -> None:
         pass
 
+    def add_pre_tokenized_text(
+        self, field_name: str, pre_tokenized_text: PreTokenizedString
+    ) -> None:
+        pass
+
     def add_unsigned(self, field_name: str, value: int) -> None:
         pass
 
@@ -681,6 +686,44 @@ class TextAnalyzerBuilder:
 
     def build(self) -> TextAnalyzer:
         pass
+
+class Token:
+    def __init__(
+        self: Self,
+        text: str,
+        position: int,
+        character_offset_from: int,
+        character_offset_to: int | None = None,
+    ) -> None:
+        ...
+
+    @property
+    def text(self: Self) -> str:
+        ...
+
+    @property
+    def position(self: Self) -> int:
+        ...
+        
+    @property
+    def character_offset_from(self: Self) -> int:
+        ...
+
+    @property
+    def character_offset_to(self: Self) -> int:
+        ...
+
+class PreTokenizedString:
+    def __init__(self: Self, text: str, tokens: Sequence[Token]) -> None:
+        ...
+
+    @property
+    def text(self: Self) -> str:
+        ...
+
+    @property
+    def tokens(self: Self) -> list[Token]:
+        ...
 
 def parse_query(query: str) -> dict[str, Any]:
     """

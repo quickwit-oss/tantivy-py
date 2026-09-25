@@ -1,6 +1,8 @@
 use pyo3::{exceptions::PyValueError, prelude::*};
 use tantivy::tokenizer as tvt;
 
+use crate::pre_tokenized::PreTokenizedString;
+
 /// All Tantivy's built-in tokenizers in one place.
 /// Each static method, e.g. Tokenizer.simple(),
 /// creates a wrapper around a Tantivy tokenizer.
@@ -278,6 +280,25 @@ impl TextAnalyzer {
             tokens.push(token_stream.token().text.clone());
         }
         tokens
+    }
+
+    /// Tokenize a string and return a PreTokenizedString object.
+    /// Args:
+    /// - text (string): text to tokenize.
+    /// Returns:
+    /// - PreTokenizedString: a tokenized string.
+    fn pre_tokenize(&mut self, text: &str) -> PreTokenizedString {
+        let mut token_stream = self.analyzer.token_stream(text);
+        let mut tokens = Vec::new();
+
+        token_stream.process(&mut |token| tokens.push(token.clone()));
+
+        PreTokenizedString {
+            inner: tvt::PreTokenizedString {
+                text: text.to_owned(),
+                tokens,
+            },
+        }
     }
 }
 
