@@ -16,7 +16,9 @@ use chrono::{DateTime as ChronoDateTime, NaiveDateTime, Utc};
 
 use tantivy::{self as tv, schema::document::OwnedValue as Value};
 
-use crate::{facet::Facet, schema::Schema, to_pyerr};
+use crate::{
+    facet::Facet, schema::Schema, to_pyerr, pre_tokenized::PreTokenizedString,
+};
 use serde::{
     ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer,
 };
@@ -694,6 +696,21 @@ impl Document {
     ///     text (str): The text that will be added to the document.
     fn add_text(&mut self, field_name: String, text: &str) {
         self.add_value(field_name, text);
+    }
+
+    /// Add a pre-tokenized text field.
+    /// 
+    /// Args:
+    ///     field_name (str): The field name for which we are adding the pre-tokenized text.
+    ///     value (PreTokenizedString): The pre-tokenized text that will be added to the document.
+    ///         If the tokenization of the pre-tokenized text don't align with the registered tokenizer, some functionality may not work as expected, 
+    ///         like the query parser or the SnippetGenerator.
+    fn add_pre_tokenized_text(
+        &mut self,
+        field_name: String,
+        pre_tokenized_text: &PreTokenizedString,
+    ) {
+        self.add_value(field_name, pre_tokenized_text.inner.clone());
     }
 
     /// Add an unsigned integer value to the document.
