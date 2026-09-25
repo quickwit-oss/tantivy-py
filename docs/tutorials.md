@@ -450,15 +450,17 @@ To link an analyzer to a field in the index, pass the
 analyzer name to the `tokenizer_name=` parameter of
 the `SchemaBuilder`'s `add_text_field()` method.
 
-Here is the schema that was used to construct our index:
+If the text field is a fast field, your analyzer need to be registered as a fast field analyzer.
 
 ```python
 schema = (
     tantivy.SchemaBuilder()
-    .add_text_field("content", tokenizer_name="custom_analyzer")
+    .add_text_field("content", fast=True, tokenizer_name="custom_analyzer")
     .build()
 )
+
 index = Index(schema)
+index.register_fast_field_tokenizer("custom_analyzer", my_analyzer)
 ```
 
 Summary:
