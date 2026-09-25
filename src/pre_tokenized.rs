@@ -92,10 +92,8 @@ impl PreTokenizedString {
     ///     text (str): The original text.
     ///     tokens (Sequence[Token]): Tokens derived from the text.
     fn new(text: &str, tokens: Vec<Token>) -> PyResult<Self> {
-        let byte_offsets: Vec<_> = text
-            .char_indices()
-            .map(|(offset, _)| offset)
-            .collect();
+        let byte_offsets: Vec<_> =
+            text.char_indices().map(|(offset, _)| offset).collect();
 
         Ok(Self {
             inner: tvt::PreTokenizedString {
