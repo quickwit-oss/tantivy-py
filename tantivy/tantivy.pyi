@@ -676,6 +676,8 @@ class TextAnalyzer:
     def analyze(self, text: str) -> list[str]:
         pass
 
+    def pre_tokenize(self, text: str) -> PreTokenizedString:
+        pass
 
 class TextAnalyzerBuilder:
     def __init__(self, tokenizer: Tokenizer):
@@ -692,8 +694,8 @@ class Token:
         self: Self,
         text: str,
         position: int,
-        character_offset_from: int,
-        character_offset_to: int | None = None,
+        char_offset_from: int,
+        char_offset_to: int | None = None,
     ) -> None:
         ...
 
@@ -704,13 +706,13 @@ class Token:
     @property
     def position(self: Self) -> int:
         ...
-        
+
     @property
-    def character_offset_from(self: Self) -> int:
+    def char_offset_from(self: Self) -> int:
         ...
 
     @property
-    def character_offset_to(self: Self) -> int:
+    def char_offset_to(self: Self) -> int:
         ...
 
 class PreTokenizedString:
