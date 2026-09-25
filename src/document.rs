@@ -16,7 +16,9 @@ use chrono::{DateTime as ChronoDateTime, NaiveDateTime, Utc};
 
 use tantivy::{self as tv, schema::document::OwnedValue as Value};
 
-use crate::{facet::Facet, schema::Schema, to_pyerr};
+use crate::{
+    facet::Facet, pre_tokenized::PreTokenizedString, schema::Schema, to_pyerr,
+};
 use serde::{
     ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer,
 };
@@ -250,10 +252,10 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<Py<PyAny>> {
         Value::I64(num) => (*num).into_py_any(py)?,
         Value::F64(num) => (*num).into_py_any(py)?,
         Value::Bytes(b) => b.into_py_any(py)?,
-        Value::PreTokStr(_pretoken) => {
-            // TODO implement me
-            unimplemented!();
+        Value::PreTokStr(pretoken) => PreTokenizedString {
+            inner: pretoken.clone(),
         }
+        .into_py_any(py)?,
         Value::Date(d) => tv_to_pydatetime(py, *d)?,
         Value::Facet(f) => Facet { inner: f.clone() }.into_py_any(py)?,
         Value::Array(arr) => {
@@ -694,6 +696,21 @@ impl Document {
     ///     text (str): The text that will be added to the document.
     fn add_text(&mut self, field_name: String, text: &str) {
         self.add_value(field_name, text);
+    }
+
+    /// Add a pre-tokenized text field.
+    ///
+    /// Args:
+    ///     field_name (str): The field name for which we are adding the pre-tokenized text.
+    ///     value (PreTokenizedString): The pre-tokenized text that will be added to the document.
+    ///         If the tokenization of the pre-tokenized text don't align with the registered tokenizer, some functionality may not work as expected,
+    ///         like the query parser or the SnippetGenerator.
+    fn add_pre_tokenized_text(
+        &mut self,
+        field_name: String,
+        pre_tokenized_text: &PreTokenizedString,
+    ) {
+        self.add_value(field_name, pre_tokenized_text.inner.clone());
     }
 
     /// Add an unsigned integer value to the document.
