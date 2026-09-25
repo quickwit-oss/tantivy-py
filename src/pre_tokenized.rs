@@ -1,4 +1,4 @@
-use pyo3::{exceptions::PyValueError, prelude::*, IntoPyObjectExt};
+use pyo3::{prelude::*, IntoPyObjectExt};
 use tantivy::tokenizer as tvt;
 
 #[derive(Clone)]
@@ -154,5 +154,22 @@ impl PreTokenizedString {
                 }
             })
             .collect()
+    }
+
+    fn __richcmp__(
+        &self,
+        other: &Self,
+        op: pyo3::basic::CompareOp,
+        py: Python<'_>,
+    ) -> PyResult<Py<PyAny>> {
+        match op {
+            pyo3::basic::CompareOp::Eq => {
+                (self.inner == self.inner).into_py_any(py)
+            }
+            pyo3::basic::CompareOp::Ne => {
+                (self.inner != other.inner).into_py_any(py)
+            }
+            _ => Ok(py.NotImplemented()),
+        }
     }
 }

@@ -252,10 +252,10 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<Py<PyAny>> {
         Value::I64(num) => (*num).into_py_any(py)?,
         Value::F64(num) => (*num).into_py_any(py)?,
         Value::Bytes(b) => b.into_py_any(py)?,
-        Value::PreTokStr(_pretoken) => {
-            // TODO implement me
-            unimplemented!();
+        Value::PreTokStr(pretoken) => PreTokenizedString {
+            inner: pretoken.clone(),
         }
+        .into_py_any(py)?,
         Value::Date(d) => tv_to_pydatetime(py, *d)?,
         Value::Facet(f) => Facet { inner: f.clone() }.into_py_any(py)?,
         Value::Array(arr) => {

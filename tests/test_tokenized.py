@@ -69,6 +69,8 @@ def test_write_pre_tokenized(ram_index):
     doc.add_pre_tokenized_text("title", pre_tokenized_title)
     doc.add_pre_tokenized_text("body", pre_tokenized_body)
 
+    assert doc["title"] == [pre_tokenized_title]
+
     with ram_index.writer() as writer:
         writer.add_document(doc)
 
