@@ -475,10 +475,12 @@ index = Index(schema)
 index.register_fast_field_tokenizer("custom_analyzer", my_analyzer)  
 ```
 
-1. Use `TextAnalyzerBuilder`, `Tokenizer`, and `Filter` to build a `TextAnalyzer`
-2. The analyzer's `.analyze()` and `.pre_tokenize()` method lets you use your analyzer as a tokenizer from Python.
-3. Refer to your analyzer's name when building the index schema.
-4. Use the same name when registering your analyzer on the index with `.register_tokenizer()` or `.register_fast_field_tokenizer()`.
+!!! abstract "Summary"
+
+    1. Use `TextAnalyzerBuilder`, `Tokenizer`, and `Filter` to build a `TextAnalyzer`
+    2. The analyzer's `.analyze()` and `.pre_tokenize()` method lets you use your analyzer as a tokenizer from Python.
+    3. Refer to your analyzer's name when building the index schema.
+    4. Use the same name when registering your analyzer on the index with `.register_tokenizer()` or `.register_fast_field_tokenizer()`.
 
 
 ### On terminology: Tokenizer vs. Text Analyzer
