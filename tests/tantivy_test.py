@@ -1337,7 +1337,7 @@ class TestQuery(object):
 
         # test swapping the order of the tuple
         with pytest.raises(
-            TypeError, match=r"'Query' object cannot be converted to 'Occur'"
+            TypeError, match=r"'Query' object is not an instance of 'Occur'"
         ):
             Query.boolean_query(
                 [
@@ -1486,7 +1486,7 @@ class TestQuery(object):
         assert len(result.hits) == 2
 
         with pytest.raises(
-            TypeError, match=r"'str' object cannot be converted to 'Query'"
+            TypeError, match=r"'str' object is not an instance of 'Query'"
         ):
             query = Query.disjunction_max_query(
                 [query1, "not a query"], tie_breaker=0.5
@@ -1568,13 +1568,13 @@ class TestQuery(object):
 
         # wrong query type
         with pytest.raises(
-            TypeError, match=r"'int' object cannot be converted to 'Query'"
+            TypeError, match=r"'int' object is not an instance of 'Query'"
         ):
             Query.boost_query(1, 0.1)
 
         # wrong boost type
         with pytest.raises(
-            TypeError, match=r"argument 'boost': must be real number, not str"
+            TypeError, match=r"must be real number, not str"
         ):
             Query.boost_query(query1, "0.1")
 
@@ -1750,7 +1750,7 @@ class TestQuery(object):
 
         # wrong score type
         with pytest.raises(
-            TypeError, match=r"argument 'score': must be real number, not str"
+            TypeError, match=r"must be real number, not str"
         ):
             Query.const_score_query(query, "0.1")
 
