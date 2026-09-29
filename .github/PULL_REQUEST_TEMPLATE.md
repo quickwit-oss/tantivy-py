@@ -1,1 +1,2 @@
 - [ ] I have read the [contributing guidelines](https://github.com/quickwit-oss/tantivy-py/blob/master/CONTRIBUTING.md) which also contains information about our AI policy.
+- [ ] I understand that all commits in this PR must have [verified signatures](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification).
