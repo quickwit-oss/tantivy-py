@@ -23,8 +23,10 @@ concurrency:
 permissions: {}
 
 env:
-  # Interpreters we build a wheel for. Not abi3, so this is one wheel per version.
-  PYTHON_VERSIONS: "3.10 3.11 3.12 3.13 3.14"
+  # The wheels are abi3 (see Cargo.toml): one wheel per platform, built against the
+  # oldest supported interpreter, runs on that version and every later one. Keep in
+  # step with the abi3-pyXY feature and requires-python.
+  ABI3_PYTHON: "3.11"
 
 jobs:
   build-sdist:
@@ -58,7 +60,7 @@ jobs:
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
-          python-version: '3.10'
+          python-version: ${{ env.ABI3_PYTHON }}
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
@@ -155,7 +157,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
-          python-version: '3.10'
+          python-version: ${{ env.ABI3_PYTHON }}
           architecture: x64
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
@@ -169,7 +171,7 @@ jobs:
           target: ${{ matrix.platform }}
           command: build
           # --locked: build the dependency versions in Cargo.lock, not whatever resolves today.
-          args: --release --locked -o dist -i ${{ env.PYTHON_VERSIONS }}
+          args: --release --locked -o dist -i ${{ env.ABI3_PYTHON }}
 
       - name: Upload wheels
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # 7.0.1
@@ -184,7 +186,7 @@ jobs:
           uvx twine check --strict dist/*
 
   windows:
-    name: Wheels - windows-${{ matrix.python-version }}-${{ matrix.target }}
+    name: Wheels - windows-${{ matrix.target }}
     runs-on: windows-latest
     permissions:
       contents: read
@@ -193,7 +195,6 @@ jobs:
       fail-fast: false
       matrix:
         target: [x64]
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1
@@ -216,7 +217,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.ABI3_PYTHON }}
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
@@ -225,7 +226,7 @@ jobs:
 
       - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b
         env:
-          PYO3_PYTHON: python${{ matrix.python-version }}
+          PYO3_PYTHON: python${{ env.ABI3_PYTHON }}
         with:
           command: build
           args: --release --locked -o dist
@@ -233,7 +234,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # 7.0.1
         with:
-          name: wheels-windows-${{ matrix.python-version }}-${{ matrix.target }}
+          name: wheels-windows-${{ matrix.target }}
           path: dist
           if-no-files-found: error
 
@@ -244,7 +245,7 @@ jobs:
           uvx twine check --strict dist/*
 
   macos:
-    name: Wheels - macos-${{ matrix.python-version }}-${{ matrix.target }}
+    name: Wheels - macos-${{ matrix.target }}
     runs-on: macos-latest
     permissions:
       contents: read
@@ -252,7 +253,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
@@ -276,7 +276,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.ABI3_PYTHON }}
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
@@ -286,7 +286,7 @@ jobs:
       - name: Build wheels - ${{ matrix.target }}
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b
         env:
-          PYO3_PYTHON: python${{ matrix.python-version }}
+          PYO3_PYTHON: python${{ env.ABI3_PYTHON }}
         with:
           target: ${{ matrix.target }}
           command: build
@@ -295,7 +295,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # 7.0.1
         with:
-          name: wheels-macos-${{ matrix.python-version }}-${{ matrix.target }}
+          name: wheels-macos-${{ matrix.target }}
           path: dist
           if-no-files-found: error
 
@@ -315,15 +315,15 @@ jobs:
       fail-fast: false
       matrix:
         # Every wheel this workflow publishes is installed and exercised on a machine
-        # that matches its tags. The wheels are per-interpreter, not abi3, so each
-        # Python version is a different artifact and needs its own run.
+        # that matches its tags. The wheels are abi3, so every Python version installs
+        # the same artifact: running each one proves that artifact on each interpreter.
         runner:
           - ubuntu-latest      # manylinux x86_64
           - ubuntu-24.04-arm   # manylinux aarch64
           - macos-latest       # macOS arm64 (universal2)
           - macos-15-intel     # macOS x86_64
           - windows-latest     # windows x64
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
     defaults:
       run:
         shell: bash
@@ -404,7 +404,7 @@ jobs:
         runner:
           - ubuntu-latest      # musllinux x86_64
           - ubuntu-24.04-arm   # musllinux aarch64
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1
