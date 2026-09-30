@@ -26,7 +26,7 @@ env:
   # The wheels are abi3 (see Cargo.toml): one wheel per platform, built against the
   # oldest supported interpreter, runs on that version and every later one. Keep in
   # step with the abi3-pyXY feature and requires-python.
-  ABI3_PYTHON: "3.10"
+  ABI3_PYTHON: "3.11"
 
 jobs:
   build-sdist:
@@ -60,7 +60,7 @@ jobs:
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
-          python-version: '3.10'
+          python-version: ${{ env.ABI3_PYTHON }}
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
@@ -157,7 +157,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
-          python-version: '3.10'
+          python-version: ${{ env.ABI3_PYTHON }}
           architecture: x64
 
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
@@ -323,7 +323,7 @@ jobs:
           - macos-latest       # macOS arm64 (universal2)
           - macos-15-intel     # macOS x86_64
           - windows-latest     # windows x64
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
     defaults:
       run:
         shell: bash
@@ -404,7 +404,7 @@ jobs:
         runner:
           - ubuntu-latest      # musllinux x86_64
           - ubuntu-24.04-arm   # musllinux aarch64
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1
