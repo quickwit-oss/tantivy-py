@@ -62,7 +62,7 @@ jobs:
         with:
           python-version: ${{ env.ABI3_PYTHON }}
 
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -160,7 +160,7 @@ jobs:
           python-version: ${{ env.ABI3_PYTHON }}
           architecture: x64
 
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -219,7 +219,7 @@ jobs:
         with:
           python-version: ${{ env.ABI3_PYTHON }}
 
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -278,7 +278,7 @@ jobs:
         with:
           python-version: ${{ env.ABI3_PYTHON }}
 
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -351,7 +351,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
