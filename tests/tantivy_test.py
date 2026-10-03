@@ -833,6 +833,12 @@ class TestDocument(object):
         assert orig == pickled
 
 
+def _doc_with_add_json(attrs):
+    doc = Document()
+    doc.add_json("attrs", attrs)
+    return doc
+
+
 class TestJsonField:
     def test_query_from_json_field(self):
         schema = (
@@ -940,6 +946,55 @@ class TestJsonField:
         query = expand_index.parse_query("attrs.a.b:hello", ["attrs"])
         result = expand_index.searcher().search(query, 10)
         assert len(result.hits) == 1
+
+    @pytest.mark.parametrize(
+        "make_doc",
+        [
+            pytest.param(
+                lambda schema, attrs: _doc_with_add_json(attrs),
+                id="add_json-dict",
+            ),
+            pytest.param(
+                lambda schema, attrs: _doc_with_add_json(json.dumps(attrs)),
+                id="add_json-str",
+            ),
+            pytest.param(
+                lambda schema, attrs: Document(attrs=attrs),
+                id="constructor-dict",
+            ),
+            pytest.param(
+                lambda schema, attrs: Document.from_dict({"attrs": attrs}, schema),
+                id="from_dict-schema-dict",
+            ),
+            pytest.param(
+                lambda schema, attrs: Document.from_dict(
+                    {"attrs": json.dumps(attrs)}, schema
+                ),
+                id="from_dict-schema-str",
+            ),
+        ],
+    )
+    def test_json_field_date_string_is_indexed_as_date(self, make_doc):
+        # All document APIs must index an RFC3339 string in a JSON field as
+        # a date, the same as tantivy and `parse_query`.
+        schema = SchemaBuilder().add_json_field("attrs", stored=True).build()
+        index = Index(schema)
+        writer = index.writer()
+        writer.add_document(make_doc(schema, {"ts": "2021-01-01T00:00:00Z"}))
+        writer.commit()
+        index.reload()
+        searcher = index.searcher()
+
+        date_query = index.parse_query('attrs.ts:"2021-01-01T00:00:00Z"', ["attrs"])
+        assert len(searcher.search(date_query, 10).hits) == 1
+
+        text_query = index.parse_query("attrs.ts:2021", ["attrs"])
+        assert len(searcher.search(text_query, 10).hits) == 0
+
+        stored = searcher.doc(searcher.search(date_query, 10).hits[0][1])
+        assert stored["attrs"][0]["ts"] == datetime.datetime(
+            2021, 1, 1, tzinfo=datetime.timezone.utc
+        )
 
 
 @pytest.mark.parametrize("bytes_kwarg", [True, False])
