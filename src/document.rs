@@ -62,6 +62,11 @@ fn tv_to_pydatetime(py: Python, dt: tv::DateTime) -> PyResult<Py<PyAny>> {
         .into_py_any(py)
 }
 
+/// A JSON object. Convert it to a `Value` with `Value::from`, which indexes
+/// RFC3339 strings as dates, the same as tantivy. Do not deserialize JSON
+/// directly into `Value`, because that indexes date strings as text.
+type JsonMap = serde_json::Map<String, serde_json::Value>;
+
 pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
     if let Ok(s) = any.extract::<String>() {
         return Ok(Value::Str(s));
@@ -85,10 +90,8 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
         return Ok(Value::Bytes(b));
     }
     if let Ok(dict) = any.cast::<PyDict>() {
-        if let Ok(json_dict) =
-            pythonize::depythonize::<BTreeMap<String, Value>>(dict.as_ref())
-        {
-            return Ok(Value::Object(json_dict.into_iter().collect()));
+        if let Ok(json_map) = pythonize::depythonize::<JsonMap>(dict.as_ref()) {
+            return Ok(Value::from(json_map));
         } else {
             return Err(to_pyerr(
                 "Invalid JSON object. Expected valid JSON string or Dict[str, Any].",
@@ -155,20 +158,15 @@ pub(crate) fn extract_value_for_type(
         ),
         tv::schema::Type::Json => {
             if let Ok(json_str) = any.extract::<&str>() {
-                return serde_json::from_str::<BTreeMap<String, Value>>(
-                    json_str,
-                )
-                .map(|json_map| Value::Object(json_map.into_iter().collect()))
-                .map_err(to_pyerr_for_type("Json", field_name, any));
+                return serde_json::from_str::<JsonMap>(json_str)
+                    .map(Value::from)
+                    .map_err(to_pyerr_for_type("Json", field_name, any));
             }
 
             let dict = any
                 .cast::<PyDict>()
                 .map_err(to_pyerr_for_type("Json", field_name, any))?;
-            let map = pythonize::depythonize::<BTreeMap<String, Value>>(
-                dict.as_ref(),
-            )?;
-            Value::Object(map.into_iter().collect())
+            Value::from(pythonize::depythonize::<JsonMap>(dict.as_ref())?)
         }
         tv::schema::Type::IpAddr => {
             let val = any
@@ -779,8 +777,6 @@ impl Document {
         field_name: String,
         value: &Bound<PyAny>,
     ) -> PyResult<()> {
-        type JsonMap = serde_json::Map<String, serde_json::Value>;
-
         if let Ok(json_str) = value.extract::<&str>() {
             let json_map: JsonMap =
                 serde_json::from_str(json_str).map_err(to_pyerr)?;
