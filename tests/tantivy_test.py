@@ -243,6 +243,18 @@ class TestClass(object):
             == """Query(BooleanQuery { subqueries: [(Should, FuzzyTermQuery { term: Term(field=0, type=Str, "winter"), distance: 1, transposition_cost_one: false, prefix: true }), (Should, TermQuery(Term(field=1, type=Str, "winter")))], minimum_number_should_match: 1 })"""
         )
 
+    def test_parse_query_none_boosts_and_fuzzy_fields(self, ram_index):
+        query = ram_index.parse_query(
+            "winter", field_boosts=None, fuzzy_fields=None
+        )
+        assert repr(query) == repr(ram_index.parse_query("winter"))
+
+        query, errors = ram_index.parse_query_lenient(
+            "winter", field_boosts=None, fuzzy_fields=None
+        )
+        assert errors == []
+        assert repr(query) == repr(ram_index.parse_query("winter"))
+
     def test_parse_query_allow_regexes(self, ram_index):
         query = ram_index.parse_query("title:/(?:man|men)/", allow_regexes=True)
         result = ram_index.searcher().search(query, 10)
