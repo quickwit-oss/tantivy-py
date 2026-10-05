@@ -77,6 +77,69 @@ Note: for integer search, the integer field should be indexed.
 
 For more possible query formats and possible query options, see [Tantivy Query Parser Docs.](https://docs.rs/tantivy/latest/tantivy/query/struct.QueryParser.html)
 
+## Field boosts
+
+Use `field_boosts` to make increase the importance of certain matched
+fields when scoring relevance. The keys are field names. The values are
+multipliers for the score.
+
+In this example below, the query matches "ii" in the title of document 2,
+and "skiff" in the body of document 1. Without boosts, document 2 is first:
+
+```python
+query = index.parse_query("ii skiff", ["title", "body"])
+hits = searcher.search(query, 3).hits
+assert [searcher.doc(addr)["doc_id"][0] for _, addr in hits] == [2, 1]
+```
+
+A boost on `body` makes document 1 first:
+
+```python
+query = index.parse_query(
+    "ii skiff", ["title", "body"], field_boosts={"body": 3.0}
+)
+hits = searcher.search(query, 3).hits
+assert [searcher.doc(addr)["doc_id"][0] for _, addr in hits] == [1, 2]
+```
+
+You can also boost one term in the query string with `^`:
+
+```python
+query = index.parse_query("ii body:skiff^3", ["title", "body"])
+hits = searcher.search(query, 3).hits
+assert [searcher.doc(addr)["doc_id"][0] for _, addr in hits] == [1, 2]
+```
+
+## Fuzzy fields
+
+Use `fuzzy_fields` to match terms that are near to the query terms.
+The keys are field names. Each value is a tuple
+`(prefix, distance, transpose_cost_one)`:
+
+ - `prefix`: if `True`, a term also matches when the query term is near to the start of that term.
+ - `distance`: the maximum [Levenshtein distance](https://en.wikipedia.org/wiki/Levenshtein_distance) between the query term and a matching term.
+ - `transpose_cost_one`: if `True`, a swap of two adjacent characters counts as one edit, not two.
+
+The misspelled term "skif" does not match a document:
+
+```python
+query = index.parse_query("skif", ["title", "body"])
+assert searcher.search(query, 3).hits == []
+```
+
+With a fuzzy `body` field, "skif" matches "skiff" in document 1:
+
+```python
+query = index.parse_query(
+    "skif", ["title", "body"], fuzzy_fields={"body": (False, 1, True)}
+)
+hits = searcher.search(query, 3).hits
+assert [searcher.doc(addr)["doc_id"][0] for _, addr in hits] == [1]
+```
+
+The `parse_query_lenient` method accepts the same `field_boosts`
+and `fuzzy_fields` arguments.
+
 ## Escape quotes inside a query string
 
 The tantivy docs for the query parser say that special characters like quotes can be 
