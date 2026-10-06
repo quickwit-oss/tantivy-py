@@ -278,7 +278,7 @@ class Query:
         prefix=False,
     ) -> Query:
         """Construct a FuzzyTermQuery. `field_name` accepts a JSON subpath the
-        same way `term_query` does."""
+        same way `term_query` does; `text` is always matched as text."""
         pass
 
     @staticmethod
@@ -289,7 +289,8 @@ class Query:
         slop: int = 0,
     ) -> Query:
         """Construct a PhraseQuery. `field_name` accepts a JSON subpath the
-        same way `term_query` does."""
+        same way `term_query` does; on a JSON subpath every word must be a
+        str, otherwise ValueError is raised."""
         pass
 
     @staticmethod
@@ -299,7 +300,8 @@ class Query:
         words: list[Union[str, tuple[int, str]]],
     ) -> Query:
         """Construct a PhrasePrefixQuery. `field_name` accepts a JSON subpath
-        the same way `term_query` does."""
+        the same way `term_query` does; on a JSON subpath every word must be a
+        str, otherwise ValueError is raised."""
         pass
 
     @staticmethod

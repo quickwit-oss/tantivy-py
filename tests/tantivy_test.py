@@ -978,6 +978,8 @@ class TestJsonPathTermQueries:
                 "note": "version 5 released",
                 "code": "5",
                 "big": 18446744073709551000,
+                "neg": -5,
+                "min": -9223372036854775808,
                 "ts": "2021-01-01T00:00:00.500Z",
                 "score": 3.5,
             },
@@ -1194,6 +1196,25 @@ class TestJsonPathTermQueries:
         }
         assert term_hits == parsed_hits
 
+    @pytest.mark.parametrize(
+        "field, value", [("attrs.neg", -5), ("attrs.min", -(2**63))]
+    )
+    def test_term_query_json_subpath_negative_int(
+        self, json_index, field, value
+    ):
+        query = Query.term_query(json_index.schema, field, value)
+        term_hits = {
+            addr.doc for _, addr in json_index.searcher().search(query, 10).hits
+        }
+        assert len(term_hits) == 1
+
+        parsed_q = json_index.parse_query(f"{field}:{value}", ["attrs"])
+        parsed_hits = {
+            addr.doc
+            for _, addr in json_index.searcher().search(parsed_q, 10).hits
+        }
+        assert term_hits == parsed_hits
+
     def test_term_query_exact_name_precedence(self):
         # A real field literally named "a.b" must win over splitting "a.b"
         # into JSON field "a" with json_path "b".
@@ -1246,6 +1267,16 @@ class TestJsonPathTermQueries:
         with pytest.raises(ValueError):
             getattr(Query, method)(
                 json_index.schema, "attrs.note", ["version", 5]
+            )
+
+    @pytest.mark.parametrize("word", [(0, 5), (0, True)])
+    @pytest.mark.parametrize("method", ["phrase_query", "phrase_prefix_query"])
+    def test_phrase_json_subpath_non_str_tuple_word_raises(
+        self, json_index, method, word
+    ):
+        with pytest.raises(ValueError):
+            getattr(Query, method)(
+                json_index.schema, "attrs.note", [(0, "version"), word]
             )
 
     def test_fuzzy_term_query_json_subpath_non_str_raises(self, json_index):
@@ -1338,6 +1369,14 @@ class TestJsonPathTermQueries:
         query = Query.fuzzy_term_query(json_index.schema, "attrs.code", "5", distance=1)
         result = json_index.searcher().search(query, 10)
         assert len(result.hits) == 1
+
+        # "6" is one edit away from the indexed "5": it matches with
+        # distance=1 but not with distance=0, which proves the match is fuzzy
+        query = Query.fuzzy_term_query(json_index.schema, "attrs.code", "6", distance=1)
+        assert len(json_index.searcher().search(query, 10).hits) == 1
+
+        query = Query.fuzzy_term_query(json_index.schema, "attrs.code", "6", distance=0)
+        assert len(json_index.searcher().search(query, 10).hits) == 0
 
 
 @pytest.mark.parametrize("bytes_kwarg", [True, False])

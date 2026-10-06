@@ -327,7 +327,8 @@ impl Query {
     ///
     /// * `schema` - Schema of the target index.
     /// * `field_name` - Field name to be searched. For a JSON field, this may
-    ///   be a subpath, e.g. `"attrs.description"`.
+    ///   be a subpath, e.g. `"attrs.description"`. On a JSON subpath every
+    ///   word must be a `str`, otherwise `ValueError` is raised.
     /// * `words` - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.
     /// * `slop` - (Optional) The number of gaps permitted between the words in the query phrase. Default is 0.
     #[staticmethod]
@@ -417,7 +418,8 @@ impl Query {
     ///
     /// * `schema` - Schema of the target index.
     /// * `field_name` - Field name to be searched. For a JSON field, this may
-    ///   be a subpath, e.g. `"attrs.description"`.
+    ///   be a subpath, e.g. `"attrs.description"`. On a JSON subpath every
+    ///   word must be a `str`, otherwise `ValueError` is raised.
     /// * `words` - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, words))]
