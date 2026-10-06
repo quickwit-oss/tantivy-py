@@ -1248,6 +1248,12 @@ class TestJsonPathTermQueries:
                 json_index.schema, "attrs.note", ["version", 5]
             )
 
+    def test_fuzzy_term_query_json_subpath_non_str_raises(self, json_index):
+        # `text` is typed as str, so a non-str is rejected at argument
+        # extraction with a TypeError rather than by make_text_term.
+        with pytest.raises(TypeError):
+            Query.fuzzy_term_query(json_index.schema, "attrs.count", 5)
+
     def test_term_query_json_subpath_matches_parse_query(self, json_index):
         cases = [
             ("attrs.user", "alice", "attrs.user:alice"),

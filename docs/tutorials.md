@@ -215,7 +215,9 @@ The Python type of the value decides the term type. A `str` is always the
 literal string: `"5"` matches a string leaf `"5"`, while the integer leaf `5`
 is matched by passing `5`. `bool`, `float` and `datetime` match their typed
 leaves. `phrase_query`, `phrase_prefix_query` and `fuzzy_term_query` only work
-on text, so they require `str` values on a JSON subpath.
+on text, so they require `str` values on a JSON subpath: `phrase_query` and
+`phrase_prefix_query` raise `ValueError` for anything else, and
+`fuzzy_term_query` raises `TypeError`, since its `text` argument is a `str`.
 
 Values are not tokenized. The default tokenizer lowercases indexed text, so
 `Query.term_query(json_schema, "attrs.user", "Alice")` finds nothing; pass
