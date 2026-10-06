@@ -181,10 +181,12 @@ impl Filter {
     /// Args:
     /// - language (string): Stop words list language.
     ///   Valid values: {
-    ///     "arabic", "danish", "dutch", "english", "finnish", "french", "german", "greek",
-    ///     "hungarian", "italian", "norwegian", "portuguese", "romanian", "russian",
-    ///     "spanish", "swedish", "tamil", "turkish"
+    ///     "danish", "dutch", "english", "finnish", "french", "german", "hungarian",
+    ///     "italian", "norwegian", "portuguese", "russian", "spanish", "swedish"
     ///   }
+    ///
+    /// Adding this filter to a builder raises ValueError for any other language,
+    /// including stemmer languages without a builtin stop word list.
     // ## Implementation notes:
     // An enum would make more sense for `language`, but I'm not sure if it's worth it.
     #[staticmethod]
@@ -383,17 +385,17 @@ impl TextAnalyzerBuilder {
                     }
                 }
                 Filter::_StopWord { language } => {
-                    match parse_language(language) {
-                        Ok(lang) => builder.filter_dynamic(
-                            tvt::StopWordFilter::new(lang).unwrap(),
-                        ),
-                        Err(e) => {
-                            return Err(PyErr::new::<
-                                pyo3::exceptions::PyValueError,
-                                _,
-                            >(e))
-                        }
-                    }
+                    let lang = parse_language(language)
+                        .map_err(PyValueError::new_err)?;
+                    // Not every stemmer language has a builtin stop word list
+                    let stop_words = tvt::StopWordFilter::new(lang)
+                        .ok_or_else(|| {
+                            PyValueError::new_err(format!(
+                                "No builtin stop word list for language: {}",
+                                language
+                            ))
+                        })?;
+                    builder.filter_dynamic(stop_words)
                 }
                 Filter::_CustomStopWord { stopwords } => builder
                     .filter_dynamic(tvt::StopWordFilter::remove(

@@ -243,6 +243,18 @@ class TestClass(object):
             == """Query(BooleanQuery { subqueries: [(Should, FuzzyTermQuery { term: Term(field=0, type=Str, "winter"), distance: 1, transposition_cost_one: false, prefix: true }), (Should, TermQuery(Term(field=1, type=Str, "winter")))], minimum_number_should_match: 1 })"""
         )
 
+    def test_parse_query_none_boosts_and_fuzzy_fields(self, ram_index):
+        query = ram_index.parse_query(
+            "winter", field_boosts=None, fuzzy_fields=None
+        )
+        assert repr(query) == repr(ram_index.parse_query("winter"))
+
+        query, errors = ram_index.parse_query_lenient(
+            "winter", field_boosts=None, fuzzy_fields=None
+        )
+        assert errors == []
+        assert repr(query) == repr(ram_index.parse_query("winter"))
+
     def test_parse_query_allow_regexes(self, ram_index):
         query = ram_index.parse_query("title:/(?:man|men)/", allow_regexes=True)
         result = ram_index.searcher().search(query, 10)
@@ -1717,7 +1729,7 @@ class TestQuery(object):
 
         # test swapping the order of the tuple
         with pytest.raises(
-            TypeError, match=r"'Query' object cannot be converted to 'Occur'"
+            TypeError, match=r"'Query' object is not an instance of 'Occur'"
         ):
             Query.boolean_query(
                 [
@@ -1866,7 +1878,7 @@ class TestQuery(object):
         assert len(result.hits) == 2
 
         with pytest.raises(
-            TypeError, match=r"'str' object cannot be converted to 'Query'"
+            TypeError, match=r"'str' object is not an instance of 'Query'"
         ):
             query = Query.disjunction_max_query(
                 [query1, "not a query"], tie_breaker=0.5
@@ -1948,13 +1960,13 @@ class TestQuery(object):
 
         # wrong query type
         with pytest.raises(
-            TypeError, match=r"'int' object cannot be converted to 'Query'"
+            TypeError, match=r"'int' object is not an instance of 'Query'"
         ):
             Query.boost_query(1, 0.1)
 
         # wrong boost type
         with pytest.raises(
-            TypeError, match=r"argument 'boost': must be real number, not str"
+            TypeError, match=r"must be real number, not str"
         ):
             Query.boost_query(query1, "0.1")
 
@@ -2130,7 +2142,7 @@ class TestQuery(object):
 
         # wrong score type
         with pytest.raises(
-            TypeError, match=r"argument 'score': must be real number, not str"
+            TypeError, match=r"must be real number, not str"
         ):
             Query.const_score_query(query, "0.1")
 
@@ -2643,6 +2655,15 @@ class TestTokenizers:
         )
         doc_text = "the bad wolf buys an axe"
         assert ["bad", "wolf", "buys", "axe"] == analyzer.analyze(doc_text)
+
+    @pytest.mark.parametrize(
+        "language", ["arabic", "greek", "romanian", "tamil", "turkish"]
+    )
+    def test_build_tokenizer_w_stopword_filter_no_builtin_list(self, language):
+        # These languages have a stemmer, but tantivy has no builtin stop word list
+        builder = tantivy.TextAnalyzerBuilder(tokenizer=tantivy.Tokenizer.simple())
+        with pytest.raises(ValueError, match="stop word list"):
+            builder.filter(tantivy.Filter.stopword(language))
 
     def test_build_tokenizer_w_custom_stopwords_filter(self):
         analyzer = (

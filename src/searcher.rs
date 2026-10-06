@@ -304,7 +304,7 @@ impl Searcher {
 
         pythonize(py, &agg_res)
             .map_err(to_pyerr)?
-            .downcast_into::<PyDict>()
+            .cast_into::<PyDict>()
             .map(|d| d.unbind())
             .map_err(Into::into)
     }
@@ -616,7 +616,7 @@ impl Searcher {
         let res = agg_res.get_item("cardinality")?.ok_or_else(|| {
             PyValueError::new_err("Unexpected aggregation result")
         })?;
-        let res_dict: &Bound<PyDict> = res.downcast()?;
+        let res_dict: &Bound<PyDict> = res.cast()?;
         let value = res_dict.get_item("value")?.ok_or_else(|| {
             PyValueError::new_err("Unexpected aggregation result")
         })?;

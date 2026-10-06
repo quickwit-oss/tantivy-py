@@ -548,7 +548,7 @@ impl Index {
     ///     conjunction_by_default: If true, the query will be parsed as a conjunction query. Defaults to a disjunction query.
     ///
     ///     allow_regexes: If true, allow regexes in queries.
-    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false, allow_regexes = false))]
+    #[pyo3(signature = (query, default_field_names = None, field_boosts = None, fuzzy_fields = None, conjunction_by_default = false, allow_regexes = false))]
     // Each argument is a distinct keyword in the exposed Python API.
     #[allow(clippy::too_many_arguments)]
     pub fn parse_query(
@@ -556,16 +556,16 @@ impl Index {
         py: Python,
         query: &str,
         default_field_names: Option<Vec<String>>,
-        field_boosts: HashMap<String, tv::Score>,
-        fuzzy_fields: HashMap<String, (bool, u8, bool)>,
+        field_boosts: Option<HashMap<String, tv::Score>>,
+        fuzzy_fields: Option<HashMap<String, (bool, u8, bool)>>,
         conjunction_by_default: bool,
         allow_regexes: bool,
     ) -> PyResult<Query> {
         py.detach(move || {
             let parser = self.prepare_query_parser(
                 default_field_names,
-                field_boosts,
-                fuzzy_fields,
+                field_boosts.unwrap_or_default(),
+                fuzzy_fields.unwrap_or_default(),
                 conjunction_by_default,
                 allow_regexes,
             )?;
@@ -606,7 +606,7 @@ impl Index {
     /// Returns a tuple containing the parsed query and a list of errors.
     ///
     /// Raises ValueError if a field in `default_field_names` is not defined or marked as indexed.
-    #[pyo3(signature = (query, default_field_names = None, field_boosts = HashMap::new(), fuzzy_fields = HashMap::new(), conjunction_by_default = false, allow_regexes = false))]
+    #[pyo3(signature = (query, default_field_names = None, field_boosts = None, fuzzy_fields = None, conjunction_by_default = false, allow_regexes = false))]
     // Each argument is a distinct keyword in the exposed Python API.
     #[allow(clippy::too_many_arguments)]
     pub fn parse_query_lenient(
@@ -614,15 +614,15 @@ impl Index {
         py: Python,
         query: &str,
         default_field_names: Option<Vec<String>>,
-        field_boosts: HashMap<String, tv::Score>,
-        fuzzy_fields: HashMap<String, (bool, u8, bool)>,
+        field_boosts: Option<HashMap<String, tv::Score>>,
+        fuzzy_fields: Option<HashMap<String, (bool, u8, bool)>>,
         conjunction_by_default: bool,
         allow_regexes: bool,
     ) -> PyResult<(Query, Vec<Py<PyAny>>)> {
         let parser = self.prepare_query_parser(
             default_field_names,
-            field_boosts,
-            fuzzy_fields,
+            field_boosts.unwrap_or_default(),
+            fuzzy_fields.unwrap_or_default(),
             conjunction_by_default,
             allow_regexes,
         )?;
