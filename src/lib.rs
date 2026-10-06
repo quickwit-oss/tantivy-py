@@ -164,34 +164,32 @@ pub(crate) fn get_field(
     Ok(field)
 }
 
+/// Like `make_term`, but for text-only operations (phrase words and fuzzy
+/// queries). On a JSON subpath the value must be a `str`, as on a plain text
+/// field: any other Python type would produce a typed term, which has no
+/// positions (phrases) and no text to fuzz, so the query would silently match
+/// nothing.
+pub(crate) fn make_text_term(
+    schema: &tv::schema::Schema,
+    field_name: &str,
+    field_value: &Bound<PyAny>,
+) -> PyResult<tv::Term> {
+    if let Some((_, json_path)) = schema.find_field(field_name) {
+        if !json_path.is_empty()
+            && !field_value.is_instance_of::<pyo3::types::PyString>()
+        {
+            return Err(exceptions::PyValueError::new_err(format!(
+                "Expected Str type for JSON path `{field_name}`, got `{field_value}`."
+            )));
+        }
+    }
+    make_term(schema, field_name, field_value)
+}
+
 pub(crate) fn make_term(
     schema: &tv::schema::Schema,
     field_name: &str,
     field_value: &Bound<PyAny>,
-) -> PyResult<tv::Term> {
-    make_term_impl(schema, field_name, field_value, false)
-}
-
-/// Like `make_term`, but always treats a JSON subpath value as text, never
-/// as a typed fast value. Used for phrase words (`Query.phrase_query` /
-/// `Query.phrase_prefix_query`) and for `Query.fuzzy_term_query`, which are
-/// both text-only operations — mirroring tantivy's own query parser, which
-/// only ever tokenizes phrase content as text. Without this, a value that
-/// happens to look numeric/bool/date-like (e.g. "5") would silently become
-/// an untokenized typed term that can never match the indexed text posting.
-pub(crate) fn make_term_text_only(
-    schema: &tv::schema::Schema,
-    field_name: &str,
-    field_value: &Bound<PyAny>,
-) -> PyResult<tv::Term> {
-    make_term_impl(schema, field_name, field_value, true)
-}
-
-fn make_term_impl(
-    schema: &tv::schema::Schema,
-    field_name: &str,
-    field_value: &Bound<PyAny>,
-    json_path_text_only: bool,
 ) -> PyResult<tv::Term> {
     let (field, json_path) =
         schema.find_field(field_name).ok_or_else(|| {
@@ -207,7 +205,6 @@ fn make_term_impl(
             field_name,
             json_path,
             field_value,
-            json_path_text_only,
         );
     }
 
@@ -242,28 +239,26 @@ fn make_term_impl(
 ///
 /// A JSON field has no single declared value type, so unlike the plain-field
 /// path in `make_term`, the Python value is read with its own type
-/// (`extract_value`) rather than coerced to a schema-declared one. Numeric and
-/// string handling mirrors tantivy's JSON indexing path (`index_json_value`
-/// in `json_utils.rs`): a string is first tried as a typed fast value
-/// (int/float/bool/date) and only kept as text if that fails; a float that is
+/// (`extract_value`) rather than coerced to a schema-declared one: the Python
+/// type alone decides the term type. A `str` is always the literal string (it
+/// is never reinterpreted as a number, bool or date), so `"5"` addresses a
+/// string leaf and `5` an integer leaf. Numeric handling follows tantivy's
+/// JSON indexing path (`index_json_value` in `json_utils.rs`): a float that is
 /// a whole number is normalized to the same int representation the JSON
-/// indexer would have stored it as.
-///
-/// When `text_only` is set (phrase words, fuzzy queries), a string value is always kept as
-/// text and never reinterpreted as a typed fast value.
+/// indexer would have stored it as, and a non-finite float is rejected.
 fn make_json_path_term(
     schema: &tv::schema::Schema,
     field: tv::schema::Field,
     field_name: &str,
     json_path: &str,
     field_value: &Bound<PyAny>,
-    text_only: bool,
 ) -> PyResult<tv::Term> {
     let json_options = match schema.get_field_entry(field).field_type() {
         tv::schema::FieldType::JsonObject(json_options) => json_options,
         _ => {
             return Err(exceptions::PyValueError::new_err(format!(
-                "Field `{field_name}` is not defined in the schema."
+                "Field `{}` is not a JSON field.",
+                schema.get_field_name(field)
             )))
         }
     };
@@ -274,7 +269,8 @@ fn make_json_path_term(
         json_options.is_expand_dots_enabled(),
     );
 
-    let value = if !field_value.is_instance_of::<pyo3::types::PyBool>()
+    let value = if field_value.is_instance_of::<pyo3::types::PyInt>()
+        && !field_value.is_instance_of::<pyo3::types::PyBool>()
         && field_value.extract::<i64>().is_err()
     {
         // extract_value() only ever produces Value::I64 for Python ints (it
@@ -290,18 +286,7 @@ fn make_json_path_term(
         extract_value(field_value)?
     };
     match value {
-        Value::Str(text) => {
-            if text_only {
-                term.append_type_and_str(&text);
-            } else {
-                match tv::json_utils::convert_to_fast_value_and_append_to_json_term(
-                    &term, &text, true,
-                ) {
-                    Some(fast_term) => term = fast_term,
-                    None => term.append_type_and_str(&text),
-                }
-            }
-        }
+        Value::Str(text) => term.append_type_and_str(&text),
         Value::U64(num) => term.append_type_and_fast_value(num),
         Value::Bool(b) => term.append_type_and_fast_value(b),
         Value::I64(num) => term.append_type_and_fast_value(num),

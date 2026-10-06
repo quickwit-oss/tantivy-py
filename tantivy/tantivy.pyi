@@ -238,14 +238,11 @@ class Query:
         key inside a JSON field. A literal field named "attrs.user" takes
         precedence over the subpath interpretation. Values are not tokenized.
 
-        For a JSON field, a string `field_value` that parses as a number,
-        bool, or RFC3339 date is interpreted as that typed value - matching
-        how such a value would have been indexed - not as literal text. A
-        JSON string leaf whose content happens to look numeric/bool/date-like
-        (e.g. the string "5") is therefore currently not reachable through
-        `term_query`; `index.parse_query()` can match it because the query
-        parser tries both interpretations, but a single `Term` cannot
-        represent that union.
+        On a JSON subpath the Python type decides the term type: a str is
+        always the literal string (so "5" matches a string leaf, 5 an integer
+        leaf), and int, float, bool and datetime match the corresponding typed
+        leaf. Text is not tokenized, so for analyzed text pass the lowercased
+        token (the default tokenizer lowercases).
         """
         pass
 

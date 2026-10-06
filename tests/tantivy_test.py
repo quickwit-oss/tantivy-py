@@ -1020,13 +1020,9 @@ class TestJsonPathTermQueries:
         result = json_index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
-        # str "5" falls back through the same fast-value conversion the
-        # string query parser uses, so it matches the same document as int 5
+        # a str is always the literal string, never reinterpreted as a
+        # number, so "5" does not match the integer leaf 5
         query = Query.term_query(json_index.schema, "attrs.count", "5")
-        result = json_index.searcher().search(query, 10)
-        assert len(result.hits) == 1
-
-        query = Query.term_query(json_index.schema, "attrs.count", "6")
         result = json_index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
@@ -1088,15 +1084,14 @@ class TestJsonPathTermQueries:
         result = json_index.searcher().search(query, 10)
         assert len(result.hits) == 1
 
-    def test_term_query_json_subpath_date_rfc3339_string(self, json_index):
-        # A string value goes through the same fast-value conversion the
-        # string query parser uses (truncate_date_for_search=True), so a
-        # sub-second RFC3339 string must match the same document.
+    def test_term_query_json_subpath_date_rfc3339_string_is_text(self, json_index):
+        # A str is always literal text, even when it looks like an RFC3339
+        # date, so it does not match the date leaf added via add_json.
         query = Query.term_query(
             json_index.schema, "attrs.ts", "2021-01-01T00:00:00.500Z"
         )
         result = json_index.searcher().search(query, 10)
-        assert len(result.hits) == 1
+        assert len(result.hits) == 0
 
     def test_phrase_query_json_subpath(self, json_index):
         query = Query.phrase_query(
@@ -1156,11 +1151,13 @@ class TestJsonPathTermQueries:
         assert len(result.hits) == 2
 
     def test_term_query_json_string_leaf_looking_numeric(self, json_index):
-        # Documented limitation: a single Term can't represent the union the
-        # query parser builds, so a JSON *string* leaf whose content looks
-        # numeric is not reachable via term_query -- the value is interpreted
-        # as the typed number instead.
+        # A str is the literal string, so "5" matches the string leaf "5"
+        # and the int 5 does not.
         query = Query.term_query(json_index.schema, "attrs.code", "5")
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
+        query = Query.term_query(json_index.schema, "attrs.code", 5)
         result = json_index.searcher().search(query, 10)
         assert len(result.hits) == 0
 
@@ -1222,8 +1219,22 @@ class TestJsonPathTermQueries:
             Query.term_query(json_index.schema, "nope.user", "alice")
 
     def test_term_query_path_on_non_json_field_raises(self, json_index):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="`title` is not a JSON field"):
             Query.term_query(json_index.schema, "title.user", "alice")
+
+    def test_term_query_json_subpath_case_sensitive(self, json_index):
+        # the indexed text is lowercased by the default tokenizer and
+        # term_query does not tokenize
+        query = Query.term_query(json_index.schema, "attrs.user", "Alice")
+        result = json_index.searcher().search(query, 10)
+        assert len(result.hits) == 0
+
+    @pytest.mark.parametrize("method", ["phrase_query", "phrase_prefix_query"])
+    def test_phrase_json_subpath_non_str_word_raises(self, json_index, method):
+        with pytest.raises(ValueError):
+            getattr(Query, method)(
+                json_index.schema, "attrs.note", ["version", 5]
+            )
 
     def test_term_query_json_subpath_matches_parse_query(self, json_index):
         cases = [
@@ -1232,7 +1243,9 @@ class TestJsonPathTermQueries:
             ("attrs.count", 5, "attrs.count:5"),
             (
                 "attrs.ts",
-                "2021-01-01T00:00:00.500Z",
+                datetime.datetime(
+                    2021, 1, 1, 0, 0, 0, 500000, tzinfo=datetime.timezone.utc
+                ),
                 'attrs.ts:"2021-01-01T00:00:00.500Z"',
             ),
         ]
@@ -1289,6 +1302,11 @@ class TestJsonPathTermQueries:
         result = expand_index.searcher().search(query, 10)
         assert len(result.hits) == 1
 
+        # an escaped dot addresses the flat key "a.b" without expand_dots
+        query = Query.term_query(plain_index.schema, "attrs.a\\.b", "hello")
+        result = plain_index.searcher().search(query, 10)
+        assert len(result.hits) == 1
+
     def test_fuzzy_term_query_json_subpath(self, json_index):
         # tantivy's FuzzyTermQuery already handles json-path terms natively;
         # this only needs to confirm the binding passes such a term through.
@@ -1297,9 +1315,8 @@ class TestJsonPathTermQueries:
         assert len(result.hits) == 1
 
     def test_fuzzy_term_query_json_subpath_numeric_looking_text(self, json_index):
-        # a JSON string leaf that looks numeric ("code": "5") must still be
-        # matched as text for fuzzy queries, not converted to a typed fast
-        # value (which would make the term un-fuzzy-matchable).
+        # a JSON string leaf that looks numeric ("code": "5") is matched as
+        # text, since a str is never converted to a typed value.
         query = Query.fuzzy_term_query(json_index.schema, "attrs.code", "5", distance=1)
         result = json_index.searcher().search(query, 10)
         assert len(result.hits) == 1
