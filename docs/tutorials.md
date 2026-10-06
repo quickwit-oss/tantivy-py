@@ -186,8 +186,8 @@ complex_query = Query.boolean_query(
 
 ## Querying JSON fields programmatically
 
-`Query.term_query` (and `term_set_query`, `phrase_query`, `phrase_prefix_query`,
-`Searcher.doc_freq`) accept a JSON subpath as `field_name`, the same paths
+`Query.term_query` (and `term_set_query`, `fuzzy_term_query`, `phrase_query`,
+`phrase_prefix_query`, `Searcher.doc_freq`) accept a JSON subpath as `field_name`, the same paths
 `index.parse_query()` understands:
 
 ```python
@@ -209,11 +209,18 @@ assert len(json_result.hits) == 1
 
 A field literally named `"attrs.user"` always takes precedence over the
 subpath interpretation. A path given for a field that isn't JSON, or a root
-that doesn't resolve to any field, raises `ValueError`. A JSON string value
-that looks like a number, bool, or date (e.g. `"5"`) is matched as that typed
-value, not as literal text — unlike `index.parse_query()`, which tries both.
-If you need to match such a string literally, use `index.parse_query()`
-instead.
+that doesn't resolve to any field, raises `ValueError`.
+
+The Python type of the value decides the term type. A `str` is always the
+literal string: `"5"` matches a string leaf `"5"`, while the integer leaf `5`
+is matched by passing `5`. `bool`, `float` and `datetime` match their typed
+leaves. `phrase_query`, `phrase_prefix_query` and `fuzzy_term_query` only work
+on text, so they require `str` values on a JSON subpath.
+
+Values are not tokenized. The default tokenizer lowercases indexed text, so
+`Query.term_query(json_schema, "attrs.user", "Alice")` finds nothing; pass
+`"alice"`. Use `index.parse_query()` if you want the query parser to tokenize
+for you.
 
 ## Combining Queries with the Boolean Helper Methods
 
