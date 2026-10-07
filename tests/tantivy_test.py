@@ -1078,6 +1078,7 @@ class TestJsonPathTermQueries:
                 "big": 18446744073709551000,
                 "neg": -5,
                 "min": -9223372036854775808,
+                "umax": 18446744073709551615,
                 "ts": "2021-01-01T00:00:00.500Z",
                 "score": 3.5,
             },
@@ -1312,6 +1313,28 @@ class TestJsonPathTermQueries:
             for _, addr in json_index.searcher().search(parsed_q, 10).hits
         }
         assert term_hits == parsed_hits
+
+    @pytest.mark.parametrize("field, value", [("attrs.umax", 2**64 - 1)])
+    def test_term_query_json_subpath_u64_max(self, json_index, field, value):
+        query = Query.term_query(json_index.schema, field, value)
+        assert len(json_index.searcher().search(query, 10).hits) == 1
+        assert json_index.searcher().doc_freq(field, value) == 1
+
+    @pytest.mark.parametrize(
+        "field, value",
+        [("attrs.min", -(2**63) - 1), ("attrs.umax", 2**64)],
+    )
+    def test_json_subpath_out_of_range_int_rejected(
+        self, json_index, field, value
+    ):
+        # Ints outside [i64::MIN, u64::MAX] must not be rounded through f64,
+        # which would match the neighbouring indexed integer.
+        with pytest.raises(ValueError, match="outside the supported range"):
+            Query.term_query(json_index.schema, field, value)
+        with pytest.raises(ValueError, match="outside the supported range"):
+            Query.term_set_query(json_index.schema, field, [value])
+        with pytest.raises(ValueError, match="outside the supported range"):
+            json_index.searcher().doc_freq(field, value)
 
     def test_term_query_exact_name_precedence(self):
         # A real field literally named "a.b" must win over splitting "a.b"

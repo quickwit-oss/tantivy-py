@@ -277,10 +277,16 @@ fn make_json_path_term(
         // tries i64, then falls through to f64), which silently loses
         // precision for ints between i64::MAX and u64::MAX -- the JSON
         // indexer itself stores such a value as u64. Intercept that one case
-        // before generic extraction.
+        // before generic extraction. An int outside both ranges is rejected
+        // rather than handed to extract_value(), which would round it to an
+        // f64 and could match a different indexed integer.
         match field_value.extract::<u64>() {
             Ok(num) => Value::U64(num),
-            Err(_) => extract_value(field_value)?,
+            Err(_) => {
+                return Err(exceptions::PyValueError::new_err(format!(
+                    "Integer value `{field_value}` for field `{field_name}` is outside the supported range [-9223372036854775808, 18446744073709551615]."
+                )));
+            }
         }
     } else {
         extract_value(field_value)?
