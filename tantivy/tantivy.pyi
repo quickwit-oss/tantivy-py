@@ -737,3 +737,5 @@ def parse_query_lenient(query: str) -> tuple[dict[str, Any], list[dict[str, Any]
     pass
 
 __version__: str
+MIN_DATETIME: datetime.datetime
+MAX_DATETIME: datetime.datetime

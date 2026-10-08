@@ -97,6 +97,10 @@ fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 
     m.add("__version__", tv::version_string())?;
 
+    let (min_datetime, max_datetime) = document::datetime_bounds();
+    m.add("MIN_DATETIME", min_datetime)?;
+    m.add("MAX_DATETIME", max_datetime)?;
+
     Ok(())
 }
 
