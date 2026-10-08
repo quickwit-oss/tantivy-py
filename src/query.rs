@@ -1,7 +1,7 @@
 use crate::{
     document::Document, explanation::Explanation, get_field, make_term,
-    make_term_for_type, schema::FieldType, searcher::Searcher, to_pyerr,
-    DocAddress, Schema,
+    make_term_for_type, make_text_term, schema::FieldType, searcher::Searcher,
+    to_pyerr, DocAddress, Schema,
 };
 use core::ops::Bound as OpsBound;
 use pyo3::{
@@ -180,6 +180,23 @@ impl Query {
     }
 
     /// Construct a Tantivy's TermQuery
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - Schema of the target index.
+    /// * `field_name` - Field name to be searched. For a JSON field, this may
+    ///   be a subpath, e.g. `"attrs.user"` to address the `user` key inside a
+    ///   JSON field named `attrs`. A field literally named `"attrs.user"`
+    ///   takes precedence over the subpath interpretation.
+    /// * `field_value` - The value to search for. Not tokenized: pre-tokenize
+    ///   to match the index's tokenizer if the field is analyzed text.
+    /// * `index_option` - (Optional) One of `'basic'`, `'freq'` or `'position'`.
+    ///
+    /// On a JSON subpath the Python type decides the term type: a `str` is
+    /// always the literal string (so `"5"` matches a string leaf, `5` an
+    /// integer leaf), and `int`, `float`, `bool` and `datetime` match the
+    /// corresponding typed leaf. Text is not tokenized, so for analyzed text
+    /// pass the lowercased token (the default tokenizer lowercases).
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, field_value, index_option = "position"))]
     pub(crate) fn term_query(
@@ -204,6 +221,8 @@ impl Query {
     }
 
     /// Construct a Tantivy's TermSetQuery
+    ///
+    /// `field_name` accepts a JSON subpath the same way `term_query` does.
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, field_values))]
     pub(crate) fn term_set_query(
@@ -266,7 +285,9 @@ impl Query {
     /// # Arguments
     ///
     /// * `schema` - Schema of the target index.
-    /// * `field_name` - Field name to be searched.
+    /// * `field_name` - Field name to be searched. For a JSON field, this may
+    ///   be a subpath, e.g. `"attrs.user"`, the same way `term_query` accepts
+    ///   one.
     /// * `text` - String representation of the query term.
     /// * `distance` - (Optional) Edit distance you are going to allow. When not specified, the default is 1.
     /// * `transposition_cost_one` - (Optional) If true, a transposition (swapping) cost will be 1; otherwise it will be 2. When not specified, the default is true.
@@ -281,7 +302,7 @@ impl Query {
         transposition_cost_one: bool,
         prefix: bool,
     ) -> PyResult<Query> {
-        let term = make_term(&schema.inner, field_name, text)?;
+        let term = make_text_term(&schema.inner, field_name, text)?;
         let inner = if prefix {
             tv::query::FuzzyTermQuery::new_prefix(
                 term,
@@ -305,7 +326,9 @@ impl Query {
     /// # Arguments
     ///
     /// * `schema` - Schema of the target index.
-    /// * `field_name` - Field name to be searched.
+    /// * `field_name` - Field name to be searched. For a JSON field, this may
+    ///   be a subpath, e.g. `"attrs.description"`. On a JSON subpath every
+    ///   word must be a `str`, otherwise `ValueError` is raised.
     /// * `words` - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.
     /// * `slop` - (Optional) The number of gaps permitted between the words in the query phrase. Default is 0.
     #[staticmethod]
@@ -320,11 +343,11 @@ impl Query {
         for (idx, word) in words.into_iter().enumerate() {
             if let Ok((offset, value)) = word.extract() {
                 // Custom offset is provided.
-                let term = make_term(&schema.inner, field_name, &value)?;
+                let term = make_text_term(&schema.inner, field_name, &value)?;
                 terms_with_offset.push((offset, term));
             } else {
                 // Custom offset is not provided. Use the list index as the offset.
-                let term = make_term(&schema.inner, field_name, &word)?;
+                let term = make_text_term(&schema.inner, field_name, &word)?;
                 terms_with_offset.push((idx, term));
             };
         }
@@ -394,7 +417,9 @@ impl Query {
     /// # Arguments
     ///
     /// * `schema` - Schema of the target index.
-    /// * `field_name` - Field name to be searched.
+    /// * `field_name` - Field name to be searched. For a JSON field, this may
+    ///   be a subpath, e.g. `"attrs.description"`. On a JSON subpath every
+    ///   word must be a `str`, otherwise `ValueError` is raised.
     /// * `words` - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.
     #[staticmethod]
     #[pyo3(signature = (schema, field_name, words))]
@@ -407,11 +432,11 @@ impl Query {
         for (idx, word) in words.into_iter().enumerate() {
             if let Ok((offset, value)) = word.extract() {
                 // Custom offset is provided.
-                let term = make_term(&schema.inner, field_name, &value)?;
+                let term = make_text_term(&schema.inner, field_name, &value)?;
                 terms_with_offset.push((offset, term));
             } else {
                 // Custom offset is not provided. Use the list index as the offset.
-                let term = make_term(&schema.inner, field_name, &word)?;
+                let term = make_text_term(&schema.inner, field_name, &word)?;
                 terms_with_offset.push((idx, term));
             };
         }
