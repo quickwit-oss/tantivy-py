@@ -26,3 +26,6 @@ theme: readthedocs
 #
 plugins:
 - search
+
+markdown_extensions:
+  - admonition

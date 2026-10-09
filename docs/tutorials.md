@@ -468,6 +468,17 @@ by passing some text to its `.analyze()` method.
 my_analyzer.analyze('www.this1website1might1exist.com')
 ```
 
+The `.analyze()` method doesn't return the token's boundary. We can get them with the `.pre_tokenize()` method. This method returns a `PreTokenizedString` objekt.
+A `PreTokenizedString` can be added to a `Document` later with the `.add_pre_tokenized_text()` method.
+```python
+# Will print: [
+# Token(text='this', position=1, char_offset_from=4, char_offset_to=8), 
+# Token(text='website', position=2, char_offset_from=9, char_offset_to=16), 
+# ...]
+tokenized = my_analyzer.pre_tokenize('www.this1website1might1exist.com')
+tokenized.tokens
+```
+
 The next step is to register our analyzer with an index. Let's
 assume we already have one.
 
@@ -490,12 +501,26 @@ schema = (
 index = Index(schema)
 ```
 
-Summary:
+With fast fields, the text analyzer should be registered with the index's `.register_fast_field_tokenizer()` method. 
+Fast fields are Tantivy's column-oriented storage, and are designed for fast random access of some document fields given a document id. The registry for fast field text analyzers are separate from the registry of other fields. 
+Continuing the example, if the "content" field is declared as fast field in our schema, then the analyzer must be registered as a fast field tokenizer, too.
 
-1. Use `TextAnalyzerBuilder`, `Tokenizer`, and `Filter` to build a `TextAnalyzer`
-2. The analyzer's `.analyze()` method lets you use your analyzer as a tokenizer from Python.
-3. Refer to your analyzer's name when building the index schema.
-4. Use the same name when registering your analyzer on the index.
+```python
+schema = (  
+    tantivy.SchemaBuilder()  
+    .add_text_field("content", fast=True, tokenizer_name="custom_analyzer")  
+    .build()  
+)  
+index = Index(schema)
+index.register_fast_field_tokenizer("custom_analyzer", my_analyzer)  
+```
+
+!!! abstract "Summary"
+
+    1. Use `TextAnalyzerBuilder`, `Tokenizer`, and `Filter` to build a `TextAnalyzer`
+    2. The analyzer's `.analyze()` and `.pre_tokenize()` method lets you use your analyzer as a tokenizer from Python.
+    3. Refer to your analyzer's name when building the index schema.
+    4. Use the same name when registering your analyzer on the index with `.register_tokenizer()` or `.register_fast_field_tokenizer()`.
 
 
 ### On terminology: Tokenizer vs. Text Analyzer
