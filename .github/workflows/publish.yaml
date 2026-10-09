@@ -31,7 +31,7 @@ env:
 jobs:
   build-sdist:
     name: Build sdist
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     # The from-sdist build compiles the extension cold. This is the path any platform
@@ -67,7 +67,7 @@ jobs:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
 
-      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+      - uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067
         with:
           toolchain: "stable"
 
@@ -107,7 +107,7 @@ jobs:
 
   build-wheel:
     name: Wheels - ${{ matrix.platform }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     timeout-minutes: 45
@@ -187,7 +187,7 @@ jobs:
 
   windows:
     name: Wheels - windows-${{ matrix.target }}
-    runs-on: windows-latest
+    runs-on: windows-2025
     permissions:
       contents: read
     timeout-minutes: 45
@@ -246,7 +246,7 @@ jobs:
 
   macos:
     name: Wheels - macos-${{ matrix.target }}
-    runs-on: macos-latest
+    runs-on: macos-26
     permissions:
       contents: read
     timeout-minutes: 45
@@ -318,11 +318,11 @@ jobs:
         # that matches its tags. The wheels are abi3, so every Python version installs
         # the same artifact: running each one proves that artifact on each interpreter.
         runner:
-          - ubuntu-latest      # manylinux x86_64
+          - ubuntu-24.04       # manylinux x86_64
           - ubuntu-24.04-arm   # manylinux aarch64
-          - macos-latest       # macOS arm64 (universal2)
+          - macos-26           # macOS arm64 (universal2)
           - macos-15-intel     # macOS x86_64
-          - windows-latest     # windows x64
+          - windows-2025       # windows x64
         python-version: ['3.11', '3.12', '3.13', '3.14']
     defaults:
       run:
@@ -402,7 +402,7 @@ jobs:
       fail-fast: false
       matrix:
         runner:
-          - ubuntu-latest      # musllinux x86_64
+          - ubuntu-24.04       # musllinux x86_64
           - ubuntu-24.04-arm   # musllinux aarch64
         python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
@@ -459,7 +459,7 @@ jobs:
   python-release-github:
     name: Attach wheels to the GitHub release
     if: github.event_name == 'release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ test-wheel, test-wheel-musl, build-sdist ]
     permissions:
       contents: write # To add assets to a release.
@@ -491,7 +491,7 @@ jobs:
   release-pypy:
     name: Release
     if: github.event_name == 'release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ test-wheel, test-wheel-musl, build-sdist ]
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing

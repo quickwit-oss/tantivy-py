@@ -4,6 +4,7 @@
 use itertools::Itertools;
 use pyo3::{
     basic::CompareOp,
+    exceptions::{PyOverflowError, PyTypeError},
     prelude::*,
     types::{
         PyAny, PyBool, PyDateTime, PyDict, PyInt, PyList, PyTuple, PyTzInfo,
@@ -41,11 +42,42 @@ use std::{
 /// `DateTime<Utc>` only accepts inputs whose tzinfo *is* `datetime.timezone.utc`
 /// — a `zoneinfo.ZoneInfo("UTC")` or any non-UTC tz fails. Normalizing in
 /// Python first sidesteps both restrictions.
-fn pydatetime_to_tv(any: &Bound<PyAny>) -> PyResult<tv::DateTime> {
+///
+/// Values outside the range tantivy can store raise a `ValueError` naming the
+/// value and the range; `field_name`, when given, prefixes that message.
+fn pydatetime_to_tv(
+    any: &Bound<PyAny>,
+    field_name: Option<&str>,
+) -> PyResult<tv::DateTime> {
     let dt = any.cast::<PyDateTime>()?;
+    let out_of_range = || {
+        let (min, max) = datetime_bounds();
+        let prefix = field_name
+            .map(|name| format!("field {name}: "))
+            .unwrap_or_default();
+        let value = any
+            .call_method0("isoformat")
+            .and_then(|s| s.extract::<String>())
+            .unwrap_or_else(|_| "<unknown>".to_string());
+        to_pyerr(format!(
+            "{prefix}datetime {value} is out of range; dates must be between {} and {} (UTC)",
+            format_bound(min),
+            format_bound(max),
+        ))
+    };
     let nanos = if dt.get_tzinfo().is_some() {
         let utc_tz = PyTzInfo::utc(dt.py())?;
-        let utc_dt = dt.call_method1("astimezone", (utc_tz,))?;
+        // Converting an offset-aware value near year 1 or 9999 to UTC can
+        // overflow inside Python before tantivy's own range is checked.
+        let utc_dt = dt.call_method1("astimezone", (utc_tz,)).map_err(|e| {
+            if e.is_instance_of::<PyOverflowError>(dt.py()) {
+                let err = out_of_range();
+                err.set_cause(dt.py(), Some(e));
+                err
+            } else {
+                e
+            }
+        })?;
         utc_dt
             .extract::<ChronoDateTime<Utc>>()?
             .timestamp_nanos_opt()
@@ -54,8 +86,30 @@ fn pydatetime_to_tv(any: &Bound<PyAny>) -> PyResult<tv::DateTime> {
             .and_utc()
             .timestamp_nanos_opt()
     }
-    .ok_or_else(|| to_pyerr("datetime out of representable range"))?;
+    .ok_or_else(out_of_range)?;
     Ok(tv::DateTime::from_timestamp_nanos(nanos))
+}
+
+/// The earliest and latest instants tantivy can store, narrowed to the
+/// microsecond precision of Python's `datetime` so that both are accepted by
+/// `pydatetime_to_tv`: the minimum rounds up and the maximum rounds down.
+pub(crate) fn datetime_bounds() -> (ChronoDateTime<Utc>, ChronoDateTime<Utc>) {
+    let min_nanos = tv::DateTime::MIN.into_timestamp_nanos();
+    let max_nanos = tv::DateTime::MAX.into_timestamp_nanos();
+    let min_micros =
+        min_nanos.div_euclid(1000) + i64::from(min_nanos.rem_euclid(1000) != 0);
+    let max_micros = max_nanos.div_euclid(1000);
+    (
+        ChronoDateTime::<Utc>::from_timestamp_micros(min_micros)
+            .expect("tantivy minimum fits in chrono"),
+        ChronoDateTime::<Utc>::from_timestamp_micros(max_micros)
+            .expect("tantivy maximum fits in chrono"),
+    )
+}
+
+/// Format a bound like Python's `datetime.isoformat()` for an aware UTC value.
+fn format_bound(dt: ChronoDateTime<Utc>) -> String {
+    dt.format("%Y-%m-%dT%H:%M:%S%.6f+00:00").to_string()
 }
 
 /// Convert a tantivy `DateTime` to a tz-aware UTC Python `datetime`.
@@ -83,7 +137,7 @@ pub(crate) fn extract_value(any: &Bound<PyAny>) -> PyResult<Value> {
         return Ok(Value::F64(num));
     }
     if any.cast::<PyDateTime>().is_ok() {
-        return Ok(Value::Date(pydatetime_to_tv(any)?));
+        return Ok(Value::Date(pydatetime_to_tv(any, None)?));
     }
     if let Ok(facet) = any.extract::<Facet>() {
         return Ok(Value::Facet(facet.inner));
@@ -144,8 +198,13 @@ pub(crate) fn extract_value_for_type(
                 .map_err(to_pyerr_for_type("F64", field_name, any))?,
         ),
         tv::schema::Type::Date => Value::Date(
-            pydatetime_to_tv(any)
-                .map_err(to_pyerr_for_type("DateTime", field_name, any))?,
+            pydatetime_to_tv(any, Some(field_name)).map_err(|e| {
+                if e.is_instance_of::<PyTypeError>(any.py()) {
+                    to_pyerr_for_type("DateTime", field_name, any)(e)
+                } else {
+                    e
+                }
+            })?,
         ),
         tv::schema::Type::Facet => Value::Facet(
             any.cast::<Facet>()
@@ -754,12 +813,16 @@ impl Document {
     /// Args:
     ///     field_name (str): The field name for which we are adding the date.
     ///     value (datetime): The date that will be added to the document.
+    ///         Naive values are treated as UTC. Values must fall between
+    ///         `tantivy.MIN_DATETIME` and `tantivy.MAX_DATETIME`
+    ///         (roughly the years 1677 to 2262); otherwise a `ValueError`
+    ///         is raised.
     fn add_date(
         &mut self,
         field_name: String,
         value: &Bound<PyDateTime>,
     ) -> PyResult<()> {
-        let dt = pydatetime_to_tv(value.as_any())?;
+        let dt = pydatetime_to_tv(value.as_any(), None)?;
         self.add_value(field_name, dt);
         Ok(())
     }

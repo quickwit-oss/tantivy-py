@@ -184,6 +184,46 @@ complex_query = Query.boolean_query(
 
 <!--TODO: Update the reference link to the query parser docs when available.-->
 
+## Querying JSON fields programmatically
+
+`Query.term_query` (and `term_set_query`, `fuzzy_term_query`, `phrase_query`,
+`phrase_prefix_query`, `Searcher.doc_freq`) accept a JSON subpath as `field_name`, the same paths
+`index.parse_query()` understands:
+
+```python
+from tantivy import SchemaBuilder, Index, Query, Document
+
+json_schema = SchemaBuilder().add_json_field("attrs", stored=True).build()
+json_index = Index(json_schema)
+json_writer = json_index.writer()
+json_doc = Document()
+json_doc.add_json("attrs", {"user": "alice", "count": 5})
+json_writer.add_document(json_doc)
+json_writer.commit()
+json_index.reload()
+
+json_query = Query.term_query(json_schema, "attrs.user", "alice")
+json_result = json_index.searcher().search(json_query, 10)
+assert len(json_result.hits) == 1
+```
+
+A field literally named `"attrs.user"` always takes precedence over the
+subpath interpretation. A path given for a field that isn't JSON, or a root
+that doesn't resolve to any field, raises `ValueError`.
+
+The Python type of the value decides the term type. A `str` is always the
+literal string: `"5"` matches a string leaf `"5"`, while the integer leaf `5`
+is matched by passing `5`. `bool`, `float` and `datetime` match their typed
+leaves. `phrase_query`, `phrase_prefix_query` and `fuzzy_term_query` only work
+on text, so they require `str` values on a JSON subpath: `phrase_query` and
+`phrase_prefix_query` raise `ValueError` for anything else, and
+`fuzzy_term_query` raises `TypeError`, since its `text` argument is a `str`.
+
+Values are not tokenized. The default tokenizer lowercases indexed text, so
+`Query.term_query(json_schema, "attrs.user", "Alice")` finds nothing; pass
+`"alice"`. Use `index.parse_query()` if you want the query parser to tokenize
+for you.
+
 ## Combining Queries with the Boolean Helper Methods
 
 `Query.boolean_query(...)` shown above is the most general way to combine

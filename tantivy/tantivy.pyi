@@ -237,12 +237,26 @@ class Query:
         field_value: Any,
         index_option: str = "position",
     ) -> Query:
+        """Construct a TermQuery.
+
+        `field_name` accepts a JSON subpath (e.g. "attrs.user") to address a
+        key inside a JSON field. A literal field named "attrs.user" takes
+        precedence over the subpath interpretation. Values are not tokenized.
+
+        On a JSON subpath the Python type decides the term type: a str is
+        always the literal string (so "5" matches a string leaf, 5 an integer
+        leaf), and int, float, bool and datetime match the corresponding typed
+        leaf. Text is not tokenized, so for analyzed text pass the lowercased
+        token (the default tokenizer lowercases).
+        """
         pass
 
     @staticmethod
     def term_set_query(
         schema: Schema, field_name: str, field_values: Sequence[Any]
     ) -> Query:
+        """Construct a TermSetQuery. `field_name` accepts a JSON subpath the
+        same way `term_query` does."""
         pass
 
     @staticmethod
@@ -268,6 +282,8 @@ class Query:
         transposition_cost_one: bool = True,
         prefix=False,
     ) -> Query:
+        """Construct a FuzzyTermQuery. `field_name` accepts a JSON subpath the
+        same way `term_query` does; `text` is always matched as text."""
         pass
 
     @staticmethod
@@ -277,6 +293,9 @@ class Query:
         words: list[Union[str, tuple[int, str]]],
         slop: int = 0,
     ) -> Query:
+        """Construct a PhraseQuery. `field_name` accepts a JSON subpath the
+        same way `term_query` does; on a JSON subpath every word must be a
+        str, otherwise ValueError is raised."""
         pass
 
     @staticmethod
@@ -285,6 +304,9 @@ class Query:
         field_name: str,
         words: list[Union[str, tuple[int, str]]],
     ) -> Query:
+        """Construct a PhrasePrefixQuery. `field_name` accepts a JSON subpath
+        the same way `term_query` does; on a JSON subpath every word must be a
+        str, otherwise ValueError is raised."""
         pass
 
     @staticmethod
@@ -444,6 +466,9 @@ class Searcher:
         pass
 
     def doc_freq(self, field_name: str, field_value: Any) -> int:
+        """Return the overall number of documents containing the given term.
+        `field_name` accepts a JSON subpath the same way `Query.term_query`
+        does."""
         pass
 
     def terms_with_prefix(
@@ -757,3 +782,5 @@ def parse_query_lenient(query: str) -> tuple[dict[str, Any], list[dict[str, Any]
     pass
 
 __version__: str
+MIN_DATETIME: datetime.datetime
+MAX_DATETIME: datetime.datetime
