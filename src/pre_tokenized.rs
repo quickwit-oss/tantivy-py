@@ -164,7 +164,7 @@ impl PreTokenizedString {
     ) -> PyResult<Py<PyAny>> {
         match op {
             pyo3::basic::CompareOp::Eq => {
-                (self.inner == self.inner).into_py_any(py)
+                (self.inner == other.inner).into_py_any(py)
             }
             pyo3::basic::CompareOp::Ne => {
                 (self.inner != other.inner).into_py_any(py)

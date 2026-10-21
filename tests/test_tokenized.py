@@ -85,3 +85,11 @@ def test_write_pre_tokenized(ram_index):
     query = Query.phrase_query(schema, "body", ["\U0001f9d4\U0001f3fb", "\u26f5"])
     r = searcher.search(query)
     assert len(r.hits) == 1
+
+
+def test_pre_tokenized_equality():
+    analyzer = TextAnalyzerBuilder(Tokenizer.whitespace()).build()
+    first = analyzer.pre_tokenize("Emoji Dick")
+    assert first == analyzer.pre_tokenize("Emoji Dick")
+    assert first != analyzer.pre_tokenize("Moby Dick")
+    assert not first == analyzer.pre_tokenize("Moby Dick")
