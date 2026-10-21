@@ -599,7 +599,8 @@ serves to register a *text analyzer*.
 ## How to use aggregations
 
 Aggregations summarize your data as metrics, statistics, or other analytics.
-Tantivy-py supports a subset of the aggregations available in Tantivy.
+`Searcher.cardinality` is a shortcut for one aggregation, and
+`Searcher.aggregate` runs any aggregation tantivy supports.
 
 ### Cardinality Aggregation
 
@@ -638,4 +639,49 @@ query = tantivy.Query.all_query()
 cardinality = searcher.cardinality(query, "rating")
 
 assert cardinality == 2.0
+```
+
+### Aggregation requests
+
+`Searcher.aggregate` takes an aggregation request as a dict, in tantivy's
+Elasticsearch-compatible format, and returns the result as a dict. Any
+aggregation tantivy supports can be used, for example `multi_terms`, which
+buckets documents by a combination of fields, or `sum` with
+`none_if_no_match`, which returns `None` instead of `0.0` when no document
+matches:
+
+```python
+import tantivy
+
+schema = (
+    tantivy.SchemaBuilder()
+    .add_text_field("genre", fast=True, tokenizer_name="raw")
+    .add_unsigned_field("year", fast=True)
+    .add_float_field("price", fast=True)
+    .build()
+)
+index = tantivy.Index(schema)
+with index.writer() as writer:
+    for genre, year, price in [("novel", 1952, 9.5), ("novel", 1952, 12.0), ("poetry", 1961, 7.0)]:
+        book = tantivy.Document(genre=genre, price=price)
+        book.add_unsigned("year", year)
+        writer.add_document(book)
+index.reload()
+searcher = index.searcher()
+
+by_genre_and_year = searcher.aggregate(
+    tantivy.Query.all_query(),
+    {"pairs": {"multi_terms": {"terms": [{"field": "genre"}, {"field": "year"}]}}},
+)
+counts = {
+    tuple(bucket["key"]): bucket["doc_count"]
+    for bucket in by_genre_and_year["pairs"]["buckets"]
+}
+assert counts == {("novel", 1952): 2, ("poetry", 1961): 1}
+
+no_match = searcher.aggregate(
+    index.parse_query("genre:drama"),
+    {"revenue": {"sum": {"field": "price", "none_if_no_match": True}}},
+)
+assert no_match["revenue"]["value"] is None
 ```

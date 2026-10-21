@@ -174,6 +174,31 @@ class TestClass(object):
         assert "and" in top_keys
         assert buckets[0]["doc_count"] == 2
 
+    def test_aggregate_multi_terms(self, ram_index_numeric_fields):
+        searcher = ram_index_numeric_fields.searcher()
+        agg_query = {
+            "pairs": {"multi_terms": {"terms": [{"field": "id"}, {"field": "rating"}]}}
+        }
+        result = searcher.aggregate(Query.all_query(), agg_query)
+        buckets = sorted(result["pairs"]["buckets"], key=lambda b: b["key"])
+        assert [(b["key"], b["doc_count"]) for b in buckets] == [
+            ([1, 3.5], 1),
+            ([2, 4.5], 1),
+        ]
+
+    @pytest.mark.parametrize(
+        ("options", "expected"), [({}, 0.0), ({"none_if_no_match": True}, None)]
+    )
+    def test_aggregate_sum_with_no_match(
+        self, ram_index_numeric_fields, options, expected
+    ):
+        index = ram_index_numeric_fields
+        searcher = index.searcher()
+        no_match = Query.term_query(index.schema, "id", 99)
+        agg_query = {"total": {"sum": {"field": "rating", **options}}}
+        result = searcher.aggregate(no_match, agg_query)
+        assert result["total"]["value"] == expected
+
     def test_cardinality(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
         query = Query.all_query()
@@ -1832,6 +1857,16 @@ class TestQuery(object):
 
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
+
+    def test_exists_query_syntax(self, index_with_empty_fast_field):
+        index = index_with_empty_fast_field
+        searcher = index.searcher()
+        parsed = searcher.search(index.parse_query("body:*"), 10).hits
+        built = searcher.search(Query.exists_query("body"), 10).hits
+        assert [address for _, address in parsed] == [
+            address for _, address in built
+        ]
+        assert len(parsed) == 1
 
     def test_not_exists_query(self, index_with_empty_fast_field):
         index = index_with_empty_fast_field
