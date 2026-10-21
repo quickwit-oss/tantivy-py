@@ -48,6 +48,19 @@ impl Snippet {
     pub fn fragment(&self) -> PyResult<String> {
         Ok(self.inner.fragment().to_string())
     }
+
+    /// Returns where the fragment sits in the text the snippet was generated
+    /// from, as UTF-8 byte offsets.
+    ///
+    /// For `SnippetGenerator.snippet_from_doc`, that text is the field's
+    /// values joined by a single space and trimmed.
+    pub fn fragment_range(&self) -> Range {
+        let range = self.inner.fragment_range();
+        Range {
+            start: range.start,
+            end: range.end,
+        }
+    }
 }
 
 #[pyclass(module = "tantivy.tantivy")]

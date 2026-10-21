@@ -335,9 +335,9 @@ impl ExpectedBase64Error {
     /// If the error was caused by an invalid last symbol, returns the offset and offending byte.
     fn invalid_last_symbol_info(&self) -> Option<(usize, u8)> {
         match self.decode_error {
-            base64::DecodeError::InvalidLastSymbol(position, byte) => {
-                Some((position, byte))
-            }
+            base64::DecodeError::InvalidLastSymbol {
+                offset, symbol, ..
+            } => Some((offset, symbol)),
             _ => None,
         }
     }

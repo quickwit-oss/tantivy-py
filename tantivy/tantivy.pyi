@@ -33,6 +33,9 @@ class SchemaBuilder:
     ) -> SchemaBuilder:
         pass
 
+    def add_tie_breaker_field(self, name: str) -> SchemaBuilder:
+        pass
+
     def add_float_field(
         self,
         name: str,
@@ -535,7 +538,12 @@ class IndexWriter:
 
 class Index:
     def __new__(
-        cls, schema: Schema, path: Optional[str] = None, reuse: bool = True
+        cls,
+        schema: Schema,
+        path: Optional[str] = None,
+        reuse: bool = True,
+        sort_by_field: Optional[str] = None,
+        sort_order: Order = Order.Asc,
     ) -> Index:
         pass
 
@@ -618,6 +626,9 @@ class Snippet:
         pass
 
     def fragment(self) -> str:
+        pass
+
+    def fragment_range(self) -> Range:
         pass
 
 

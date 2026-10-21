@@ -24,30 +24,30 @@ Tantivy is, in fact, strongly inspired by Lucene's design.</p>
 <pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tantivy</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">builder</span> <span class="o">=</span> <span class="n"><a href="#SchemaBuilder">tantivy.SchemaBuilder</a></span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">title</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="n">stored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">body</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">title</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="n">stored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">body</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">"body"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">schema</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n"><a href="#Index">tantivy.Index</a></span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document">tantivy.Document</a></span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="s2">&quot;The Old Man and the Sea&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;He was an old man who fished alone in a &quot;</span>
-<span class="go">                        &quot;skiff in the Gulf Stream and he had gone &quot;</span>
-<span class="go">                        &quot;eighty-four days now without taking a fish.&quot;))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="s2">"The Old Man and the Sea"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="p">(</span><span class="s2">"He was an old man who fished alone in a "</span>
+<span class="go">                        "skiff in the Gulf Stream and he had gone "</span>
+<span class="go">                        "eighty-four days now without taking a fish."))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="o">.</span><span class="n">add_document</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">parse_document</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
-<span class="go">       &quot;title&quot;: [&quot;Frankenstein&quot;, &quot;The Modern Prometheus&quot;],</span>
-<span class="go">       &quot;body&quot;: (&quot;You will rejoice to hear that no disaster has &quot;</span>
-<span class="go">                &quot;accompanied the commencement of an enterprise which &quot;</span>
-<span class="go">                &quot;you have regarded with such evil forebodings.  &quot;</span>
-<span class="go">                &quot;I arrived here yesterday, and my first task is to &quot;</span>
-<span class="go">                &quot;assure my dear sister of my welfare and increasing &quot;</span>
-<span class="go">                &quot;confidence in the success of my undertaking.&quot;)</span>
+<span class="go">       "title": ["Frankenstein", "The Modern Prometheus"],</span>
+<span class="go">       "body": ("You will rejoice to hear that no disaster has "</span>
+<span class="go">                "accompanied the commencement of an enterprise which "</span>
+<span class="go">                "you have regarded with such evil forebodings.  "</span>
+<span class="go">                "I arrived here yesterday, and my first task is to "</span>
+<span class="go">                "assure my dear sister of my welfare and increasing "</span>
+<span class="go">                "confidence in the success of my undertaking.")</span>
 <span class="go">}))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="o">.</span><span class="n">add_document</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">reader</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">searcher</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">searcher</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">query</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">parse_query</span><span class="p">(</span><span class="s2">&quot;sea whale&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">title</span><span class="p">,</span> <span class="n">body</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">query</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">parse_query</span><span class="p">(</span><span class="s2">"sea whale"</span><span class="p">,</span> <span class="p">[</span><span class="n">title</span><span class="p">,</span> <span class="n">body</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">searcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
 </code></pre>
@@ -66,8 +66,8 @@ Tantivy is, in fact, strongly inspired by Lucene's design.</p>
 <main class="pdoc">
 <section id="__version__">
                     <div class="attr variable">
-            <span class="name">__version__</span><span class="annotation">: str</span>        =
-<span class="default_value">&#39;tantivy v0.26.0, index_format v7&#39;</span>
+            <span class="name">__version__</span>        =
+<span class="default_value">&#39;tantivy v0.27.0, index_format v7&#39;</span>
 
         
     </div>
@@ -102,7 +102,7 @@ hold by a Searcher.</p>
 
                             <div id="DocAddress.doc" class="classattr">
                                 <div class="attr variable">
-            <span class="name">doc</span><span class="annotation">: int</span>
+            <span class="name">doc</span>
 
         
     </div>
@@ -115,7 +115,7 @@ hold by a Searcher.</p>
                             </div>
                             <div id="DocAddress.segment_ord" class="classattr">
                                 <div class="attr variable">
-            <span class="name">segment_ord</span><span class="annotation">: int</span>
+            <span class="name">segment_ord</span>
 
         
     </div>
@@ -153,10 +153,10 @@ document. It is only meaningful, in the context of a searcher.</p>
 <blockquote>
   <div class="pdoc-code codehilite">
 <pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document">tantivy.Document</a></span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;The Old Man and the Sea&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;He was an old man who fished alone in a &quot;</span>
-<span class="gp">... </span>                      <span class="s2">&quot;skiff in the Gulf Stream and he had gone &quot;</span>
-<span class="gp">... </span>                      <span class="s2">&quot;eighty-four days now without taking a fish.&quot;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"The Old Man and the Sea"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s2">"body"</span><span class="p">,</span> <span class="p">(</span><span class="s2">"He was an old man who fished alone in a "</span>
+<span class="gp">... </span>                      <span class="s2">"skiff in the Gulf Stream and he had gone "</span>
+<span class="gp">... </span>                      <span class="s2">"eighty-four days now without taking a fish."</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span>
 <span class="go">Document(body=[He was an ],title=[The Old Ma])</span>
 </code></pre>
@@ -170,7 +170,7 @@ values directly as constructor arguments.</p>
 
 <blockquote>
   <div class="pdoc-code codehilite">
-<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document">tantivy.Document</a></span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;The Old Man and the Sea&quot;</span><span class="p">],</span> <span class="n">body</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;...&quot;</span><span class="p">])</span>
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document">tantivy.Document</a></span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="p">[</span><span class="s2">"The Old Man and the Sea"</span><span class="p">],</span> <span class="n">body</span><span class="o">=</span><span class="p">[</span><span class="s2">"..."</span><span class="p">])</span>
 </code></pre>
   </div>
 </blockquote>
@@ -182,7 +182,7 @@ if there is only one. In other words, the following is also legal.</p>
 
 <blockquote>
   <div class="pdoc-code codehilite">
-<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document">tantivy.Document</a></span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;The Old Man and the Sea&quot;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="s2">&quot;...&quot;</span><span class="p">)</span>
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document">tantivy.Document</a></span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">"The Old Man and the Sea"</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="s2">"..."</span><span class="p">)</span>
 </code></pre>
   </div>
 </blockquote>
@@ -199,13 +199,13 @@ explicit type information.</p>
   <div class="pdoc-code codehilite">
 <pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">schema</span> <span class="o">=</span> <span class="p">(</span>
 <span class="gp">... </span>    <span class="n">SchemaBuilder</span><span class="p">()</span>
-<span class="gp">... </span>        <span class="o">.</span><span class="n">add_unsigned_field</span><span class="p">(</span><span class="s2">&quot;unsigned&quot;</span><span class="p">)</span>
-<span class="gp">... </span>        <span class="o">.</span><span class="n">add_integer_field</span><span class="p">(</span><span class="s2">&quot;signed&quot;</span><span class="p">)</span>
-<span class="gp">... </span>        <span class="o">.</span><span class="n">add_float_field</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">add_unsigned_field</span><span class="p">(</span><span class="s2">"unsigned"</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">add_integer_field</span><span class="p">(</span><span class="s2">"signed"</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">add_float_field</span><span class="p">(</span><span class="s2">"float"</span><span class="p">)</span>
 <span class="gp">... </span>        <span class="o">.</span><span class="n">build</span><span class="p">()</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">doc</span> <span class="o">=</span> <span class="n"><a href="#Document.from_dict">tantivy.Document.from_dict</a></span><span class="p">(</span>
-<span class="gp">... </span>    <span class="p">{</span><span class="s2">&quot;unsigned&quot;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s2">&quot;signed&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;float&quot;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="p">{</span><span class="s2">"unsigned"</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s2">"signed"</span><span class="p">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="s2">"float"</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">},</span>
 <span class="gp">... </span>    <span class="n">schema</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 </code></pre>
@@ -218,7 +218,7 @@ explicit type information.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_boolean</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">value</span><span class="p">:</span> <span class="nb">bool</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">add_boolean</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">value</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -240,7 +240,7 @@ explicit type information.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_bytes</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="nb">bytes</span><span class="p">:</span> <span class="nb">bytes</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">add_bytes</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="nb">bytes</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -262,7 +262,7 @@ explicit type information.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_date</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">value</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">add_date</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">value</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -274,7 +274,11 @@ explicit type information.</p>
 
 <ul>
 <li><strong>field_name (str):</strong>  The field name for which we are adding the date.</li>
-<li><strong>value (datetime):</strong>  The date that will be added to the document.</li>
+<li><strong>value (datetime):</strong>  The date that will be added to the document.
+Naive values are treated as UTC. Values must fall between
+<code><a href="#MIN_DATETIME">tantivy.MIN_DATETIME</a></code> and <code><a href="#MAX_DATETIME">tantivy.MAX_DATETIME</a></code>
+(roughly the years 1677 to 2262); otherwise a <code>ValueError</code>
+is raised.</li>
 </ul>
 </div>
 
@@ -284,7 +288,7 @@ explicit type information.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_facet</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">facet</span><span class="p">:</span> <span class="n"><a href="#Facet">Facet</a></span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">add_facet</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">facet</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -306,7 +310,7 @@ explicit type information.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_float</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">value</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">add_float</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">value</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -328,7 +332,7 @@ explicit type information.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_integer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">value</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">add_integer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">value</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -350,7 +354,7 @@ explicit type information.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_ip_addr</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">ip_addr</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">add_ip_addr</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">value</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -375,7 +379,7 @@ to the document.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_json</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">value</span><span class="p">:</span> <span class="n">Any</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">add_json</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">value</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -396,11 +400,35 @@ to the document.</li>
 
 
                             </div>
+                            <div id="Document.add_pre_tokenized_text" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_pre_tokenized_text</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">pre_tokenized_text</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Document.add_pre_tokenized_text"></a>
+    
+            <div class="docstring"><p>Add a pre-tokenized text field.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>field_name (str):</strong>  The field name for which we are adding the pre-tokenized text.</li>
+<li><strong>value (PreTokenizedString):</strong>  The pre-tokenized text that will be added to the document.
+If the tokenization of the pre-tokenized text don't align with the registered tokenizer, some functionality may not work as expected,
+like the query parser or the SnippetGenerator.</li>
+</ul>
+</div>
+
+
+                            </div>
                             <div id="Document.add_text" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_text</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">text</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">add_text</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">text</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -422,7 +450,7 @@ to the document.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_unsigned</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">value</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">add_unsigned</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">value</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -444,7 +472,7 @@ to the document.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">extend</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">py_dict</span><span class="p">:</span> <span class="nb">dict</span>, </span><span class="param"><span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span> <span class="o">|</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">extend</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">py_dict</span>, </span><span class="param"><span class="n">schema</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -459,7 +487,7 @@ to the document.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">from_dict</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">py_dict</span><span class="p">:</span> <span class="nb">dict</span>,</span><span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#Document">Document</a></span>:</span></span>
+        <span class="name">from_dict</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">py_dict</span>, </span><span class="param"><span class="n">schema</span><span class="o">=</span><span class="kc">None</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -474,7 +502,7 @@ to the document.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">get_all</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
+        <span class="name">get_all</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -498,7 +526,7 @@ The type of the value depends on the field.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">get_first</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span>:</span></span>
+        <span class="name">get_first</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">fieldname</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -520,7 +548,7 @@ The type of the value depends on the field.</p>
                             </div>
                             <div id="Document.is_empty" class="classattr">
                                 <div class="attr variable">
-            <span class="name">is_empty</span><span class="annotation">: bool</span>
+            <span class="name">is_empty</span>
 
         
     </div>
@@ -533,7 +561,7 @@ The type of the value depends on the field.</p>
                             </div>
                             <div id="Document.num_fields" class="classattr">
                                 <div class="attr variable">
-            <span class="name">num_fields</span><span class="annotation">: int</span>
+            <span class="name">num_fields</span>
 
         
     </div>
@@ -548,7 +576,7 @@ The type of the value depends on the field.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">to_dict</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]]</span>:</span></span>
+        <span class="name">to_dict</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -590,7 +618,7 @@ a list of value for every field.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">to_json</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+        <span class="name">to_json</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -633,7 +661,7 @@ and /electronics.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">from_encoded</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">encoded_bytes</span><span class="p">:</span> <span class="nb">bytes</span></span><span class="return-annotation">) -> <span class="n"><a href="#Facet">Facet</a></span>:</span></span>
+        <span class="name">from_encoded</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">encoded_bytes</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -648,7 +676,7 @@ and /electronics.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">from_string</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span>, </span><span class="param"><span class="n">facet_string</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Facet">Facet</a></span>:</span></span>
+        <span class="name">from_string</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">facet_string</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -671,7 +699,7 @@ and /electronics.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">is_prefix_of</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">other</span><span class="p">:</span> <span class="n"><a href="#Facet">Facet</a></span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+        <span class="name">is_prefix_of</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">other</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -691,7 +719,7 @@ subset of.</li>
                             </div>
                             <div id="Facet.is_root" class="classattr">
                                 <div class="attr variable">
-            <span class="name">is_root</span><span class="annotation">: bool</span>
+            <span class="name">is_root</span>
 
         
     </div>
@@ -706,7 +734,7 @@ subset of.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">root</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span></span><span class="return-annotation">) -> <span class="n"><a href="#Facet">Facet</a></span>:</span></span>
+        <span class="name">root</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">cls</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -721,7 +749,7 @@ subset of.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">to_path</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>:</span></span>
+        <span class="name">to_path</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -738,7 +766,7 @@ subset of.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">to_path_str</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+        <span class="name">to_path_str</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -928,7 +956,7 @@ of a TextAnalyzerBuilder instance.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">alphanum_only</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+        <span class="name">alphanum_only</span><span class="signature pdoc-code condensed">(<span class="return-annotation">):</span></span>
 
         
     </div>
@@ -943,7 +971,7 @@ of a TextAnalyzerBuilder instance.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">ascii_fold</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+        <span class="name">ascii_fold</span><span class="signature pdoc-code condensed">(<span class="return-annotation">):</span></span>
 
         
     </div>
@@ -958,7 +986,7 @@ of a TextAnalyzerBuilder instance.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">custom_stopword</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">stopwords</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+        <span class="name">custom_stopword</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">stopwords</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -982,7 +1010,7 @@ your own custom list of stopwords.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">lowercase</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+        <span class="name">lowercase</span><span class="signature pdoc-code condensed">(<span class="return-annotation">):</span></span>
 
         
     </div>
@@ -997,7 +1025,7 @@ your own custom list of stopwords.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">remove_long</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">length_limit</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+        <span class="name">remove_long</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">length_limit</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1018,7 +1046,7 @@ your own custom list of stopwords.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">split_compound</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">constituent_words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+        <span class="name">split_compound</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">constituent_words</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1038,9 +1066,9 @@ your own custom list of stopwords.</p>
 
 <div class="pdoc-code codehilite">
 <pre><span></span><code><span class="c1"># useless, contrived example:</span>
-<span class="n">compound_spliter</span> <span class="o">=</span> <span class="n">Filter</span><span class="o">.</span><span class="n">split_compounds</span><span class="p">([</span><span class="s1">&#39;butter&#39;</span><span class="p">,</span> <span class="s1">&#39;fly&#39;</span><span class="p">])</span>
-<span class="c1"># Will split &#39;butterfly&#39; -&gt; [&#39;butter&#39;, &#39;fly&#39;],</span>
-<span class="c1"># but won&#39;t split &#39;buttering&#39; or &#39;buttercupfly&#39;</span>
+<span class="n">compound_spliter</span> <span class="o">=</span> <span class="n">Filter</span><span class="o">.</span><span class="n">split_compounds</span><span class="p">([</span><span class="s1">'butter'</span><span class="p">,</span> <span class="s1">'fly'</span><span class="p">])</span>
+<span class="c1"># Will split 'butterfly' -&gt; ['butter', 'fly'],</span>
+<span class="c1"># but won't split 'buttering' or 'buttercupfly'</span>
 </code></pre>
 </div>
 </div>
@@ -1051,7 +1079,7 @@ your own custom list of stopwords.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">stemmer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">language</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+        <span class="name">stemmer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">language</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1066,7 +1094,7 @@ your own custom list of stopwords.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">stopword</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">language</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Filter">Filter</a></span>:</span></span>
+        <span class="name">stopword</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">language</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1116,6 +1144,12 @@ including stemmer languages without a builtin stop word list.</p>
 no path is provided, the index will be stored in memory.</li>
 <li><strong>reuse (bool, optional):</strong>  Should we open an existing index if one exists
 or always create a new one.</li>
+<li><strong>sort_by_field (str, optional):</strong>  Store documents sorted by this field,
+which must be a single-valued fast field of type int, unsigned,
+float, date, text or bytes. Applies only when the index is
+created: an existing index that is opened keeps its own sorting.</li>
+<li><strong>sort_order (Order, optional):</strong>  The direction of <code>sort_by_field</code>.
+Defaults to <code><a href="#Order.Asc">Order.Asc</a></code>.</li>
 </ul>
 
 <p>If an index already exists it will be opened and reused. Raises OSError
@@ -1127,7 +1161,7 @@ if there was a problem during the opening or creation of the index.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">config_reader</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">reload_policy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;commit&#39;</span>, </span><span class="param"><span class="n">num_warmers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">config_reader</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">reload_policy</span><span class="o">=</span><span class="bp">Ellipsis</span>, </span><span class="param"><span class="n">num_warmers</span><span class="o">=</span><span class="mi">0</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1151,7 +1185,7 @@ reader should create.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">exists</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+        <span class="name">exists</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1176,7 +1210,7 @@ reader should create.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">is_compatible</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+        <span class="name">is_compatible</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1210,7 +1244,7 @@ could not be read for any other reason.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">open</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Index">Index</a></span>:</span></span>
+        <span class="name">open</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1225,7 +1259,7 @@ could not be read for any other reason.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">parse_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">query</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">default_field_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">field_boosts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">fuzzy_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">conjunction_by_default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">allow_regexes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">parse_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="o">/</span>,</span><span class="param">    <span class="n">query</span>,</span><span class="param">    <span class="n">default_field_names</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">field_boosts</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">fuzzy_fields</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">conjunction_by_default</span><span class="o">=</span><span class="kc">False</span>,</span><span class="param">    <span class="n">allow_regexes</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1258,7 +1292,7 @@ and using the given parameters.
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">parse_query_lenient</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">query</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">default_field_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">field_boosts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">fuzzy_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">conjunction_by_default</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">allow_regexes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n"><a href="#Query">Query</a></span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]]</span>:</span></span>
+        <span class="name">parse_query_lenient</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="o">/</span>,</span><span class="param">    <span class="n">query</span>,</span><span class="param">    <span class="n">default_field_names</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">field_boosts</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">fuzzy_fields</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">conjunction_by_default</span><span class="o">=</span><span class="kc">False</span>,</span><span class="param">    <span class="n">allow_regexes</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1300,7 +1334,7 @@ and using the given parameters.
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">register_fast_field_tokenizer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">text_analyzer</span><span class="p">:</span> <span class="n"><a href="#TextAnalyzer">TextAnalyzer</a></span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">register_fast_field_tokenizer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span>, </span><span class="param"><span class="n">analyzer</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1317,7 +1351,7 @@ TextAnalyzer instance.)</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">register_tokenizer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">text_analyzer</span><span class="p">:</span> <span class="n"><a href="#TextAnalyzer">TextAnalyzer</a></span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">register_tokenizer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span>, </span><span class="param"><span class="n">analyzer</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1334,7 +1368,7 @@ TextAnalyzer instance.)</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">reload</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">reload</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1351,7 +1385,7 @@ and you should not need to call reload() at all.</p>
                             </div>
                             <div id="Index.schema" class="classattr">
                                 <div class="attr variable">
-            <span class="name">schema</span><span class="annotation">: <a href="#Schema">Schema</a></span>
+            <span class="name">schema</span>
 
         
     </div>
@@ -1366,7 +1400,7 @@ and you should not need to call reload() at all.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">searcher</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="n"><a href="#Searcher">Searcher</a></span>:</span></span>
+        <span class="name">searcher</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1384,7 +1418,7 @@ The same searcher must be used for a given query, as it ensures the use of a con
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">writer</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">heap_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128000000</span>,</span><span class="param">    <span class="n">num_threads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></span><span class="return-annotation">) -> <span class="n"><a href="#IndexWriter">IndexWriter</a></span>:</span></span>
+        <span class="name">writer</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">heap_size</span><span class="o">=</span><span class="mi">128000000</span>, </span><span class="param"><span class="n">num_threads</span><span class="o">=</span><span class="mi">0</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1442,7 +1476,7 @@ on the index object.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_document</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">doc</span><span class="p">:</span> <span class="n"><a href="#Document">Document</a></span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+        <span class="name">add_document</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">doc</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1464,7 +1498,7 @@ since the creation of the index.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_json</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">json</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+        <span class="name">add_json</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">json</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1486,7 +1520,7 @@ since the creation of the index.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">commit</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+        <span class="name">commit</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1507,7 +1541,7 @@ spared), it will be possible to resume indexing from this point.</p>
                             </div>
                             <div id="IndexWriter.commit_opstamp" class="classattr">
                                 <div class="attr variable">
-            <span class="name">commit_opstamp</span><span class="annotation">: int</span>
+            <span class="name">commit_opstamp</span>
 
         
     </div>
@@ -1528,7 +1562,7 @@ for searchers.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">delete_all_documents</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">delete_all_documents</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1543,14 +1577,14 @@ for searchers.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">delete_documents</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">field_value</span><span class="p">:</span> <span class="n">Any</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+        <span class="name">delete_documents</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">field_value</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
     <a class="headerlink" href="#IndexWriter.delete_documents"></a>
     
-            <div class="docstring"><p>Deprecated alias of <code><a href="#IndexWriter.delete_documents_by_term">delete_documents_by_term</a></code>; emits a
-<code>DeprecationWarning</code>. Use <code><a href="#IndexWriter.delete_documents_by_term">delete_documents_by_term</a></code> or
+            <div class="docstring"><p>Deprecated alias of <code><a href="#IndexWriter.delete_documents_by_term">delete_documents_by_term</a></code>. Calling it emits a
+<code>DeprecationWarning</code>; use <code><a href="#IndexWriter.delete_documents_by_term">delete_documents_by_term</a></code> or
 <code><a href="#IndexWriter.delete_documents_by_query">delete_documents_by_query</a></code> instead.</p>
 </div>
 
@@ -1560,7 +1594,7 @@ for searchers.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">delete_documents_by_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+        <span class="name">delete_documents_by_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">query</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1573,18 +1607,18 @@ for searchers.</p>
 <blockquote>
   <div class="pdoc-code codehilite">
 <pre><span></span><code><span class="n">schema_builder</span> <span class="o">=</span> <span class="n">SchemaBuilder</span><span class="p">()</span>
-<span class="n">schema_builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">schema_builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">schema</span> <span class="o">=</span> <span class="n">schema_builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
 <span class="n">index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 <span class="n">writer</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">writer</span><span class="p">()</span>
 <span class="n">source_doc</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Here is some text&quot;</span>
+    <span class="s2">"title"</span><span class="p">:</span> <span class="s2">"Here is some text"</span>
 <span class="p">}</span>
 <span class="n">writer</span><span class="o">.</span><span class="n">add_json</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">source_doc</span><span class="p">))</span>
 <span class="n">writer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 <span class="n">writer</span><span class="o">.</span><span class="n">wait_merging_threads</span><span class="p">()</span>
 
-<span class="n">query</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">parse_query</span><span class="p">(</span><span class="s2">&quot;title:text&quot;</span><span class="p">)</span>
+<span class="n">query</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">parse_query</span><span class="p">(</span><span class="s2">"title:text"</span><span class="p">)</span>
 <span class="n">writer</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">writer</span><span class="p">()</span>
 <span class="n">writer</span><span class="o">.</span><span class="n">delete_documents_by_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
 <span class="n">writer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
@@ -1609,7 +1643,7 @@ If the query is not supported raises Exception.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">delete_documents_by_term</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">field_value</span><span class="p">:</span> <span class="n">Any</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+        <span class="name">delete_documents_by_term</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">field_value</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1647,7 +1681,7 @@ If the field_value is not supported raises Exception.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">garbage_collect_files</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">garbage_collect_files</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1662,7 +1696,7 @@ If the field_value is not supported raises Exception.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">rollback</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+        <span class="name">rollback</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1681,7 +1715,7 @@ was after the last commit.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">wait_merging_threads</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">wait_merging_threads</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1696,6 +1730,40 @@ object will result in an error.</p>
 
 
                             </div>
+                </section>
+</main>
+
+## MAX_DATETIME
+
+<main class="pdoc">
+<section id="MAX_DATETIME">
+                    <div class="attr variable">
+            <span class="name">MAX_DATETIME</span>        =
+<span class="default_value">datetime.datetime(2262, 4, 11, 23, 47, 16, 854775, tzinfo=datetime.timezone.utc)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MAX_DATETIME"></a>
+    
+    
+
+                </section>
+</main>
+
+## MIN_DATETIME
+
+<main class="pdoc">
+<section id="MIN_DATETIME">
+                    <div class="attr variable">
+            <span class="name">MIN_DATETIME</span>        =
+<span class="default_value">datetime.datetime(1677, 9, 21, 0, 12, 43, 145225, tzinfo=datetime.timezone.utc)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MIN_DATETIME"></a>
+    
+    
+
                 </section>
 </main>
 
@@ -1806,7 +1874,7 @@ object will result in an error.</p>
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">parse_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
+        <span class="name">parse_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1814,16 +1882,21 @@ object will result in an error.</p>
     
             <div class="docstring"><p>Parse a query string into an abstract syntax tree (AST).</p>
 
+<p>This function parses a query string following Tantivy's query language
+syntax and returns a Python dictionary representing the parsed AST.
+Unlike <code><a href="#Index.parse_query">Index.parse_query()</a></code>, this function does not require a schema
+and returns the raw syntax tree structure.</p>
+
 <h6 id="arguments">Arguments:</h6>
 
 <ul>
-<li><strong>query:</strong>  The query string to parse.</li>
+<li><strong>query (str):</strong>  The query string to parse.</li>
 </ul>
 
 <h6 id="returns">Returns:</h6>
 
 <blockquote>
-  <p>A dictionary representing the parsed query AST.</p>
+  <p>dict: A dictionary representing the parsed query AST.</p>
 </blockquote>
 
 <h6 id="raises">Raises:</h6>
@@ -1831,6 +1904,17 @@ object will result in an error.</p>
 <ul>
 <li><strong>ValueError:</strong>  If the query has invalid syntax.</li>
 </ul>
+
+<h6 id="example">Example:</h6>
+
+<blockquote>
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tantivy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span> <span class="o">=</span> <span class="n"><a href="#parse_query">tantivy.parse_query</a></span><span class="p">(</span><span class="s2">"title:hello AND body:world"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">ast</span><span class="p">)</span>
+</code></pre>
+  </div>
+</blockquote>
 </div>
 
 
@@ -1844,7 +1928,7 @@ object will result in an error.</p>
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">parse_query_lenient</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]]]</span>:</span></span>
+        <span class="name">parse_query_lenient</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1852,22 +1936,82 @@ object will result in an error.</p>
     
             <div class="docstring"><p>Parse a query string leniently, recovering from syntax errors.</p>
 
+<p>This function attempts to parse a query string even if it contains
+syntax errors. It returns both the parsed AST and a list of errors
+encountered during parsing. Unlike <code><a href="#Index.parse_query_lenient">Index.parse_query_lenient()</a></code>,
+this function does not require a schema and returns the raw syntax
+tree structure.</p>
+
 <h6 id="arguments">Arguments:</h6>
 
 <ul>
-<li><strong>query:</strong>  The query string to parse.</li>
+<li><strong>query (str):</strong>  The query string to parse.</li>
 </ul>
 
 <h6 id="returns">Returns:</h6>
 
 <blockquote>
-  <p>A tuple containing:
-      - A dictionary representing the parsed query AST
-      - A list of error dictionaries describing syntax errors</p>
+  <p>tuple[dict, list]: A tuple containing:
+      - dict: A dictionary representing the parsed query AST
+      - list: A list of error dictionaries describing syntax errors</p>
+</blockquote>
+
+<h6 id="example">Example:</h6>
+
+<blockquote>
+  <div class="pdoc-code codehilite">
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tantivy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="n"><a href="#parse_query_lenient">tantivy.parse_query_lenient</a></span><span class="p">(</span><span class="s2">"title:hello AND invalid:"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"AST: </span><span class="si">{</span><span class="n">ast</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Errors: </span><span class="si">{</span><span class="n">errors</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre>
+  </div>
 </blockquote>
 </div>
 
 
+                </section>
+</main>
+
+## PreTokenizedString
+
+<main class="pdoc">
+<section id="PreTokenizedString">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">PreTokenizedString</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#PreTokenizedString"></a>
+    
+            <div class="docstring"><p>Tantivy's PreTokenizedString</p>
+</div>
+
+
+                            <div id="PreTokenizedString.text" class="classattr">
+                                <div class="attr variable">
+            <span class="name">text</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PreTokenizedString.text"></a>
+    
+    
+
+                            </div>
+                            <div id="PreTokenizedString.tokens" class="classattr">
+                                <div class="attr variable">
+            <span class="name">tokens</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PreTokenizedString.tokens"></a>
+    
+    
+
+                            </div>
                 </section>
 </main>
 
@@ -1892,7 +2036,7 @@ object will result in an error.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">all_query</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">all_query</span><span class="signature pdoc-code condensed">(<span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1907,7 +2051,7 @@ object will result in an error.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">and_must_match</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">*</span><span class="n">queries</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">and_must_match</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="o">*</span><span class="n">queries</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1925,7 +2069,7 @@ with argument unpacking: <code>query.and_must_match(*queries)</code>.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">and_must_not_match</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">*</span><span class="n">queries</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">and_must_not_match</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="o">*</span><span class="n">queries</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1943,7 +2087,7 @@ passed with argument unpacking: <code>query.and_must_not_match(*queries)</code>.
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">boolean_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">subqueries</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n"><a href="#Occur">Occur</a></span><span class="p">,</span> <span class="n"><a href="#Query">Query</a></span><span class="p">]]</span>,</span><span class="param">    <span class="n">minimum_number_should_match</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">boolean_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">subqueries</span>, </span><span class="param"><span class="n">minimum_number_should_match</span><span class="o">=</span><span class="kc">None</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1958,7 +2102,7 @@ passed with argument unpacking: <code>query.and_must_not_match(*queries)</code>.
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">boost_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>, </span><span class="param"><span class="n">boost</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">boost_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span>, </span><span class="param"><span class="n">boost</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1973,7 +2117,7 @@ passed with argument unpacking: <code>query.and_must_not_match(*queries)</code>.
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">const_score_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>, </span><span class="param"><span class="n">score</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">const_score_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">query</span>, </span><span class="param"><span class="n">score</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1988,7 +2132,7 @@ passed with argument unpacking: <code>query.and_must_not_match(*queries)</code>.
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">disjunction_max_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">subqueries</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n"><a href="#Query">Query</a></span><span class="p">]</span>,</span><span class="param">    <span class="n">tie_breaker</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">disjunction_max_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">subqueries</span>, </span><span class="param"><span class="n">tie_breaker</span><span class="o">=</span><span class="kc">None</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2003,7 +2147,7 @@ passed with argument unpacking: <code>query.and_must_not_match(*queries)</code>.
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">empty_query</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">empty_query</span><span class="signature pdoc-code condensed">(<span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2018,7 +2162,7 @@ passed with argument unpacking: <code>query.and_must_not_match(*queries)</code>.
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">exists_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">fast_field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">json_subpaths</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">exists_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">fast_field_name</span>, </span><span class="param"><span class="n">json_subpaths</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2041,7 +2185,7 @@ Executing a search with this query will fail if the specified field doesn’t ex
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">explain</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">searcher</span><span class="p">:</span> <span class="n"><a href="#Searcher">Searcher</a></span>,</span><span class="param">    <span class="n">doc_address</span><span class="p">:</span> <span class="n"><a href="#DocAddress">DocAddress</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#Explanation">Explanation</a></span>:</span></span>
+        <span class="name">explain</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">searcher</span>, </span><span class="param"><span class="n">doc_address</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2070,7 +2214,7 @@ the document matched the query, with a to_json() method.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">fuzzy_term_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">    <span class="n">transposition_cost_one</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">    <span class="n">prefix</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">fuzzy_term_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span>,</span><span class="param">    <span class="n">field_name</span>,</span><span class="param">    <span class="n">text</span>,</span><span class="param">    <span class="n">distance</span><span class="o">=</span><span class="mi">1</span>,</span><span class="param">    <span class="n">transposition_cost_one</span><span class="o">=</span><span class="kc">True</span>,</span><span class="param">    <span class="n">prefix</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2082,7 +2226,9 @@ the document matched the query, with a to_json() method.</li>
 
 <ul>
 <li><code>schema</code> - Schema of the target index.</li>
-<li><code>field_name</code> - Field name to be searched.</li>
+<li><code>field_name</code> - Field name to be searched. For a JSON field, this may
+be a subpath, e.g. <code>"attrs.user"</code>, the same way <code><a href="#Query.term_query">term_query</a></code> accepts
+one.</li>
 <li><code>text</code> - String representation of the query term.</li>
 <li><code>distance</code> - (Optional) Edit distance you are going to allow. When not specified, the default is 1.</li>
 <li><code>transposition_cost_one</code> - (Optional) If true, a transposition (swapping) cost will be 1; otherwise it will be 2. When not specified, the default is true.</li>
@@ -2096,7 +2242,7 @@ the document matched the query, with a to_json() method.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">more_like_this_document_fields_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span>,</span><span class="param">    <span class="n">document_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]]</span>,</span><span class="param">    <span class="n">min_doc_frequency</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">5</span>,</span><span class="param">    <span class="n">max_doc_frequency</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">min_term_frequency</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">2</span>,</span><span class="param">    <span class="n">max_query_terms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">25</span>,</span><span class="param">    <span class="n">min_word_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">max_word_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">boost_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mf">1.0</span>,</span><span class="param">    <span class="n">stop_words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">more_like_this_document_fields_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span>,</span><span class="param">    <span class="n">document_fields</span>,</span><span class="param">    <span class="n">min_doc_frequency</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">max_doc_frequency</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">min_term_frequency</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">max_query_terms</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">min_word_length</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">max_word_length</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">boost_factor</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">stop_words</span><span class="o">=</span><span class="bp">Ellipsis</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2111,7 +2257,7 @@ the document matched the query, with a to_json() method.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">more_like_this_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">doc_address</span><span class="p">:</span> <span class="n"><a href="#DocAddress">DocAddress</a></span>,</span><span class="param">    <span class="n">min_doc_frequency</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">5</span>,</span><span class="param">    <span class="n">max_doc_frequency</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">min_term_frequency</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">2</span>,</span><span class="param">    <span class="n">max_query_terms</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">25</span>,</span><span class="param">    <span class="n">min_word_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">max_word_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">boost_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mf">1.0</span>,</span><span class="param">    <span class="n">stop_words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">more_like_this_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">doc_address</span>,</span><span class="param">    <span class="n">min_doc_frequency</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">max_doc_frequency</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">min_term_frequency</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">max_query_terms</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">min_word_length</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">max_word_length</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">boost_factor</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">stop_words</span><span class="o">=</span><span class="bp">Ellipsis</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2126,7 +2272,7 @@ the document matched the query, with a to_json() method.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">or_should_match</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">*</span><span class="n">queries</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">or_should_match</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="o">*</span><span class="n">queries</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2144,7 +2290,7 @@ passed with argument unpacking: <code>query.or_should_match(*queries)</code>.</p
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">phrase_prefix_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">phrase_prefix_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">schema</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">words</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2156,7 +2302,9 @@ passed with argument unpacking: <code>query.or_should_match(*queries)</code>.</p
 
 <ul>
 <li><code>schema</code> - Schema of the target index.</li>
-<li><code>field_name</code> - Field name to be searched.</li>
+<li><code>field_name</code> - Field name to be searched. For a JSON field, this may
+be a subpath, e.g. <code>"attrs.description"</code>. On a JSON subpath every
+word must be a <code>str</code>, otherwise <code>ValueError</code> is raised.</li>
 <li><code>words</code> - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.</li>
 </ul>
 </div>
@@ -2167,7 +2315,7 @@ passed with argument unpacking: <code>query.or_should_match(*queries)</code>.</p
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">phrase_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>,</span><span class="param">    <span class="n">slop</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">phrase_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">schema</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">words</span>, </span><span class="param"><span class="n">slop</span><span class="o">=</span><span class="mi">0</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2179,7 +2327,9 @@ passed with argument unpacking: <code>query.or_should_match(*queries)</code>.</p
 
 <ul>
 <li><code>schema</code> - Schema of the target index.</li>
-<li><code>field_name</code> - Field name to be searched.</li>
+<li><code>field_name</code> - Field name to be searched. For a JSON field, this may
+be a subpath, e.g. <code>"attrs.description"</code>. On a JSON subpath every
+word must be a <code>str</code>, otherwise <code>ValueError</code> is raised.</li>
 <li><code>words</code> - Word list that constructs the phrase. A word can be a term text or a pair of term text and its offset in the phrase.</li>
 <li><code>slop</code> - (Optional) The number of gaps permitted between the words in the query phrase. Default is 0.</li>
 </ul>
@@ -2191,7 +2341,7 @@ passed with argument unpacking: <code>query.or_should_match(*queries)</code>.</p
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">range_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">field_type</span><span class="p">:</span> <span class="n"><a href="#FieldType">FieldType</a></span>,</span><span class="param">    <span class="n">lower_bound</span><span class="p">:</span> <span class="o">~</span><span class="n">_RangeType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">upper_bound</span><span class="p">:</span> <span class="o">~</span><span class="n">_RangeType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">include_lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">    <span class="n">include_upper</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">    <span class="n">use_inverted_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">range_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span>,</span><span class="param">    <span class="n">field_name</span>,</span><span class="param">    <span class="n">field_type</span>,</span><span class="param">    <span class="n">lower_bound</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">upper_bound</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">include_lower</span><span class="o">=</span><span class="kc">True</span>,</span><span class="param">    <span class="n">include_upper</span><span class="o">=</span><span class="kc">True</span>,</span><span class="param">    <span class="n">use_inverted_index</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2224,7 +2374,7 @@ bound is <code>None</code> is an error—unbounded sides are always inclusive by
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">regex_phrase_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>,</span><span class="param">    <span class="n">slop</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">regex_phrase_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">schema</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">words</span>, </span><span class="param"><span class="n">slop</span><span class="o">=</span><span class="mi">0</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2248,7 +2398,7 @@ bound is <code>None</code> is an error—unbounded sides are always inclusive by
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">regex_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">regex_pattern</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">regex_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">schema</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">regex_pattern</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2263,13 +2413,32 @@ bound is <code>None</code> is an error—unbounded sides are always inclusive by
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">term_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">field_value</span><span class="p">:</span> <span class="n">Any</span>,</span><span class="param">    <span class="n">index_option</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;position&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">term_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">schema</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">field_value</span>, </span><span class="param"><span class="n">index_option</span><span class="o">=</span><span class="s1">'position'</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
     <a class="headerlink" href="#Query.term_query"></a>
     
             <div class="docstring"><p>Construct a Tantivy's TermQuery</p>
+
+<h1 id="arguments">Arguments</h1>
+
+<ul>
+<li><code>schema</code> - Schema of the target index.</li>
+<li><code>field_name</code> - Field name to be searched. For a JSON field, this may
+be a subpath, e.g. <code>"attrs.user"</code> to address the <code>user</code> key inside a
+JSON field named <code>attrs</code>. A field literally named <code>"attrs.user"</code>
+takes precedence over the subpath interpretation.</li>
+<li><code>field_value</code> - The value to search for. Not tokenized: pre-tokenize
+to match the index's tokenizer if the field is analyzed text.</li>
+<li><code>index_option</code> - (Optional) One of <code>'basic'</code>, <code>'freq'</code> or <code>'position'</code>.</li>
+</ul>
+
+<p>On a JSON subpath the Python type decides the term type: a <code>str</code> is
+always the literal string (so <code>"5"</code> matches a string leaf, <code>5</code> an
+integer leaf), and <code>int</code>, <code>float</code>, <code>bool</code> and <code>datetime</code> match the
+corresponding typed leaf. Text is not tokenized, so for analyzed text
+pass the lowercased token (the default tokenizer lowercases).</p>
 </div>
 
 
@@ -2278,13 +2447,15 @@ bound is <code>None</code> is an error—unbounded sides are always inclusive by
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">term_set_query</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">field_values</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="n"><a href="#Query">Query</a></span>:</span></span>
+        <span class="name">term_set_query</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">schema</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">field_values</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
     <a class="headerlink" href="#Query.term_set_query"></a>
     
             <div class="docstring"><p>Construct a Tantivy's TermSetQuery</p>
+
+<p><code>field_name</code> accepts a JSON subpath the same way <code><a href="#Query.term_query">term_query</a></code> does.</p>
 </div>
 
 
@@ -2344,8 +2515,8 @@ setting up the fields one by one.</p>
   </div>
   
   <div class="pdoc-code codehilite">
-<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">title</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="n">stored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">body</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">)</span>
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">title</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="n">stored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">body</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">"body"</span><span class="p">)</span>
 </code></pre>
   </div>
   
@@ -2361,7 +2532,7 @@ setting up the fields one by one.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_boolean_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+        <span class="name">add_boolean_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span>, </span><span class="param"><span class="n">stored</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">indexed</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">fast</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2393,7 +2564,7 @@ Raises a ValueError if there was an error with the field creation.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_bytes_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">index_option</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;position&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+        <span class="name">add_bytes_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span>, </span><span class="param"><span class="n">stored</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">indexed</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">fast</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2422,7 +2593,7 @@ given a document id.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_date_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+        <span class="name">add_date_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span>, </span><span class="param"><span class="n">stored</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">indexed</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">fast</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2454,7 +2625,7 @@ Raises a ValueError if there was an error with the field creation.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_facet_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+        <span class="name">add_facet_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2475,7 +2646,7 @@ Raises a ValueError if there was an error with the field creation.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_float_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+        <span class="name">add_float_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span>, </span><span class="param"><span class="n">stored</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">indexed</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">fast</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2507,7 +2678,7 @@ Raises a ValueError if there was an error with the field creation.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_integer_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+        <span class="name">add_integer_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span>, </span><span class="param"><span class="n">stored</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">indexed</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">fast</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2539,7 +2710,7 @@ Raises a ValueError if there was an error with the field creation.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_ip_addr_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+        <span class="name">add_ip_addr_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span>, </span><span class="param"><span class="n">stored</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">indexed</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">fast</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2568,7 +2739,7 @@ given a document id.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_json_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">tokenizer_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>,</span><span class="param">    <span class="n">index_option</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;position&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+        <span class="name">add_json_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="o">/</span>,</span><span class="param">    <span class="n">name</span>,</span><span class="param">    <span class="n">stored</span><span class="o">=</span><span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="o">=</span><span class="kc">False</span>,</span><span class="param">    <span class="n">tokenizer_name</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">index_option</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">expand_dots_enabled</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2600,6 +2771,13 @@ records only the document ID, the 'freq' option records the
 document id and the term frequency, while the 'position' option
 records the document id, term frequency and the positions of
 the term occurrences in the document.</li>
+<li><strong>expand_dots_enabled (bool, optional):</strong>  If true, a "." in a JSON
+object key is treated as a path separator, the same as a "."
+between keys in a query string or in <code>field_name</code> passed to
+<code><a href="#Query.term_query">Query.term_query</a></code>. E.g. <code>{"a.b": "hello"}</code> is then indexed as
+if it was <code>{"a": {"b": "hello"}}</code>, reachable via <code>attrs.a.b</code>
+instead of the default <code>attrs.a\.b</code> escaped form. Defaults to
+False.</li>
 </ul>
 
 <p>Returns the associated field handle.
@@ -2612,7 +2790,7 @@ Raises a ValueError if there was an error with the field creation.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_text_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">tokenizer_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>,</span><span class="param">    <span class="n">index_option</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;position&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+        <span class="name">add_text_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="o">/</span>,</span><span class="param">    <span class="n">name</span>,</span><span class="param">    <span class="n">stored</span><span class="o">=</span><span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="o">=</span><span class="kc">False</span>,</span><span class="param">    <span class="n">tokenizer_name</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">index_option</span><span class="o">=</span><span class="bp">Ellipsis</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2652,11 +2830,42 @@ Raises a ValueError if there was an error with the field creation.</p>
 
 
                             </div>
+                            <div id="SchemaBuilder.add_tie_breaker_field" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">add_tie_breaker_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SchemaBuilder.add_tie_breaker_field"></a>
+    
+            <div class="docstring"><p>Add a generated tie-breaker field to the schema.</p>
+
+<p>tantivy fills the field itself: it is an integer fast field whose
+values are consecutive within a segment, start at a random offset and
+are kept across merges. Segments may overlap, so values are almost
+always distinct but not guaranteed to be unique. Use it to order hits
+that would otherwise tie, e.g. <code>order_by_field</code>. It is not stored, and
+values supplied for it in documents are ignored.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>name (str):</strong>  The name of the field.</li>
+</ul>
+
+<p>Returns the associated field handle.
+Raises a ValueError if there was an error with the field creation.</p>
+</div>
+
+
+                            </div>
                             <div id="SchemaBuilder.add_unsigned_field" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">add_unsigned_field</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">stored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">indexed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">    <span class="n">fast</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#SchemaBuilder">SchemaBuilder</a></span>:</span></span>
+        <span class="name">add_unsigned_field</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">name</span>, </span><span class="param"><span class="n">stored</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">indexed</span><span class="o">=</span><span class="kc">False</span>, </span><span class="param"><span class="n">fast</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2688,7 +2897,7 @@ Raises a ValueError if there was an error with the field creation.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">build</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="n"><a href="#Schema">Schema</a></span>:</span></span>
+        <span class="name">build</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2706,7 +2915,7 @@ be used anymore.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">is_valid_field_name</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+        <span class="name">is_valid_field_name</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">name</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2743,7 +2952,7 @@ be used anymore.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">aggregate</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>, </span><span class="param"><span class="n">agg</span><span class="p">:</span> <span class="nb">dict</span></span><span class="return-annotation">) -> <span class="nb">dict</span>:</span></span>
+        <span class="name">aggregate</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">query</span>, </span><span class="param"><span class="n">agg</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2767,7 +2976,7 @@ be used anymore.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">cardinality</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+        <span class="name">cardinality</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">query</span>, </span><span class="param"><span class="n">field_name</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2791,7 +3000,7 @@ be used anymore.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">doc</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">doc_address</span><span class="p">:</span> <span class="n"><a href="#DocAddress">DocAddress</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#Document">Document</a></span>:</span></span>
+        <span class="name">doc</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">doc_address</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2815,7 +3024,7 @@ the document that we wish to fetch.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">doc_freq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">field_value</span><span class="p">:</span> <span class="n">Any</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+        <span class="name">doc_freq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">field_value</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2823,6 +3032,9 @@ the document that we wish to fetch.</li>
     
             <div class="docstring"><p>Return the overall number of documents containing
 the given term.</p>
+
+<p><code>field_name</code> accepts a JSON subpath the same way <code><a href="#Query.term_query">Query.term_query</a></code>
+does, e.g. <code>"attrs.user"</code>.</p>
 </div>
 
 
@@ -2831,7 +3043,7 @@ the given term.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">fast_field_values</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">doc_addresses</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="#DocAddress">DocAddress</a></span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span>:</span></span>
+        <span class="name">fast_field_values</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">doc_addresses</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2875,7 +3087,7 @@ has an unsupported type (only u64, i64, f64, and bool are supported).</li>
                             </div>
                             <div id="Searcher.num_docs" class="classattr">
                                 <div class="attr variable">
-            <span class="name">num_docs</span><span class="annotation">: int</span>
+            <span class="name">num_docs</span>
 
         
     </div>
@@ -2888,7 +3100,7 @@ has an unsupported type (only u64, i64, f64, and bool are supported).</li>
                             </div>
                             <div id="Searcher.num_segments" class="classattr">
                                 <div class="attr variable">
-            <span class="name">num_segments</span><span class="annotation">: int</span>
+            <span class="name">num_segments</span>
 
         
     </div>
@@ -2903,7 +3115,7 @@ has an unsupported type (only u64, i64, f64, and bool are supported).</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">search</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>,</span><span class="param">    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>,</span><span class="param">    <span class="n">count</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">    <span class="n">order_by_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>,</span><span class="param">    <span class="n">order</span><span class="p">:</span> <span class="n"><a href="#Order">Order</a></span> <span class="o">=</span> <span class="o">&lt;</span><span class="n"><a href="#Order.Desc">Order.Desc</a></span><span class="p">:</span> <span class="mi">2</span><span class="o">&gt;</span>,</span><span class="param">    <span class="n">weight_by_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#SearchResult">SearchResult</a></span>:</span></span>
+        <span class="name">search</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="o">/</span>,</span><span class="param">    <span class="n">query</span>,</span><span class="param">    <span class="n">limit</span><span class="o">=</span><span class="mi">10</span>,</span><span class="param">    <span class="n">count</span><span class="o">=</span><span class="kc">True</span>,</span><span class="param">    <span class="n">order_by_field</span><span class="o">=</span><span class="kc">None</span>,</span><span class="param">    <span class="n">offset</span><span class="o">=</span><span class="mi">0</span>,</span><span class="param">    <span class="n">order</span><span class="o">=</span><span class="bp">Ellipsis</span>,</span><span class="param">    <span class="n">weight_by_field</span><span class="o">=</span><span class="kc">None</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -2952,7 +3164,7 @@ which return an int of nanoseconds since the epoch.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">terms_with_prefix</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">    <span class="n">filter_query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span>:</span></span>
+        <span class="name">terms_with_prefix</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">field_name</span>, </span><span class="param"><span class="n">prefix</span>, </span><span class="param"><span class="n">filter_query</span><span class="o">=</span><span class="kc">None</span>, </span><span class="param"><span class="n">limit</span><span class="o">=</span><span class="kc">None</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3026,7 +3238,7 @@ to true during the search.</p>
                             </div>
                             <div id="SearchResult.hits" class="classattr">
                                 <div class="attr variable">
-            <span class="name">hits</span><span class="annotation">: list[tuple[typing.Any, <a href="#DocAddress">DocAddress</a>]]</span>
+            <span class="name">hits</span>
 
         
     </div>
@@ -3065,7 +3277,7 @@ the byte ranges within that fragment that matched the query.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">fragment</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+        <span class="name">fragment</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3076,11 +3288,30 @@ the byte ranges within that fragment that matched the query.</p>
 
 
                             </div>
+                            <div id="Snippet.fragment_range" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fragment_range</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Snippet.fragment_range"></a>
+    
+            <div class="docstring"><p>Returns where the fragment sits in the text the snippet was generated
+from, as UTF-8 byte offsets.</p>
+
+<p>For <code><a href="#SnippetGenerator.snippet_from_doc">SnippetGenerator.snippet_from_doc</a></code>, that text is the field's
+values joined by a single space and trimmed.</p>
+</div>
+
+
+                            </div>
                             <div id="Snippet.highlighted" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">highlighted</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n">tantivy</span><span class="o">.</span><span class="n">tantivy</span><span class="o">.</span><span class="n">Range</span><span class="p">]</span>:</span></span>
+        <span class="name">highlighted</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3098,7 +3329,7 @@ not the original document text.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">to_html</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+        <span class="name">to_html</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3131,7 +3362,7 @@ not the original document text.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">create</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">searcher</span><span class="p">:</span> <span class="n"><a href="#Searcher">Searcher</a></span>,</span><span class="param">    <span class="n">query</span><span class="p">:</span> <span class="n"><a href="#Query">Query</a></span>,</span><span class="param">    <span class="n">schema</span><span class="p">:</span> <span class="n"><a href="#Schema">Schema</a></span>,</span><span class="param">    <span class="n">field_name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#SnippetGenerator">SnippetGenerator</a></span>:</span></span>
+        <span class="name">create</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">searcher</span>, </span><span class="param"><span class="n">query</span>, </span><span class="param"><span class="n">schema</span>, </span><span class="param"><span class="n">field_name</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3146,7 +3377,7 @@ not the original document text.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">set_max_num_chars</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">max_num_chars</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">set_max_num_chars</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">max_num_chars</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3161,7 +3392,7 @@ not the original document text.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">snippet_from_doc</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">doc</span><span class="p">:</span> <span class="n"><a href="#Document">Document</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#Snippet">Snippet</a></span>:</span></span>
+        <span class="name">snippet_from_doc</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">doc</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3199,7 +3430,7 @@ Use the <code><a href="#TextAnalyzerBuilder">TextAnalyzerBuilder</a></code> clas
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">analyze</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">text</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>:</span></span>
+        <span class="name">analyze</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">text</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3212,6 +3443,28 @@ Args:</p>
 <li>text (string): text to tokenize.
 Returns:</li>
 <li>list(string): a list of tokens/words.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="TextAnalyzer.pre_tokenize" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">pre_tokenize</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="n">text</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#TextAnalyzer.pre_tokenize"></a>
+    
+            <div class="docstring"><p>Tokenize a string and return a PreTokenizedString object.
+Args:</p>
+
+<ul>
+<li>text (string): text to tokenize.
+Returns:</li>
+<li>PreTokenizedString: a tokenized string.</li>
 </ul>
 </div>
 
@@ -3251,23 +3504,11 @@ Returns:</li>
 </div>
 
 
-                            <div id="TextAnalyzerBuilder.__init__" class="classattr">
-                                <div class="attr function">
-            
-        <span class="name">TextAnalyzerBuilder</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">tokenizer</span><span class="p">:</span> <span class="n"><a href="#Tokenizer">Tokenizer</a></span></span>)</span>
-
-        
-    </div>
-    <a class="headerlink" href="#TextAnalyzerBuilder.__init__"></a>
-    
-    
-
-                            </div>
                             <div id="TextAnalyzerBuilder.build" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">build</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="n"><a href="#TextAnalyzer">TextAnalyzer</a></span>:</span></span>
+        <span class="name">build</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3291,7 +3532,7 @@ easily check if your analyzer is working as expected.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">filter</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="bp">self</span>,</span><span class="param">    <span class="nb">filter</span><span class="p">:</span> <span class="n"><a href="#Filter">Filter</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#TextAnalyzerBuilder">TextAnalyzerBuilder</a></span>:</span></span>
+        <span class="name">filter</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="o">/</span>, </span><span class="param"><span class="nb">filter</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3310,6 +3551,68 @@ Returns:</li>
 <p>Note: The builder is _not_ mutated in-place.</p>
 </div>
 
+
+                            </div>
+                </section>
+</main>
+
+## Token
+
+<main class="pdoc">
+<section id="Token">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">Token</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#Token"></a>
+    
+    
+
+                            <div id="Token.char_offset_from" class="classattr">
+                                <div class="attr variable">
+            <span class="name">char_offset_from</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Token.char_offset_from"></a>
+    
+    
+
+                            </div>
+                            <div id="Token.char_offset_to" class="classattr">
+                                <div class="attr variable">
+            <span class="name">char_offset_to</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Token.char_offset_to"></a>
+    
+    
+
+                            </div>
+                            <div id="Token.position" class="classattr">
+                                <div class="attr variable">
+            <span class="name">position</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Token.position"></a>
+    
+    
+
+                            </div>
+                            <div id="Token.text" class="classattr">
+                                <div class="attr variable">
+            <span class="name">text</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Token.text"></a>
+    
+    
 
                             </div>
                 </section>
@@ -3335,7 +3638,7 @@ creates a wrapper around a Tantivy tokenizer.</p>
 <h2 id="example">Example:</h2>
 
 <div class="pdoc-code codehilite">
-<pre><span></span><code><span class="n">tokenizer</span> <span class="o">=</span> <span class="n"><a href="#Tokenizer.regex">Tokenizer.regex</a></span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\w+&quot;</span><span class="p">)</span>
+<pre><span></span><code><span class="n">tokenizer</span> <span class="o">=</span> <span class="n"><a href="#Tokenizer.regex">Tokenizer.regex</a></span><span class="p">(</span><span class="sa">r</span><span class="s2">"\w+"</span><span class="p">)</span>
 </code></pre>
 </div>
 
@@ -3353,7 +3656,7 @@ TextAnalyzerBuilder(tokenizer=<tokenizer>)</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">facet</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Tokenizer">Tokenizer</a></span>:</span></span>
+        <span class="name">facet</span><span class="signature pdoc-code condensed">(<span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3368,7 +3671,7 @@ TextAnalyzerBuilder(tokenizer=<tokenizer>)</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">ngram</span><span class="signature pdoc-code multiline">(<span class="param">    <span class="n">min_gram</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>,</span><span class="param">    <span class="n">max_gram</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>,</span><span class="param">    <span class="n">prefix_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#Tokenizer">Tokenizer</a></span>:</span></span>
+        <span class="name">ngram</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">min_gram</span><span class="o">=</span><span class="mi">2</span>, </span><span class="param"><span class="n">max_gram</span><span class="o">=</span><span class="mi">3</span>, </span><span class="param"><span class="n">prefix_only</span><span class="o">=</span><span class="kc">False</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3391,7 +3694,7 @@ TextAnalyzerBuilder(tokenizer=<tokenizer>)</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">raw</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Tokenizer">Tokenizer</a></span>:</span></span>
+        <span class="name">raw</span><span class="signature pdoc-code condensed">(<span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3406,7 +3709,7 @@ TextAnalyzerBuilder(tokenizer=<tokenizer>)</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">regex</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#Tokenizer">Tokenizer</a></span>:</span></span>
+        <span class="name">regex</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">pattern</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3421,7 +3724,7 @@ TextAnalyzerBuilder(tokenizer=<tokenizer>)</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">simple</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Tokenizer">Tokenizer</a></span>:</span></span>
+        <span class="name">simple</span><span class="signature pdoc-code condensed">(<span class="return-annotation">):</span></span>
 
         
     </div>
@@ -3436,7 +3739,7 @@ TextAnalyzerBuilder(tokenizer=<tokenizer>)</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">whitespace</span><span class="signature pdoc-code condensed">(<span class="return-annotation">) -> <span class="n"><a href="#Tokenizer">Tokenizer</a></span>:</span></span>
+        <span class="name">whitespace</span><span class="signature pdoc-code condensed">(<span class="return-annotation">):</span></span>
 
         
     </div>

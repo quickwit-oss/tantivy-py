@@ -174,6 +174,31 @@ class TestClass(object):
         assert "and" in top_keys
         assert buckets[0]["doc_count"] == 2
 
+    def test_aggregate_multi_terms(self, ram_index_numeric_fields):
+        searcher = ram_index_numeric_fields.searcher()
+        agg_query = {
+            "pairs": {"multi_terms": {"terms": [{"field": "id"}, {"field": "rating"}]}}
+        }
+        result = searcher.aggregate(Query.all_query(), agg_query)
+        buckets = sorted(result["pairs"]["buckets"], key=lambda b: b["key"])
+        assert [(b["key"], b["doc_count"]) for b in buckets] == [
+            ([1, 3.5], 1),
+            ([2, 4.5], 1),
+        ]
+
+    @pytest.mark.parametrize(
+        ("options", "expected"), [({}, 0.0), ({"none_if_no_match": True}, None)]
+    )
+    def test_aggregate_sum_with_no_match(
+        self, ram_index_numeric_fields, options, expected
+    ):
+        index = ram_index_numeric_fields
+        searcher = index.searcher()
+        no_match = Query.term_query(index.schema, "id", 99)
+        agg_query = {"total": {"sum": {"field": "rating", **options}}}
+        result = searcher.aggregate(no_match, agg_query)
+        assert result["total"]["value"] == expected
+
     def test_cardinality(self, ram_index_numeric_fields):
         index = ram_index_numeric_fields
         query = Query.all_query()
@@ -1600,6 +1625,122 @@ def test_doc_address_pickle():
     assert orig == pickled
 
 
+@pytest.fixture(scope="class")
+def tie_breaker_index():
+    schema = (
+        SchemaBuilder()
+        .add_text_field("title", stored=True)
+        .add_tie_breaker_field("tie")
+        .build()
+    )
+    index = Index(schema)
+    with index.writer(15_000_000, 1) as writer:
+        for title in ["a", "b", "c"]:
+            writer.add_document(Document(title=title))
+    index.reload()
+    return index
+
+
+class TestTieBreakerField:
+    @staticmethod
+    def all_addresses(searcher):
+        return [tantivy.DocAddress(0, doc) for doc in range(searcher.num_docs)]
+
+    def test_values_are_consecutive_within_a_segment(self, tie_breaker_index):
+        searcher = tie_breaker_index.searcher()
+        values = searcher.fast_field_values("tie", self.all_addresses(searcher))
+        assert values == list(range(values[0], values[0] + 3))
+        assert all(-(2**31) <= value < 2**31 for value in values)
+
+    def test_orders_hits(self, tie_breaker_index):
+        searcher = tie_breaker_index.searcher()
+        query = tie_breaker_index.parse_query("*")
+        hits = searcher.search(
+            query, 10, order_by_field="tie", order=tantivy.Order.Desc
+        ).hits
+        titles = [searcher.doc(address)["title"][0] for _, address in hits]
+        assert titles == ["c", "b", "a"]
+
+    def test_is_not_stored(self, tie_breaker_index):
+        searcher = tie_breaker_index.searcher()
+        doc = searcher.doc(tantivy.DocAddress(0, 0))
+        assert doc.to_dict() == {"title": ["a"]}
+
+    def test_ignores_supplied_values(self):
+        schema = SchemaBuilder().add_tie_breaker_field("tie").build()
+        index = Index(schema)
+        with index.writer(15_000_000, 1) as writer:
+            for _ in range(3):
+                doc = Document()
+                doc.add_integer("tie", 7)
+                writer.add_document(doc)
+        index.reload()
+        searcher = index.searcher()
+        values = searcher.fast_field_values("tie", self.all_addresses(searcher))
+        assert values == list(range(values[0], values[0] + 3))
+
+
+class TestIndexSorting:
+    @staticmethod
+    def stored_ranks(index):
+        searcher = index.searcher()
+        return [
+            searcher.doc(tantivy.DocAddress(0, doc))["rank"][0]
+            for doc in range(searcher.num_docs)
+        ]
+
+    @staticmethod
+    def index_ranks(index, ranks):
+        writer = index.writer(num_threads=1)
+        for rank in ranks:
+            doc = Document()
+            doc.add_unsigned("rank", rank)
+            writer.add_document(doc)
+        writer.commit()
+        index.reload()
+
+    @staticmethod
+    def rank_schema(fast=True):
+        return (
+            SchemaBuilder()
+            .add_unsigned_field("rank", stored=True, fast=fast)
+            .build()
+        )
+
+    def test_sorts_documents_ascending_by_default(self):
+        index = Index(self.rank_schema(), sort_by_field="rank")
+        self.index_ranks(index, [3, 1, 2])
+        assert self.stored_ranks(index) == [1, 2, 3]
+
+    def test_sorts_documents_descending(self):
+        index = Index(
+            self.rank_schema(), sort_by_field="rank", sort_order=tantivy.Order.Desc
+        )
+        self.index_ranks(index, [1, 3, 2])
+        assert self.stored_ranks(index) == [3, 2, 1]
+
+    @pytest.mark.parametrize("reuse", [True, False])
+    def test_sorts_a_new_index_on_disk(self, tmp_path, reuse):
+        index = Index(
+            self.rank_schema(), str(tmp_path), reuse=reuse, sort_by_field="rank"
+        )
+        self.index_ranks(index, [2, 3, 1])
+        assert self.stored_ranks(index) == [1, 2, 3]
+
+    def test_without_sort_keeps_insertion_order(self):
+        index = Index(self.rank_schema())
+        self.index_ranks(index, [3, 1, 2])
+        assert self.stored_ranks(index) == [3, 1, 2]
+
+    def test_rejects_a_field_that_is_not_fast(self):
+        with pytest.raises(ValueError, match="fast field"):
+            Index(self.rank_schema(fast=False), sort_by_field="rank")
+
+    def test_rejects_an_unknown_field(self):
+        with pytest.raises(ValueError, match="not found in schema"):
+            Index(self.rank_schema(), sort_by_field="missing")
+
+
 class TestSnippets(object):
     def test_document_snippet(self, dir_index):
         index_dir, _ = dir_index
@@ -1626,6 +1767,34 @@ class TestSnippets(object):
             assert snippet_fragment == "The Old Man and the Sea"
             html_snippet = snippet.to_html()
             assert html_snippet == "The Old Man and the <b>Sea</b>"
+
+    def test_snippet_fragment_range(self):
+        schema = SchemaBuilder().add_text_field("body", stored=True).build()
+        index = Index(schema)
+        writer = index.writer()
+        body = (
+            "He was an old man who fished alone in a skiff in the Gulf Stream "
+            "and he had gone eighty-four days now without taking a fish."
+        )
+        writer.add_document(Document(body=body))
+        writer.commit()
+        index.reload()
+
+        query = index.parse_query("fish", ["body"])
+        searcher = index.searcher()
+        _, doc_address = searcher.search(query).hits[0]
+        doc = searcher.doc(doc_address)
+
+        snippet_generator = SnippetGenerator.create(
+            searcher, query, schema, "body"
+        )
+        snippet_generator.set_max_num_chars(30)
+        snippet = snippet_generator.snippet_from_doc(doc)
+
+        fragment_range = snippet.fragment_range()
+        assert len(snippet.fragment()) < len(body)
+        assert fragment_range.start > 0
+        assert body[fragment_range.start : fragment_range.end] == snippet.fragment()
 
 
 class TestQuery(object):
@@ -1688,6 +1857,16 @@ class TestQuery(object):
 
         result = index.searcher().search(query, 10)
         assert len(result.hits) == 1
+
+    def test_exists_query_syntax(self, index_with_empty_fast_field):
+        index = index_with_empty_fast_field
+        searcher = index.searcher()
+        parsed = searcher.search(index.parse_query("body:*"), 10).hits
+        built = searcher.search(Query.exists_query("body"), 10).hits
+        assert [address for _, address in parsed] == [
+            address for _, address in built
+        ]
+        assert len(parsed) == 1
 
     def test_not_exists_query(self, index_with_empty_fast_field):
         index = index_with_empty_fast_field

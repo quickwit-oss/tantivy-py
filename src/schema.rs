@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use tantivy as tv;
 
 /// Tantivy's Type
-#[pyclass(frozen, module = "tantivy.tantivy")]
+#[pyclass(from_py_object, frozen, module = "tantivy.tantivy")]
 #[derive(Clone, PartialEq)]
 pub(crate) enum FieldType {
     Text,
