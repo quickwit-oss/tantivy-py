@@ -242,6 +242,11 @@ pub(crate) fn extract_value_for_type(
                 .map(Value::IpAddr)
                 .map_err(to_pyerr_for_type("IpAddr", field_name, any))?
         }
+        tv::schema::Type::Custom => {
+            return Err(to_pyerr(format!(
+                "Field {field_name} has a custom (segment plugin) type, which tantivy-py cannot write"
+            )))
+        }
     };
 
     Ok(value)
@@ -333,6 +338,7 @@ fn value_to_py(py: Python, value: &Value) -> PyResult<Py<PyAny>> {
         Value::Object(obj) => object_to_py(py, obj)?,
         Value::Bool(b) => b.into_py_any(py)?,
         Value::IpAddr(i) => (*i).to_string().into_py_any(py)?,
+        Value::Custom(bytes) => bytes.into_py_any(py)?,
     })
 }
 
@@ -359,6 +365,7 @@ fn value_to_string(value: &Value) -> String {
         }
         Value::Bool(b) => format!("{b}"),
         Value::IpAddr(i) => format!("{}", *i),
+        Value::Custom(bytes) => format!("{bytes:?}"),
     }
 }
 
@@ -479,6 +486,8 @@ enum SerdeValue {
     Object(Vec<(String, Value)>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(Ipv6Addr),
+    /// Opaque bytes of a segment plugin's custom field type.
+    Custom(Vec<u8>),
 }
 
 impl From<SerdeValue> for Value {
@@ -497,6 +506,7 @@ impl From<SerdeValue> for Value {
             SerdeValue::Object(v) => Self::Object(v),
             SerdeValue::Bool(v) => Self::Bool(v),
             SerdeValue::IpAddr(v) => Self::IpAddr(v),
+            SerdeValue::Custom(v) => Self::Custom(v),
         }
     }
 }
@@ -517,6 +527,7 @@ impl From<Value> for SerdeValue {
             Value::Object(v) => Self::Object(v),
             Value::Bool(v) => Self::Bool(v),
             Value::IpAddr(v) => Self::IpAddr(v),
+            Value::Custom(v) => Self::Custom(v),
         }
     }
 }
@@ -552,6 +563,8 @@ enum BorrowedSerdeValue<'a> {
     Object(&'a Vec<(String, Value)>),
     /// IpV6 Address. Internally there is no IpV4, it needs to be converted to `Ipv6Addr`.
     IpAddr(&'a Ipv6Addr),
+    /// Opaque bytes of a segment plugin's custom field type.
+    Custom(&'a [u8]),
 }
 
 impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
@@ -570,6 +583,7 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
             Value::Object(v) => Self::Object(v),
             Value::Bool(v) => Self::Bool(v),
             Value::IpAddr(v) => Self::IpAddr(v),
+            Value::Custom(v) => Self::Custom(v),
         }
     }
 }

@@ -29,7 +29,6 @@ pub(crate) struct SchemaBuilder {
     pub(crate) builder: Arc<RwLock<Option<schema::SchemaBuilder>>>,
 }
 
-const NO_TOKENIZER_NAME: &str = "raw";
 const TOKENIZER: &str = "default";
 const RECORD: &str = "position";
 
@@ -545,12 +544,7 @@ impl SchemaBuilder {
         };
 
         let options = if fast {
-            let text_tokenizer = if tokenizer_name != NO_TOKENIZER_NAME {
-                Some(tokenizer_name)
-            } else {
-                None
-            };
-            options.set_fast(text_tokenizer)
+            options.set_fast(tokenizer_name)
         } else {
             options
         };

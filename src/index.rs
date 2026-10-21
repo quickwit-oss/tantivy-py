@@ -239,7 +239,12 @@ impl IndexWriter {
                     )))
                 },
                 Value::Bool(b) => Term::from_field_bool(field, b),
-                Value::IpAddr(i) => Term::from_field_ip_addr(field, i)
+                Value::IpAddr(i) => Term::from_field_ip_addr(field, i),
+                Value::Custom(_) => {
+                    return Err(exceptions::PyValueError::new_err(format!(
+                        "Field `{field_name}` is custom type not deletable."
+                    )))
+                }
             };
             Ok(self.inner()?.delete_term(term))
         })

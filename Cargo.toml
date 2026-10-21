@@ -14,10 +14,10 @@ crate-type = ["cdylib"]
 pyo3-build-config = "0.29.0"
 
 [dependencies]
-base64 = "0.22"
+base64 = "0.23"
 chrono = "0.4.44"
-tantivy = "0.26.2"
-tantivy-common = "0.11"
+tantivy = "0.27.0"
+tantivy-common = "0.27"
 itertools = "0.15.0"
 futures = "0.3.32"
 pythonize = "0.29.0"
