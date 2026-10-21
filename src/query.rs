@@ -12,7 +12,7 @@ use pyo3::{
 use tantivy as tv;
 
 /// Tantivy's Occur
-#[pyclass(frozen, module = "tantivy.tantivy")]
+#[pyclass(from_py_object, frozen, module = "tantivy.tantivy")]
 #[derive(Clone)]
 pub enum Occur {
     Must,
@@ -31,7 +31,7 @@ impl From<Occur> for tv::query::Occur {
 }
 
 /// Tantivy's Query
-#[pyclass(frozen, module = "tantivy.tantivy")]
+#[pyclass(from_py_object, frozen, module = "tantivy.tantivy")]
 pub(crate) struct Query {
     pub(crate) inner: Box<dyn tv::query::Query>,
 }

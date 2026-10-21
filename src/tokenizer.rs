@@ -262,7 +262,7 @@ fn parse_language(lang: &str) -> Result<tvt::Language, String> {
 /// Do not instantiate this class directly.
 /// Use the `TextAnalyzerBuilder` class instead.
 #[derive(Clone)]
-#[pyclass(module = "tantivy.tantivy")]
+#[pyclass(from_py_object, module = "tantivy.tantivy")]
 pub(crate) struct TextAnalyzer {
     pub(crate) analyzer: tvt::TextAnalyzer,
 }

@@ -187,7 +187,7 @@ enum FastFieldValue {
     Bool(bool),
 }
 
-#[pyclass(frozen, module = "tantivy.tantivy")]
+#[pyclass(from_py_object, frozen, module = "tantivy.tantivy")]
 #[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
 /// Enum representing the direction in which something should be sorted.
 pub(crate) enum Order {
@@ -211,7 +211,7 @@ impl From<Order> for tv::Order {
 /// with the address of the matching document.
 type PyHit = (Py<PyAny>, DocAddress);
 
-#[pyclass(frozen, module = "tantivy.tantivy")]
+#[pyclass(skip_from_py_object, frozen, module = "tantivy.tantivy")]
 #[derive(Clone, Default, Deserialize, PartialEq, Serialize)]
 /// Object holding a results successful search.
 pub(crate) struct SearchResult {
@@ -972,7 +972,7 @@ impl Searcher {
 /// It consists in an id identifying its segment, and its segment-local DocId.
 /// The id used for the segment is actually an ordinal in the list of segment
 /// hold by a Searcher.
-#[pyclass(frozen, module = "tantivy.tantivy")]
+#[pyclass(from_py_object, frozen, module = "tantivy.tantivy")]
 #[derive(
     Clone, Debug, Deserialize, PartialEq, PartialOrd, Eq, Ord, Serialize,
 )]

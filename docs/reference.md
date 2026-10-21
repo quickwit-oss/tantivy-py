@@ -75,6 +75,25 @@ best_doc = searcher.doc(best_doc_address)
 ```
 Note: for integer search, the integer field should be indexed.
 
+- exists search: `field:*` matches documents that have any value in `field`,
+  like `Query.exists_query`. The field must be a fast field.
+```python
+exists_schema = (
+    SchemaBuilder()
+        .add_text_field("title", stored=True)
+        .add_text_field("subtitle", fast=True)
+        .build()
+)
+exists_index = Index(exists_schema)
+with exists_index.writer(heap_size=15_000_000, num_threads=1) as exists_writer:
+    exists_writer.add_document(Document(title="Moby Dick", subtitle="The Whale"))
+    exists_writer.add_document(Document(title="The Old Man and the Sea"))
+exists_index.reload()
+exists_searcher = exists_index.searcher()
+hits = exists_searcher.search(exists_index.parse_query("subtitle:*"), 3).hits
+assert [exists_searcher.doc(address)["title"][0] for _, address in hits] == ["Moby Dick"]
+```
+
 For more possible query formats and possible query options, see [Tantivy Query Parser Docs.](https://docs.rs/tantivy/latest/tantivy/query/struct.QueryParser.html)
 
 ## Field boosts

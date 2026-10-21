@@ -26,10 +26,10 @@ query parsing.</p>
   </div>
   
   <div class="pdoc-code codehilite">
-<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">title</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="n">stored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">body</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">id</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_unsigned_field</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rating</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_float_field</span><span class="p">(</span><span class="s2">&quot;rating&quot;</span><span class="p">)</span>
+<pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">title</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="n">stored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">body</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_text_field</span><span class="p">(</span><span class="s2">"body"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">id</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_unsigned_field</span><span class="p">(</span><span class="s2">"id"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rating</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">add_float_field</span><span class="p">(</span><span class="s2">"rating"</span><span class="p">)</span>
 </code></pre>
   </div>
   
@@ -41,7 +41,7 @@ query parsing.</p>
   
   <div class="pdoc-code codehilite">
 <pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">query</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">parse_query_lenient</span><span class="p">(</span>
-<span class="go">        &quot;bod:&#39;world&#39; AND id:&lt;3.5 AND rating:5.0&quot;</span>
+<span class="go">        "bod:'world' AND id:&lt;3.5 AND rating:5.0"</span>
 <span class="go">    )</span>
 </code></pre>
   </div>
