@@ -420,6 +420,43 @@ assert html_snippet == (
 ```
 
 
+## Sorting the documents in an index
+
+An index can store its documents sorted by a fast field, so that document
+ids follow that field's order. Pass `sort_by_field` (and optionally
+`sort_order`) when creating the index. The field must be a single-valued fast
+field of type int, unsigned, float, date, text or bytes. The setting applies
+only when the index is created; opening an existing index keeps its own
+sorting.
+
+```python
+import tantivy
+
+sorted_schema = (
+    tantivy.SchemaBuilder()
+    .add_unsigned_field("year", stored=True, fast=True)
+    .build()
+)
+sorted_index = tantivy.Index(
+    sorted_schema, sort_by_field="year", sort_order=tantivy.Order.Desc
+)
+sorted_writer = sorted_index.writer(num_threads=1)
+for year in [1952, 1937, 1961]:
+    book = tantivy.Document()
+    book.add_unsigned("year", year)
+    sorted_writer.add_document(book)
+sorted_writer.commit()
+sorted_index.reload()
+
+sorted_searcher = sorted_index.searcher()
+years = [
+    sorted_searcher.doc(tantivy.DocAddress(0, doc_id))["year"][0]
+    for doc_id in range(sorted_searcher.num_docs)
+]
+assert years == [1961, 1952, 1937]
+```
+
+
 ## Create a Custom Tokenizer (Text Analyzer)
 
 Tantivy provides several built-in tokenizers and filters that

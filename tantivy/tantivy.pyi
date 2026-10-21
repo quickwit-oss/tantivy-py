@@ -535,7 +535,12 @@ class IndexWriter:
 
 class Index:
     def __new__(
-        cls, schema: Schema, path: Optional[str] = None, reuse: bool = True
+        cls,
+        schema: Schema,
+        path: Optional[str] = None,
+        reuse: bool = True,
+        sort_by_field: Optional[str] = None,
+        sort_order: Order = Order.Asc,
     ) -> Index:
         pass
 

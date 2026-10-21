@@ -1600,6 +1600,67 @@ def test_doc_address_pickle():
     assert orig == pickled
 
 
+class TestIndexSorting:
+    @staticmethod
+    def stored_ranks(index):
+        searcher = index.searcher()
+        return [
+            searcher.doc(tantivy.DocAddress(0, doc))["rank"][0]
+            for doc in range(searcher.num_docs)
+        ]
+
+    @staticmethod
+    def index_ranks(index, ranks):
+        writer = index.writer(num_threads=1)
+        for rank in ranks:
+            doc = Document()
+            doc.add_unsigned("rank", rank)
+            writer.add_document(doc)
+        writer.commit()
+        index.reload()
+
+    @staticmethod
+    def rank_schema(fast=True):
+        return (
+            SchemaBuilder()
+            .add_unsigned_field("rank", stored=True, fast=fast)
+            .build()
+        )
+
+    def test_sorts_documents_ascending_by_default(self):
+        index = Index(self.rank_schema(), sort_by_field="rank")
+        self.index_ranks(index, [3, 1, 2])
+        assert self.stored_ranks(index) == [1, 2, 3]
+
+    def test_sorts_documents_descending(self):
+        index = Index(
+            self.rank_schema(), sort_by_field="rank", sort_order=tantivy.Order.Desc
+        )
+        self.index_ranks(index, [1, 3, 2])
+        assert self.stored_ranks(index) == [3, 2, 1]
+
+    @pytest.mark.parametrize("reuse", [True, False])
+    def test_sorts_a_new_index_on_disk(self, tmp_path, reuse):
+        index = Index(
+            self.rank_schema(), str(tmp_path), reuse=reuse, sort_by_field="rank"
+        )
+        self.index_ranks(index, [2, 3, 1])
+        assert self.stored_ranks(index) == [1, 2, 3]
+
+    def test_without_sort_keeps_insertion_order(self):
+        index = Index(self.rank_schema())
+        self.index_ranks(index, [3, 1, 2])
+        assert self.stored_ranks(index) == [3, 1, 2]
+
+    def test_rejects_a_field_that_is_not_fast(self):
+        with pytest.raises(ValueError, match="fast field"):
+            Index(self.rank_schema(fast=False), sort_by_field="rank")
+
+    def test_rejects_an_unknown_field(self):
+        with pytest.raises(ValueError, match="not found in schema"):
+            Index(self.rank_schema(), sort_by_field="missing")
+
+
 class TestSnippets(object):
     def test_document_snippet(self, dir_index):
         index_dir, _ = dir_index
