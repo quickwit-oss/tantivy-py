@@ -397,6 +397,17 @@ assert fragment[first_highlight.start:first_highlight.end] == "days"
 > fragment is a substring and the offsets will only be correct against
 > `fragment()`.
 
+`fragment_range()` says where the fragment sits in the text the snippet was
+generated from (the field's values joined by a single space). Add its
+`start` to a highlight's offsets to locate the highlight in that text. Like
+`highlighted()`, the offsets are UTF-8 byte offsets, so they match Python
+string indices only for ASCII text:
+
+```python
+fragment_range = snippet.fragment_range()
+assert hit_text[fragment_range.start:fragment_range.end] == fragment
+```
+
 The snippet object can also generate a marked-up HTML snippet:
 
 ```python
@@ -406,6 +417,43 @@ assert html_snippet == (
     "Gulf Stream and he had gone eighty-four <b>days</b> now "
     "without taking a <b>fish</b>"
 )
+```
+
+
+## Sorting the documents in an index
+
+An index can store its documents sorted by a fast field, so that document
+ids follow that field's order. Pass `sort_by_field` (and optionally
+`sort_order`) when creating the index. The field must be a single-valued fast
+field of type int, unsigned, float, date, text or bytes. The setting applies
+only when the index is created; opening an existing index keeps its own
+sorting.
+
+```python
+import tantivy
+
+sorted_schema = (
+    tantivy.SchemaBuilder()
+    .add_unsigned_field("year", stored=True, fast=True)
+    .build()
+)
+sorted_index = tantivy.Index(
+    sorted_schema, sort_by_field="year", sort_order=tantivy.Order.Desc
+)
+sorted_writer = sorted_index.writer(num_threads=1)
+for year in [1952, 1937, 1961]:
+    book = tantivy.Document()
+    book.add_unsigned("year", year)
+    sorted_writer.add_document(book)
+sorted_writer.commit()
+sorted_index.reload()
+
+sorted_searcher = sorted_index.searcher()
+years = [
+    sorted_searcher.doc(tantivy.DocAddress(0, doc_id))["year"][0]
+    for doc_id in range(sorted_searcher.num_docs)
+]
+assert years == [1961, 1952, 1937]
 ```
 
 
@@ -551,7 +599,8 @@ serves to register a *text analyzer*.
 ## How to use aggregations
 
 Aggregations summarize your data as metrics, statistics, or other analytics.
-Tantivy-py supports a subset of the aggregations available in Tantivy.
+`Searcher.cardinality` is a shortcut for one aggregation, and
+`Searcher.aggregate` runs any aggregation tantivy supports.
 
 ### Cardinality Aggregation
 
@@ -590,4 +639,49 @@ query = tantivy.Query.all_query()
 cardinality = searcher.cardinality(query, "rating")
 
 assert cardinality == 2.0
+```
+
+### Aggregation requests
+
+`Searcher.aggregate` takes an aggregation request as a dict, in tantivy's
+Elasticsearch-compatible format, and returns the result as a dict. Any
+aggregation tantivy supports can be used, for example `multi_terms`, which
+buckets documents by a combination of fields, or `sum` with
+`none_if_no_match`, which returns `None` instead of `0.0` when no document
+matches:
+
+```python
+import tantivy
+
+schema = (
+    tantivy.SchemaBuilder()
+    .add_text_field("genre", fast=True, tokenizer_name="raw")
+    .add_unsigned_field("year", fast=True)
+    .add_float_field("price", fast=True)
+    .build()
+)
+index = tantivy.Index(schema)
+with index.writer() as writer:
+    for genre, year, price in [("novel", 1952, 9.5), ("novel", 1952, 12.0), ("poetry", 1961, 7.0)]:
+        book = tantivy.Document(genre=genre, price=price)
+        book.add_unsigned("year", year)
+        writer.add_document(book)
+index.reload()
+searcher = index.searcher()
+
+by_genre_and_year = searcher.aggregate(
+    tantivy.Query.all_query(),
+    {"pairs": {"multi_terms": {"terms": [{"field": "genre"}, {"field": "year"}]}}},
+)
+counts = {
+    tuple(bucket["key"]): bucket["doc_count"]
+    for bucket in by_genre_and_year["pairs"]["buckets"]
+}
+assert counts == {("novel", 1952): 2, ("poetry", 1961): 1}
+
+no_match = searcher.aggregate(
+    index.parse_query("genre:drama"),
+    {"revenue": {"sum": {"field": "price", "none_if_no_match": True}}},
+)
+assert no_match["revenue"]["value"] is None
 ```

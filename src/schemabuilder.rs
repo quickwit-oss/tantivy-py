@@ -23,13 +23,12 @@ use tantivy::schema::{
 ///     >>> body = builder.add_text_field("body")
 ///
 ///     >>> schema = builder.build()
-#[pyclass(module = "tantivy.tantivy")]
+#[pyclass(skip_from_py_object, module = "tantivy.tantivy")]
 #[derive(Clone)]
 pub(crate) struct SchemaBuilder {
     pub(crate) builder: Arc<RwLock<Option<schema::SchemaBuilder>>>,
 }
 
-const NO_TOKENIZER_NAME: &str = "raw";
 const TOKENIZER: &str = "default";
 const RECORD: &str = "position";
 
@@ -136,6 +135,31 @@ impl SchemaBuilder {
 
         if let Some(builder) = builder.write().unwrap().as_mut() {
             builder.add_i64_field(name, opts);
+        } else {
+            return Err(exceptions::PyValueError::new_err(
+                "Schema builder object isn't valid anymore.",
+            ));
+        }
+        Ok(self.clone())
+    }
+
+    /// Add a generated tie-breaker field to the schema.
+    ///
+    /// tantivy fills the field itself: it is an integer fast field whose
+    /// values are consecutive within a segment, start at a random offset and
+    /// are kept across merges. Segments may overlap, so values are almost
+    /// always distinct but not guaranteed to be unique. Use it to order hits
+    /// that would otherwise tie, e.g. `order_by_field`. It is not stored, and
+    /// values supplied for it in documents are ignored.
+    ///
+    /// Args:
+    ///     name (str): The name of the field.
+    ///
+    /// Returns the associated field handle.
+    /// Raises a ValueError if there was an error with the field creation.
+    fn add_tie_breaker_field(&mut self, name: &str) -> PyResult<Self> {
+        if let Some(builder) = self.builder.write().unwrap().as_mut() {
+            builder.add_tie_breaker_field(name);
         } else {
             return Err(exceptions::PyValueError::new_err(
                 "Schema builder object isn't valid anymore.",
@@ -545,12 +569,7 @@ impl SchemaBuilder {
         };
 
         let options = if fast {
-            let text_tokenizer = if tokenizer_name != NO_TOKENIZER_NAME {
-                Some(tokenizer_name)
-            } else {
-                None
-            };
-            options.set_fast(text_tokenizer)
+            options.set_fast(tokenizer_name)
         } else {
             options
         };
