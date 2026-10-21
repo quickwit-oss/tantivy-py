@@ -636,7 +636,7 @@ impl<'a> From<&'a Value> for BorrowedSerdeValue<'a> {
 ///     ...     {"unsigned": 1000, "signed": -5, "float": 0.4},
 ///     ...     schema,
 ///     ... )
-#[pyclass(module = "tantivy.tantivy")]
+#[pyclass(skip_from_py_object, module = "tantivy.tantivy")]
 #[derive(Clone, Default, PartialEq)]
 pub(crate) struct Document {
     pub(crate) field_values: BTreeMap<String, Vec<Value>>,

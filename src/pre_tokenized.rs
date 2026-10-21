@@ -2,7 +2,7 @@ use pyo3::{prelude::*, IntoPyObjectExt};
 use tantivy::tokenizer as tvt;
 
 #[derive(Clone)]
-#[pyclass(module = "tantivy.tokenizer")]
+#[pyclass(from_py_object, module = "tantivy.tokenizer")]
 pub(crate) struct Token {
     #[pyo3(get)]
     pub(crate) text: String,

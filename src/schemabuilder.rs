@@ -23,7 +23,7 @@ use tantivy::schema::{
 ///     >>> body = builder.add_text_field("body")
 ///
 ///     >>> schema = builder.build()
-#[pyclass(module = "tantivy.tantivy")]
+#[pyclass(skip_from_py_object, module = "tantivy.tantivy")]
 #[derive(Clone)]
 pub(crate) struct SchemaBuilder {
     pub(crate) builder: Arc<RwLock<Option<schema::SchemaBuilder>>>,
