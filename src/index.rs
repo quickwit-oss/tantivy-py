@@ -10,7 +10,7 @@ use crate::{
     parser_error::QueryParserErrorIntoPy,
     query::Query,
     schema::Schema,
-    searcher::Searcher,
+    searcher::{Order, Searcher},
     to_pyerr,
     tokenizer::TextAnalyzer as PyTextAnalyzer,
 };
@@ -239,7 +239,12 @@ impl IndexWriter {
                     )))
                 },
                 Value::Bool(b) => Term::from_field_bool(field, b),
-                Value::IpAddr(i) => Term::from_field_ip_addr(field, i)
+                Value::IpAddr(i) => Term::from_field_ip_addr(field, i),
+                Value::Custom(_) => {
+                    return Err(exceptions::PyValueError::new_err(format!(
+                        "Field `{field_name}` is custom type not deletable."
+                    )))
+                }
             };
             Ok(self.inner()?.delete_term(term))
         })
@@ -318,6 +323,12 @@ impl IndexWriter {
 ///         no path is provided, the index will be stored in memory.
 ///     reuse (bool, optional): Should we open an existing index if one exists
 ///         or always create a new one.
+///     sort_by_field (str, optional): Store documents sorted by this field,
+///         which must be a single-valued fast field of type int, unsigned,
+///         float, date, text or bytes. Applies only when the index is
+///         created: an existing index that is opened keeps its own sorting.
+///     sort_order (Order, optional): The direction of `sort_by_field`.
+///         Defaults to `Order.Asc`.
 ///
 /// If an index already exists it will be opened and reused. Raises OSError
 /// if there was a problem during the opening or creation of the index.
@@ -342,33 +353,47 @@ impl Index {
     }
 
     #[new]
-    #[pyo3(signature = (schema, path = None, reuse = true))]
+    #[pyo3(signature = (schema, path = None, reuse = true, sort_by_field = None, sort_order = Order::Asc))]
     fn new(
         py: Python,
         schema: &Schema,
         path: Option<&str>,
         reuse: bool,
+        sort_by_field: Option<String>,
+        sort_order: Order,
     ) -> PyResult<Self> {
         py.detach(move || {
+            let settings = tv::IndexSettings {
+                sort_by_field: sort_by_field.map(|field| {
+                    tv::IndexSortByField {
+                        field,
+                        order: sort_order.into(),
+                    }
+                }),
+                ..tv::IndexSettings::default()
+            };
             let index = match path {
                 Some(p) => {
                     let directory = MmapDirectory::open(p).map_err(to_pyerr)?;
                     if reuse {
-                        tv::Index::open_or_create(
-                            directory,
-                            schema.inner.clone(),
-                        )
+                        tv::Index::builder()
+                            .schema(schema.inner.clone())
+                            .settings(settings)
+                            .open_or_create(directory)
                     } else {
                         tv::Index::create(
                             directory,
                             schema.inner.clone(),
-                            tv::IndexSettings::default(),
+                            settings,
                         )
                     }
-                    .map_err(to_pyerr)?
                 }
-                None => tv::Index::create_in_ram(schema.inner.clone()),
-            };
+                None => tv::Index::builder()
+                    .schema(schema.inner.clone())
+                    .settings(settings)
+                    .create_in_ram(),
+            }
+            .map_err(to_pyerr)?;
 
             Index::register_custom_text_analyzers(&index);
 

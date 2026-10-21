@@ -2,7 +2,7 @@ use pyo3::{prelude::*, IntoPyObjectExt};
 use tantivy::tokenizer as tvt;
 
 #[derive(Clone)]
-#[pyclass(module = "tantivy.tokenizer")]
+#[pyclass(from_py_object, module = "tantivy.tokenizer")]
 pub(crate) struct Token {
     #[pyo3(get)]
     pub(crate) text: String,
@@ -164,7 +164,7 @@ impl PreTokenizedString {
     ) -> PyResult<Py<PyAny>> {
         match op {
             pyo3::basic::CompareOp::Eq => {
-                (self.inner == self.inner).into_py_any(py)
+                (self.inner == other.inner).into_py_any(py)
             }
             pyo3::basic::CompareOp::Ne => {
                 (self.inner != other.inner).into_py_any(py)
