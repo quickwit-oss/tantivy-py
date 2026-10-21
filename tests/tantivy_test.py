@@ -1627,6 +1627,34 @@ class TestSnippets(object):
             html_snippet = snippet.to_html()
             assert html_snippet == "The Old Man and the <b>Sea</b>"
 
+    def test_snippet_fragment_range(self):
+        schema = SchemaBuilder().add_text_field("body", stored=True).build()
+        index = Index(schema)
+        writer = index.writer()
+        body = (
+            "He was an old man who fished alone in a skiff in the Gulf Stream "
+            "and he had gone eighty-four days now without taking a fish."
+        )
+        writer.add_document(Document(body=body))
+        writer.commit()
+        index.reload()
+
+        query = index.parse_query("fish", ["body"])
+        searcher = index.searcher()
+        _, doc_address = searcher.search(query).hits[0]
+        doc = searcher.doc(doc_address)
+
+        snippet_generator = SnippetGenerator.create(
+            searcher, query, schema, "body"
+        )
+        snippet_generator.set_max_num_chars(30)
+        snippet = snippet_generator.snippet_from_doc(doc)
+
+        fragment_range = snippet.fragment_range()
+        assert len(snippet.fragment()) < len(body)
+        assert fragment_range.start > 0
+        assert body[fragment_range.start : fragment_range.end] == snippet.fragment()
+
 
 class TestQuery(object):
     def test_term_query(self, ram_index):

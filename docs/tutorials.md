@@ -397,6 +397,17 @@ assert fragment[first_highlight.start:first_highlight.end] == "days"
 > fragment is a substring and the offsets will only be correct against
 > `fragment()`.
 
+`fragment_range()` says where the fragment sits in the text the snippet was
+generated from (the field's values joined by a single space). Add its
+`start` to a highlight's offsets to locate the highlight in that text. Like
+`highlighted()`, the offsets are UTF-8 byte offsets, so they match Python
+string indices only for ASCII text:
+
+```python
+fragment_range = snippet.fragment_range()
+assert hit_text[fragment_range.start:fragment_range.end] == fragment
+```
+
 The snippet object can also generate a marked-up HTML snippet:
 
 ```python

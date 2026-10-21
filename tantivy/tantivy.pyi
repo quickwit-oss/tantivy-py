@@ -620,6 +620,9 @@ class Snippet:
     def fragment(self) -> str:
         pass
 
+    def fragment_range(self) -> Range:
+        pass
+
 
 class SnippetGenerator:
     @staticmethod
