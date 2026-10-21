@@ -33,6 +33,9 @@ class SchemaBuilder:
     ) -> SchemaBuilder:
         pass
 
+    def add_tie_breaker_field(self, name: str) -> SchemaBuilder:
+        pass
+
     def add_float_field(
         self,
         name: str,

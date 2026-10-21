@@ -1600,6 +1600,61 @@ def test_doc_address_pickle():
     assert orig == pickled
 
 
+@pytest.fixture(scope="class")
+def tie_breaker_index():
+    schema = (
+        SchemaBuilder()
+        .add_text_field("title", stored=True)
+        .add_tie_breaker_field("tie")
+        .build()
+    )
+    index = Index(schema)
+    with index.writer(15_000_000, 1) as writer:
+        for title in ["a", "b", "c"]:
+            writer.add_document(Document(title=title))
+    index.reload()
+    return index
+
+
+class TestTieBreakerField:
+    @staticmethod
+    def all_addresses(searcher):
+        return [tantivy.DocAddress(0, doc) for doc in range(searcher.num_docs)]
+
+    def test_values_are_consecutive_within_a_segment(self, tie_breaker_index):
+        searcher = tie_breaker_index.searcher()
+        values = searcher.fast_field_values("tie", self.all_addresses(searcher))
+        assert values == list(range(values[0], values[0] + 3))
+        assert all(-(2**31) <= value < 2**31 for value in values)
+
+    def test_orders_hits(self, tie_breaker_index):
+        searcher = tie_breaker_index.searcher()
+        query = tie_breaker_index.parse_query("*")
+        hits = searcher.search(
+            query, 10, order_by_field="tie", order=tantivy.Order.Desc
+        ).hits
+        titles = [searcher.doc(address)["title"][0] for _, address in hits]
+        assert titles == ["c", "b", "a"]
+
+    def test_is_not_stored(self, tie_breaker_index):
+        searcher = tie_breaker_index.searcher()
+        doc = searcher.doc(tantivy.DocAddress(0, 0))
+        assert doc.to_dict() == {"title": ["a"]}
+
+    def test_ignores_supplied_values(self):
+        schema = SchemaBuilder().add_tie_breaker_field("tie").build()
+        index = Index(schema)
+        with index.writer(15_000_000, 1) as writer:
+            for _ in range(3):
+                doc = Document()
+                doc.add_integer("tie", 7)
+                writer.add_document(doc)
+        index.reload()
+        searcher = index.searcher()
+        values = searcher.fast_field_values("tie", self.all_addresses(searcher))
+        assert values == list(range(values[0], values[0] + 3))
+
+
 class TestIndexSorting:
     @staticmethod
     def stored_ranks(index):

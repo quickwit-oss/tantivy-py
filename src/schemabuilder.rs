@@ -143,6 +143,31 @@ impl SchemaBuilder {
         Ok(self.clone())
     }
 
+    /// Add a generated tie-breaker field to the schema.
+    ///
+    /// tantivy fills the field itself: it is an integer fast field whose
+    /// values are consecutive within a segment, start at a random offset and
+    /// are kept across merges. Segments may overlap, so values are almost
+    /// always distinct but not guaranteed to be unique. Use it to order hits
+    /// that would otherwise tie, e.g. `order_by_field`. It is not stored, and
+    /// values supplied for it in documents are ignored.
+    ///
+    /// Args:
+    ///     name (str): The name of the field.
+    ///
+    /// Returns the associated field handle.
+    /// Raises a ValueError if there was an error with the field creation.
+    fn add_tie_breaker_field(&mut self, name: &str) -> PyResult<Self> {
+        if let Some(builder) = self.builder.write().unwrap().as_mut() {
+            builder.add_tie_breaker_field(name);
+        } else {
+            return Err(exceptions::PyValueError::new_err(
+                "Schema builder object isn't valid anymore.",
+            ));
+        }
+        Ok(self.clone())
+    }
+
     /// Add a new float field to the schema.
     ///
     /// Args:
