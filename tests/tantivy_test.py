@@ -731,6 +731,30 @@ class TestFromDiskClass(object):
         index = Index(build_schema(), str(index_dir), reuse=True)
         assert index.searcher().num_docs == 3
 
+    def test_reads_and_writes_zstd_docstore(self, dir_index):
+        index_dir, _ = dir_index
+        meta_path = index_dir / "meta.json"
+        meta = json.loads(meta_path.read_text("utf-8"))
+        meta["index_settings"]["docstore_compression"] = "zstd"
+        meta_path.write_text(json.dumps(meta), "utf-8")
+
+        index = Index(build_schema(), str(index_dir), reuse=True)
+        writer = index.writer(15_000_000, 1)
+        writer.add_document(Document(title="Moby Dick", body="Call me Ishmael."))
+        writer.commit()
+        writer.wait_merging_threads()
+        index.reload()
+
+        searcher = index.searcher()
+        assert searcher.num_docs == 4
+        for title in ["Moby Dick", "Frankenstein"]:
+            query = index.parse_query(f'"{title}"', ["title"])
+            ((_, address),) = searcher.search(query, 1).hits
+            assert searcher.doc(address)["title"][0] == title
+
+        meta = json.loads(meta_path.read_text("utf-8"))
+        assert meta["index_settings"]["docstore_compression"] == "zstd"
+
     def test_is_compatible_for_current_index(self, dir_index):
         index_dir, _ = dir_index
 
