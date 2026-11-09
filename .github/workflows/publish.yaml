@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -58,11 +58,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: ${{ env.ABI3_PYTHON }}
 
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -125,7 +125,7 @@ jobs:
             manylinux: musllinux_1_2
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -155,12 +155,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: ${{ env.ABI3_PYTHON }}
           architecture: x64
 
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -197,7 +197,7 @@ jobs:
         target: [x64]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -215,11 +215,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: ${{ env.ABI3_PYTHON }}
 
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -256,7 +256,7 @@ jobs:
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -274,11 +274,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: ${{ env.ABI3_PYTHON }}
 
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -329,7 +329,7 @@ jobs:
         shell: bash
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           # Harden-Runner does not support ARM runners; every other leg blocks. api.github.com
           # and release-assets are for setup-python, when an interpreter isn't in the toolcache.
@@ -347,11 +347,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -407,7 +407,7 @@ jobs:
         python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -465,7 +465,7 @@ jobs:
       contents: write # To add assets to a release.
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.1.0
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.1.0
         with:
           disable-sudo: true
           egress-policy: block
@@ -497,7 +497,7 @@ jobs:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
         with:
           egress-policy: audit
 
@@ -508,7 +508,7 @@ jobs:
           merge-multiple: true
 
       - name: Publish package distributions to Test PyPI
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: wheels/
@@ -517,7 +517,7 @@ jobs:
 
       - name: Publish package distributions to PyPI
         if: always()
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: wheels/
           skip-existing: true
