@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -62,7 +62,7 @@ jobs:
         with:
           python-version: ${{ env.ABI3_PYTHON }}
 
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -125,7 +125,7 @@ jobs:
             manylinux: musllinux_1_2
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -160,7 +160,7 @@ jobs:
           python-version: ${{ env.ABI3_PYTHON }}
           architecture: x64
 
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -197,7 +197,7 @@ jobs:
         target: [x64]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -219,7 +219,7 @@ jobs:
         with:
           python-version: ${{ env.ABI3_PYTHON }}
 
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -256,7 +256,7 @@ jobs:
         target: ['universal2', 'x86_64-apple-darwin']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -278,7 +278,7 @@ jobs:
         with:
           python-version: ${{ env.ABI3_PYTHON }}
 
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -329,7 +329,7 @@ jobs:
         shell: bash
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43
         with:
           # Harden-Runner does not support ARM runners; every other leg blocks. api.github.com
           # and release-assets are for setup-python, when an interpreter isn't in the toolcache.
@@ -351,7 +351,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           # Off in a publishing workflow: a cache a PR run writes must never feed a release.
           enable-cache: false
@@ -407,7 +407,7 @@ jobs:
         python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -465,7 +465,7 @@ jobs:
       contents: write # To add assets to a release.
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.1.0
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.1.0
         with:
           disable-sudo: true
           egress-policy: block
@@ -497,7 +497,7 @@ jobs:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43
         with:
           egress-policy: audit
 
