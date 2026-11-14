@@ -17,8 +17,9 @@
 //!   stores apply atomically.
 //! - Locks are objects created with a conditional PUT, kept fresh by a
 //!   heartbeat, and taken over once stale; see `object_store_lock`.
-//! - `watch` only sees commits made through this process. Changes made by
-//!   another process are picked up with `Index.reload()`.
+//! - `watch` fires on commits from this process at once, and on commits
+//!   from other processes when a poll of `meta.json` (every
+//!   `TANTIVY_OBJECT_STORE_POLL_SECONDS`, default 1) sees it change.
 
 use std::{
     collections::HashMap,
@@ -28,6 +29,7 @@ use std::{
     ops::Range,
     path::Path,
     sync::{Arc, Mutex, OnceLock},
+    time::Duration,
 };
 
 use bytes::Bytes;
@@ -114,7 +116,90 @@ pub(crate) struct ObjectStoreDirectory {
     root: ObjectPath,
     uri: Arc<str>,
     watchers: Arc<WatchCallbackList>,
+    meta_watch: Arc<MetaWatch>,
     lock_timing: LockTiming,
+}
+
+/// Notices commits made by other processes, by polling `meta.json`.
+///
+/// A filesystem `MmapDirectory` polls `meta.json` for the same reason; here
+/// each poll is a HEAD request, made only while an on-commit reader exists.
+struct MetaWatch {
+    /// ETag (or modification time) of the last `meta.json` seen.
+    last_seen: Mutex<Option<String>>,
+    started: OnceLock<()>,
+    interval: Option<Duration>,
+}
+
+const POLL_ENV: &str = "TANTIVY_OBJECT_STORE_POLL_SECONDS";
+
+impl MetaWatch {
+    fn from_env() -> PyResult<Self> {
+        let interval = match std::env::var(POLL_ENV) {
+            Ok(value) => {
+                let secs = value
+                    .trim()
+                    .parse::<f64>()
+                    .ok()
+                    .filter(|secs| secs.is_finite() && *secs >= 0.0)
+                    .ok_or_else(|| {
+                        value_error(
+                            &format!("Invalid {POLL_ENV}"),
+                            format!(
+                                "expected a number of seconds (0 disables), \
+                                 got '{value}'"
+                            ),
+                        )
+                    })?;
+                (secs > 0.0).then(|| Duration::from_secs_f64(secs))
+            }
+            Err(_) => Some(Duration::from_secs(1)),
+        };
+        Ok(MetaWatch {
+            last_seen: Mutex::new(None),
+            started: OnceLock::new(),
+            interval,
+        })
+    }
+
+    /// Record `identity` as the latest `meta.json`; true if it changed from
+    /// a previously seen one.
+    fn observe(&self, identity: String) -> bool {
+        let mut last = self.last_seen.lock().unwrap_or_else(|e| e.into_inner());
+        let changed = last.as_ref().is_some_and(|seen| *seen != identity);
+        *last = Some(identity);
+        changed
+    }
+}
+
+fn meta_identity(meta: &ObjectMeta) -> String {
+    meta.e_tag
+        .clone()
+        .unwrap_or_else(|| meta.last_modified.to_rfc3339())
+}
+
+async fn poll_meta(
+    store: Arc<dyn ObjectStore>,
+    location: ObjectPath,
+    watchers: std::sync::Weak<WatchCallbackList>,
+    state: Arc<MetaWatch>,
+    interval: Duration,
+) {
+    let mut ticker = tokio::time::interval(interval);
+    ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    loop {
+        ticker.tick().await;
+        // Stops once every clone of the directory is gone.
+        let Some(watchers) = watchers.upgrade() else {
+            return;
+        };
+        // Errors (including a missing meta.json) are retried next tick.
+        if let Ok(meta) = store.head(&location).await {
+            if state.observe(meta_identity(&meta)) {
+                drop(watchers.broadcast());
+            }
+        }
+    }
 }
 
 impl fmt::Debug for ObjectStoreDirectory {
@@ -145,6 +230,7 @@ impl ObjectStoreDirectory {
             root,
             uri: uri.into(),
             watchers: Arc::default(),
+            meta_watch: Arc::new(MetaWatch::from_env()?),
             lock_timing: LockTiming::from_env()?,
         })
     }
@@ -315,10 +401,16 @@ impl Directory for ObjectStoreDirectory {
 
     fn atomic_write(&self, path: &Path, data: &[u8]) -> io::Result<()> {
         let location = self.location(path)?;
-        block_on(self.store.put(&location, PutPayload::from(data.to_vec())))
-            .map_err(to_io_error)?;
+        let result = block_on(
+            self.store.put(&location, PutPayload::from(data.to_vec())),
+        )
+        .map_err(to_io_error)?;
         if path == Path::new(META_FILEPATH) {
-            // Readers in this process reload on commit, as with RamDirectory.
+            // Our own commit: tell readers now rather than at the next poll,
+            // and don't announce it a second time when the poll sees it.
+            if let Some(e_tag) = result.e_tag {
+                self.meta_watch.observe(e_tag);
+            }
             drop(self.watchers.broadcast());
         }
         Ok(())
@@ -345,7 +437,22 @@ impl Directory for ObjectStoreDirectory {
         &self,
         watch_callback: WatchCallback,
     ) -> tantivy::Result<WatchHandle> {
-        Ok(self.watchers.subscribe(watch_callback))
+        let handle = self.watchers.subscribe(watch_callback);
+        if let Some(interval) = self.meta_watch.interval {
+            self.meta_watch.started.get_or_init(|| {
+                let location = self
+                    .location(Path::new(META_FILEPATH))
+                    .expect("meta.json is a valid path");
+                runtime().spawn(poll_meta(
+                    self.store.clone(),
+                    location,
+                    Arc::downgrade(&self.watchers),
+                    self.meta_watch.clone(),
+                    interval,
+                ));
+            });
+        }
+        Ok(handle)
     }
 }
 
@@ -725,6 +832,41 @@ mod tests {
             &data[5..BLOCK_SIZE * 2]
         );
         assert!(slice.read_bytes_slice(BLOCK_SIZE * 3..data.len()).is_err());
+    }
+
+    #[test]
+    fn watch_sees_commits_from_another_directory_instance() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let uri = "memory:///unit/watch_other_process";
+        let writer = memory_dir(uri);
+        writer.atomic_write(Path::new(META_FILEPATH), b"v1").unwrap();
+
+        // A separate instance stands in for another process: it shares the
+        // store but not the in-process broadcast.
+        let mut reader = memory_dir(uri);
+        reader.meta_watch = Arc::new(MetaWatch {
+            last_seen: Mutex::new(None),
+            started: OnceLock::new(),
+            interval: Some(Duration::from_millis(30)),
+        });
+        let fired = Arc::new(AtomicUsize::new(0));
+        let counter = fired.clone();
+        let _handle = reader
+            .watch(WatchCallback::new(move || {
+                counter.fetch_add(1, Ordering::SeqCst);
+            }))
+            .unwrap();
+
+        std::thread::sleep(Duration::from_millis(150));
+        assert_eq!(fired.load(Ordering::SeqCst), 0, "no commit yet");
+
+        writer.atomic_write(Path::new(META_FILEPATH), b"v2").unwrap();
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while fired.load(Ordering::SeqCst) == 0 {
+            assert!(std::time::Instant::now() < deadline, "watch never fired");
+            std::thread::sleep(Duration::from_millis(20));
+        }
     }
 
     #[test]
