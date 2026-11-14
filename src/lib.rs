@@ -2,6 +2,8 @@ use ::tantivy as tv;
 use ::tantivy::schema::{OwnedValue as Value, Term};
 use pyo3::{exceptions, prelude::*, wrap_pymodule};
 
+#[cfg(any(feature = "aws", feature = "gcp", feature = "azure"))]
+mod cloud_options;
 mod directory;
 mod document;
 mod explanation;

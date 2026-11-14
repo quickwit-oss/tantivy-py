@@ -29,15 +29,20 @@ serde_json = "1.0.150"
 object_store = { version = "0.14.2", default-features = false, optional = true }
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 url = { version = "2", optional = true }
+# Used directly by the S3/GCS/Azure store setup; already in the tree via
+# object_store, so these add nothing to the build.
+http = { version = "1", optional = true }
+reqwest = { version = "0.13", default-features = false, optional = true }
 
 [features]
 default = []
 # Internal: the object-store directory with only the in-memory backend
 # (`memory://`), used for tests. Enable `cloud` or a provider instead.
 object-store = ["dep:object_store", "object_store/tokio", "dep:tokio", "dep:url"]
-aws = ["object-store", "object_store/aws"]
-gcp = ["object-store", "object_store/gcp"]
-azure = ["object-store", "object_store/azure"]
+cloud-base = ["object-store", "dep:http"]
+aws = ["cloud-base", "object_store/aws", "dep:reqwest"]
+gcp = ["cloud-base", "object_store/gcp"]
+azure = ["cloud-base", "object_store/azure"]
 cloud = ["aws", "gcp", "azure"]
 
 [dependencies.pyo3]

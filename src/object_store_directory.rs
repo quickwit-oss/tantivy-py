@@ -59,6 +59,10 @@ const LOCK_RETRY_WAIT: Duration = Duration::from_millis(100);
 
 const META_FILEPATH: &str = "meta.json";
 
+/// Reads larger than this are split into concurrent ranged GETs of about this
+/// size. Polars' default for random-access reads.
+const DOWNLOAD_CHUNK_SIZE: usize = 8 * 1024 * 1024;
+
 fn runtime() -> &'static tokio::runtime::Runtime {
     static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
     RUNTIME.get_or_init(|| {
@@ -70,7 +74,7 @@ fn runtime() -> &'static tokio::runtime::Runtime {
     })
 }
 
-fn block_on<F: Future>(future: F) -> F::Output {
+pub(crate) fn block_on<F: Future>(future: F) -> F::Output {
     runtime().block_on(future)
 }
 
@@ -188,57 +192,15 @@ fn build_store(
         }
         #[cfg(feature = "aws")]
         ObjectStoreScheme::AmazonS3 => {
-            use object_store::aws::{AmazonS3Builder, AmazonS3ConfigKey};
-            let mut builder = AmazonS3Builder::from_env().with_url(uri);
-            for (key, value) in options {
-                let config_key: AmazonS3ConfigKey = key
-                    .to_ascii_lowercase()
-                    .parse()
-                    .map_err(|_| unknown_option("S3", &key))?;
-                builder = builder.with_config(config_key, value);
-            }
-            Arc::new(
-                builder
-                    .build()
-                    .map_err(|e| value_error("Could not configure S3", e))?,
-            )
+            crate::cloud_options::build_aws(uri, options)?
         }
         #[cfg(feature = "gcp")]
         ObjectStoreScheme::GoogleCloudStorage => {
-            use object_store::gcp::{
-                GoogleCloudStorageBuilder, GoogleConfigKey,
-            };
-            let mut builder =
-                GoogleCloudStorageBuilder::from_env().with_url(uri);
-            for (key, value) in options {
-                let config_key: GoogleConfigKey = key
-                    .to_ascii_lowercase()
-                    .parse()
-                    .map_err(|_| unknown_option("GCS", &key))?;
-                builder = builder.with_config(config_key, value);
-            }
-            Arc::new(
-                builder
-                    .build()
-                    .map_err(|e| value_error("Could not configure GCS", e))?,
-            )
+            crate::cloud_options::build_gcp(uri, options)?
         }
         #[cfg(feature = "azure")]
         ObjectStoreScheme::MicrosoftAzure => {
-            use object_store::azure::{AzureConfigKey, MicrosoftAzureBuilder};
-            let mut builder = MicrosoftAzureBuilder::from_env().with_url(uri);
-            for (key, value) in options {
-                let config_key: AzureConfigKey = key
-                    .to_ascii_lowercase()
-                    .parse()
-                    .map_err(|_| unknown_option("Azure", &key))?;
-                builder = builder.with_config(config_key, value);
-            }
-            Arc::new(
-                builder
-                    .build()
-                    .map_err(|e| value_error("Could not configure Azure", e))?,
-            )
+            crate::cloud_options::build_azure(uri, options)?
         }
         other => {
             return Err(exceptions::PyValueError::new_err(format!(
@@ -429,11 +391,75 @@ impl FileHandle for ObjectStoreFileHandle {
         if range.is_empty() {
             return Ok(OwnedBytes::empty());
         }
-        let range = range.start as u64..range.end as u64;
-        let bytes = block_on(self.store.get_range(&self.location, range))
+        let start = range.start;
+        let mut data = vec![0u8; range.len()];
+        let parts = split_range(range, DOWNLOAD_CHUNK_SIZE).map(|part| {
+            let store = &self.store;
+            let location = &self.location;
+            async move {
+                let bytes = store
+                    .get_range(location, part.start as u64..part.end as u64)
+                    .await?;
+                Ok::<_, object_store::Error>((part, bytes))
+            }
+        });
+        let parts = block_on(futures::future::try_join_all(parts))
             .map_err(to_io_error)?;
-        Ok(OwnedBytes::new(bytes.to_vec()))
+        for (part, bytes) in parts {
+            if bytes.len() != part.len() {
+                return Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    format!(
+                        "short read from {}: wanted {} bytes, got {}",
+                        self.location,
+                        part.len(),
+                        bytes.len()
+                    ),
+                ));
+            }
+            data[part.start - start..part.end - start].copy_from_slice(&bytes);
+        }
+        Ok(OwnedBytes::new(data))
     }
+}
+
+/// Splits a single range into multiple smaller ranges, which can be
+/// downloaded concurrently for much higher throughput.
+///
+/// Copied from Polars (`crates/polars-io/src/cloud/polars_object_store.rs`),
+/// Copyright (c) 2025 Ritchie Vink, MIT License; see `licenses/polars-LICENSE`.
+/// Changed only to take `chunk_size` directly.
+fn split_range(
+    range: Range<usize>,
+    chunk_size: usize,
+) -> impl ExactSizeIterator<Item = Range<usize>> {
+    // Calculate n_parts such that we are as close as possible to the `chunk_size`.
+    let n_parts = [
+        (range.len().div_ceil(chunk_size)).max(1),
+        (range.len() / chunk_size).max(1),
+    ]
+    .into_iter()
+    .min_by_key(|x| (range.len() / *x).abs_diff(chunk_size))
+    .unwrap();
+
+    let chunk_size = (range.len() / n_parts).max(1);
+
+    assert_eq!(n_parts, (range.len() / chunk_size).max(1));
+    let bytes_rem = range.len() % chunk_size;
+
+    (0..n_parts).map(move |part_no| {
+        let (start, end) = if part_no == 0 {
+            // Download remainder length in the first chunk since it starts downloading first.
+            let end = range.start + chunk_size + bytes_rem;
+            let end = if end > range.end { range.end } else { end };
+            (range.start, end)
+        } else {
+            let start = bytes_rem + range.start + part_no * chunk_size;
+            (start, start + chunk_size)
+        };
+
+        start..end
+    })
 }
 
 enum WriterState {
@@ -570,6 +596,41 @@ mod tests {
         w.terminate().unwrap();
         let read = dir.open_read(path).unwrap().read_bytes().unwrap();
         assert_eq!(read.as_slice(), &data[..]);
+    }
+
+    #[test]
+    fn split_range_covers_range_exactly() {
+        for (len, chunk) in [(1, 8), (8, 8), (9, 8), (100, 8), (65, 64)] {
+            let range = 10..10 + len;
+            let parts: Vec<_> = split_range(range.clone(), chunk).collect();
+            assert_eq!(parts.first().unwrap().start, range.start);
+            assert_eq!(parts.last().unwrap().end, range.end);
+            for pair in parts.windows(2) {
+                assert_eq!(pair[0].end, pair[1].start);
+            }
+        }
+        // Polars' own expectation: 8 parts of ~chunk size, no tiny tail.
+        let parts: Vec<_> = split_range(0..8 * 1000 + 3, 1000).collect();
+        assert_eq!(parts.len(), 8);
+        assert_eq!(parts[0], 0..1003);
+    }
+
+    #[test]
+    fn large_read_is_split_and_reassembled() {
+        let dir = memory_dir("memory:///unit/large_read");
+        let path = Path::new("big.idx");
+        let data: Vec<u8> = (0..DOWNLOAD_CHUNK_SIZE * 3 + 7)
+            .map(|i| (i % 251) as u8)
+            .collect();
+        let mut w = dir.open_write(path).unwrap();
+        w.write_all(&data).unwrap();
+        w.terminate().unwrap();
+        let slice = dir.open_read(path).unwrap();
+        let range = 5..data.len() - 2;
+        assert_eq!(
+            slice.read_bytes_slice(range.clone()).unwrap().as_slice(),
+            &data[range]
+        );
     }
 
     #[test]
