@@ -2,10 +2,13 @@ use ::tantivy as tv;
 use ::tantivy::schema::{OwnedValue as Value, Term};
 use pyo3::{exceptions, prelude::*, wrap_pymodule};
 
+mod directory;
 mod document;
 mod explanation;
 mod facet;
 mod index;
+#[cfg(feature = "object-store")]
+mod object_store_directory;
 mod parser_error;
 mod pre_tokenized;
 mod query;

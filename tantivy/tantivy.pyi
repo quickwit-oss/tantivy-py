@@ -544,11 +544,14 @@ class Index:
         reuse: bool = True,
         sort_by_field: Optional[str] = None,
         sort_order: Order = Order.Asc,
+        storage_options: Optional[dict[str, str]] = None,
     ) -> Index:
         pass
 
     @staticmethod
-    def open(path: str) -> Index:
+    def open(
+        path: str, storage_options: Optional[dict[str, str]] = None
+    ) -> Index:
         pass
 
     def writer(self, heap_size: int = 128_000_000, num_threads: int = 0) -> IndexWriter:
@@ -563,11 +566,15 @@ class Index:
         pass
 
     @staticmethod
-    def exists(path: str) -> bool:
+    def exists(
+        path: str, storage_options: Optional[dict[str, str]] = None
+    ) -> bool:
         pass
 
     @staticmethod
-    def is_compatible(path: str) -> bool:
+    def is_compatible(
+        path: str, storage_options: Optional[dict[str, str]] = None
+    ) -> bool:
         pass
 
     @property
