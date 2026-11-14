@@ -65,6 +65,18 @@ impl IndexWriter {
     }
 }
 
+impl Drop for IndexWriter {
+    /// Dropping a tantivy `IndexWriter` joins its indexing threads and
+    /// releases the writer lock, which for an object store index is a network
+    /// request. Python drops the writer with the GIL held, so release it
+    /// meanwhile rather than block every other Python thread.
+    fn drop(&mut self) {
+        if let Some(writer) = self.inner_index_writer.take() {
+            Python::attach(|py| py.detach(move || drop(writer)));
+        }
+    }
+}
+
 #[pymethods]
 impl IndexWriter {
     /// Add a document to the index.

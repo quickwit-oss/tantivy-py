@@ -25,24 +25,34 @@ serde = "1.0"
 serde_json = "1.0.150"
 
 # Object storage support, enabled by the `cloud` feature (or one of `aws`,
-# `gcp`, `azure` for a single provider). Off by default.
+# `gcp`, `azure` for a single provider). Published wheels are built with
+# `cloud` (see `[tool.maturin]` in pyproject.toml); a plain `cargo build` is not.
+#
+# TLS uses rustls with the `ring` crypto provider rather than `aws-lc-rs`
+# (object_store's default): it is smaller and cross-compiles for every wheel
+# target with only a C compiler. That is why the `*-base` object_store
+# features are used, with `ring` and `reqwest/rustls-no-provider` added here.
 object_store = { version = "0.14.2", default-features = false, optional = true }
-tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "time"], optional = true }
 url = { version = "2", optional = true }
-# Used directly by the S3/GCS/Azure store setup; already in the tree via
-# object_store, so these add nothing to the build.
+# Used directly by the store setup and credential providers; already in the
+# tree via object_store, so these add nothing to the build.
 http = { version = "1", optional = true }
-reqwest = { version = "0.13", default-features = false, optional = true }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"], optional = true }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"], optional = true }
+async-trait = { version = "0.1", optional = true }
+lru = { version = "0.18", optional = true }
+bytes = { version = "1", optional = true }
 
 [features]
 default = []
 # Internal: the object-store directory with only the in-memory backend
 # (`memory://`), used for tests. Enable `cloud` or a provider instead.
-object-store = ["dep:object_store", "object_store/tokio", "dep:tokio", "dep:url"]
-cloud-base = ["object-store", "dep:http"]
-aws = ["cloud-base", "object_store/aws", "dep:reqwest"]
-gcp = ["cloud-base", "object_store/gcp"]
-azure = ["cloud-base", "object_store/azure"]
+object-store = ["dep:object_store", "object_store/tokio", "dep:tokio", "dep:url", "dep:lru", "dep:bytes", "dep:async-trait"]
+cloud-base = ["object-store", "dep:http", "dep:reqwest", "dep:rustls", "object_store/reqwest", "object_store/ring"]
+aws = ["cloud-base", "object_store/aws-base"]
+gcp = ["cloud-base", "object_store/gcp-base"]
+azure = ["cloud-base", "object_store/azure-base"]
 cloud = ["aws", "gcp", "azure"]
 
 [dependencies.pyo3]

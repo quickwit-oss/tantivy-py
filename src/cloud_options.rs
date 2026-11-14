@@ -55,9 +55,17 @@ fn parse_options<K: std::str::FromStr>(
         .collect()
 }
 
+/// reqwest is built without a rustls crypto provider (see Cargo.toml), so
+/// one must be installed before the first HTTP client is created. Ignoring
+/// the error is correct: it only means a provider is already installed.
+pub(crate) fn install_crypto_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 /// HTTP client settings shared by every provider (from Polars'
 /// `get_client_options`).
 fn client_options() -> PyResult<ClientOptions> {
+    install_crypto_provider();
     let connect_timeout = match std::env::var(CONNECT_TIMEOUT_ENV) {
         Ok(value) => value
             .parse::<u64>()

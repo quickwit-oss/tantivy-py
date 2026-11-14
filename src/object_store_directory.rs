@@ -7,8 +7,9 @@
 //!
 //! How each part of the trait maps onto an object store:
 //!
-//! - Reads are ranged GETs. There is no caching yet, so every
-//!   `read_bytes` call is one request.
+//! - Reads are ranged GETs, rounded out to whole blocks that are kept in a
+//!   process-wide LRU cache (see `block_cache`). Segment files never change
+//!   once written, so cached blocks never go stale.
 //! - Writes are buffered in memory and uploaded with one PUT when the file is
 //!   terminated. Files larger than `MULTIPART_THRESHOLD` switch to a
 //!   multipart upload, so memory use stays bounded for large segments.
@@ -32,9 +33,10 @@ use std::{
     time::Duration,
 };
 
+use bytes::Bytes;
 use object_store::{
-    memory::InMemory, path::Path as ObjectPath, ObjectStore, ObjectStoreExt,
-    ObjectStoreScheme, PutMode, PutPayload, WriteMultipart,
+    memory::InMemory, path::Path as ObjectPath, ObjectMeta, ObjectStore,
+    ObjectStoreExt, ObjectStoreScheme, PutMode, PutPayload, WriteMultipart,
 };
 use pyo3::{exceptions, PyResult};
 use tantivy::{
@@ -48,6 +50,10 @@ use tantivy::{
 };
 use url::Url;
 
+use crate::block_cache::{
+    block_range, blocks_for, runs, BlockCache, FileKey, BLOCK_SIZE,
+};
+
 /// Files that grow past this size are uploaded with a multipart upload
 /// instead of being held in memory until they are terminated.
 const MULTIPART_THRESHOLD: usize = 16 * 1024 * 1024;
@@ -58,6 +64,9 @@ const LOCK_RETRIES: usize = 100;
 const LOCK_RETRY_WAIT: Duration = Duration::from_millis(100);
 
 const META_FILEPATH: &str = "meta.json";
+
+/// Reads larger than this skip the block cache.
+const MAX_CACHED_READ: usize = 4 * 1024 * 1024;
 
 /// Reads larger than this are split into concurrent ranged GETs of about this
 /// size. Polars' default for random-access reads.
@@ -155,12 +164,12 @@ impl ObjectStoreDirectory {
         Ok(self.root.parts().chain(relative.parts()).collect())
     }
 
-    fn head(&self, path: &Path) -> Result<Option<usize>, OpenReadError> {
+    fn head(&self, path: &Path) -> Result<Option<ObjectMeta>, OpenReadError> {
         let location = self
             .location(path)
             .map_err(|e| OpenReadError::wrap_io_error(e, path.to_owned()))?;
         match block_on(self.store.head(&location)) {
-            Ok(meta) => Ok(Some(meta.size as usize)),
+            Ok(meta) => Ok(Some(meta)),
             Err(object_store::Error::NotFound { .. }) => Ok(None),
             Err(e) => Err(OpenReadError::wrap_io_error(
                 to_io_error(e),
@@ -233,16 +242,20 @@ impl Directory for ObjectStoreDirectory {
         &self,
         path: &Path,
     ) -> Result<Arc<dyn FileHandle>, OpenReadError> {
-        let len = self
+        let meta = self
             .head(path)?
             .ok_or_else(|| OpenReadError::FileDoesNotExist(path.to_owned()))?;
-        let location = self
-            .location(path)
-            .map_err(|e| OpenReadError::wrap_io_error(e, path.to_owned()))?;
+        let len = meta.size as usize;
+        // The ETag (or failing that the size) tells two files apart if a
+        // name is ever reused, so the cache never serves another file's bytes.
+        let identity = meta.e_tag.unwrap_or_else(|| len.to_string());
+        let cache_key: FileKey =
+            format!("{}\0{}\0{identity}", self.uri, meta.location).into();
         Ok(Arc::new(ObjectStoreFileHandle {
             store: self.store.clone(),
-            location,
+            location: meta.location,
             len,
+            cache_key,
         }))
     }
 
@@ -378,6 +391,7 @@ struct ObjectStoreFileHandle {
     store: Arc<dyn ObjectStore>,
     location: ObjectPath,
     len: usize,
+    cache_key: FileKey,
 }
 
 impl HasLen for ObjectStoreFileHandle {
@@ -391,6 +405,28 @@ impl FileHandle for ObjectStoreFileHandle {
         if range.is_empty() {
             return Ok(OwnedBytes::empty());
         }
+        if range.end > self.len {
+            return Err(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                format!(
+                    "read of {range:?} past the end of {} ({} bytes)",
+                    self.location, self.len
+                ),
+            ));
+        }
+        let cache = BlockCache::global();
+        if !cache.is_enabled() || range.len() > MAX_CACHED_READ {
+            // Large reads (merges, bulk loads) bypass the cache so they
+            // don't evict the blocks searches keep coming back to.
+            return self.fetch(range).map(OwnedBytes::new);
+        }
+        self.read_through_cache(cache, range).map(OwnedBytes::new)
+    }
+}
+
+impl ObjectStoreFileHandle {
+    /// Download `range` directly, split into concurrent requests if large.
+    fn fetch(&self, range: Range<usize>) -> io::Result<Vec<u8>> {
         let start = range.start;
         let mut data = vec![0u8; range.len()];
         let parts = split_range(range, DOWNLOAD_CHUNK_SIZE).map(|part| {
@@ -406,20 +442,84 @@ impl FileHandle for ObjectStoreFileHandle {
         let parts = block_on(futures::future::try_join_all(parts))
             .map_err(to_io_error)?;
         for (part, bytes) in parts {
-            if bytes.len() != part.len() {
-                return Err(io::Error::new(
-                    io::ErrorKind::UnexpectedEof,
-                    format!(
-                        "short read from {}: wanted {} bytes, got {}",
-                        self.location,
-                        part.len(),
-                        bytes.len()
-                    ),
-                ));
-            }
+            self.check_len(&part, &bytes)?;
             data[part.start - start..part.end - start].copy_from_slice(&bytes);
         }
-        Ok(OwnedBytes::new(data))
+        Ok(data)
+    }
+
+    /// Serve `range` from whole cached blocks, fetching the missing ones
+    /// (each run of consecutive missing blocks in one request).
+    fn read_through_cache(
+        &self,
+        cache: &BlockCache,
+        range: Range<usize>,
+    ) -> io::Result<Vec<u8>> {
+        let blocks = blocks_for(&range);
+        let mut found: Vec<Option<Bytes>> = blocks
+            .clone()
+            .map(|block| cache.get(&self.cache_key, block))
+            .collect();
+        let missing: Vec<usize> = blocks
+            .clone()
+            .zip(&found)
+            .filter(|(_, data)| data.is_none())
+            .map(|(block, _)| block)
+            .collect();
+        if !missing.is_empty() {
+            let requests = runs(&missing).into_iter().map(|run| {
+                let bytes = run.start * BLOCK_SIZE
+                    ..(run.end * BLOCK_SIZE).min(self.len);
+                async move {
+                    let data = self
+                        .store
+                        .get_range(
+                            &self.location,
+                            bytes.start as u64..bytes.end as u64,
+                        )
+                        .await?;
+                    Ok::<_, object_store::Error>((run, bytes, data))
+                }
+            });
+            let fetched = block_on(futures::future::try_join_all(requests))
+                .map_err(to_io_error)?;
+            for (run, bytes, data) in fetched {
+                self.check_len(&bytes, &data)?;
+                for block in run {
+                    let block_bytes = block_range(block, self.len);
+                    let piece = data.slice(
+                        block_bytes.start - bytes.start
+                            ..block_bytes.end - bytes.start,
+                    );
+                    cache.insert(&self.cache_key, block, piece.clone());
+                    found[block - blocks.start] = Some(piece);
+                }
+            }
+        }
+        let mut out = Vec::with_capacity(range.len());
+        for (block, data) in blocks.zip(found) {
+            let data = data.expect("every block was cached or fetched");
+            let block_bytes = block_range(block, self.len);
+            let lo = range.start.max(block_bytes.start) - block_bytes.start;
+            let hi = range.end.min(block_bytes.end) - block_bytes.start;
+            out.extend_from_slice(&data[lo..hi]);
+        }
+        Ok(out)
+    }
+
+    fn check_len(&self, wanted: &Range<usize>, got: &Bytes) -> io::Result<()> {
+        if got.len() == wanted.len() {
+            return Ok(());
+        }
+        Err(io::Error::new(
+            io::ErrorKind::UnexpectedEof,
+            format!(
+                "short read from {}: wanted {} bytes, got {}",
+                self.location,
+                wanted.len(),
+                got.len()
+            ),
+        ))
     }
 }
 
@@ -631,6 +731,48 @@ mod tests {
             slice.read_bytes_slice(range.clone()).unwrap().as_slice(),
             &data[range]
         );
+    }
+
+    #[test]
+    fn small_reads_are_served_from_the_block_cache() {
+        let dir = memory_dir("memory:///unit/block_cache");
+        let path = Path::new("seg.pos");
+        let data: Vec<u8> =
+            (0..BLOCK_SIZE * 3 + 5).map(|i| (i % 253) as u8).collect();
+        let mut w = dir.open_write(path).unwrap();
+        w.write_all(&data).unwrap();
+        w.terminate().unwrap();
+
+        let slice = dir.open_read(path).unwrap();
+        // Spans the end of block 0 and the start of block 1.
+        let range = BLOCK_SIZE - 10..BLOCK_SIZE + 10;
+        assert_eq!(
+            slice.read_bytes_slice(range.clone()).unwrap().as_slice(),
+            &data[range.clone()]
+        );
+
+        // Remove the object behind the cache's back: blocks 0 and 1 are
+        // still served, block 3 (never read) is not.
+        block_on(dir.store.delete(&dir.location(path).unwrap())).unwrap();
+        assert_eq!(
+            slice
+                .read_bytes_slice(5..BLOCK_SIZE * 2)
+                .unwrap()
+                .as_slice(),
+            &data[5..BLOCK_SIZE * 2]
+        );
+        assert!(slice.read_bytes_slice(BLOCK_SIZE * 3..data.len()).is_err());
+    }
+
+    #[test]
+    fn read_past_end_is_an_error() {
+        let dir = memory_dir("memory:///unit/past_end");
+        let path = Path::new("small");
+        let mut w = dir.open_write(path).unwrap();
+        w.write_all(b"abc").unwrap();
+        w.terminate().unwrap();
+        let handle = dir.get_file_handle(path).unwrap();
+        assert!(handle.read_bytes(1..4).is_err());
     }
 
     #[test]
