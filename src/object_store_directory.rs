@@ -15,9 +15,8 @@
 //!   multipart upload, so memory use stays bounded for large segments.
 //! - `atomic_write` (used for `meta.json`) is a single PUT, which object
 //!   stores apply atomically.
-//! - Locks are created with a conditional PUT (`PutMode::Create`), which
-//!   fails if the lock object already exists. Unlike a filesystem lock, a lock
-//!   left behind by a crashed writer is not released automatically.
+//! - Locks are objects created with a conditional PUT, kept fresh by a
+//!   heartbeat, and taken over once stale; see `object_store_lock`.
 //! - `watch` only sees commits made through this process. Changes made by
 //!   another process are picked up with `Index.reload()`.
 
@@ -29,14 +28,12 @@ use std::{
     ops::Range,
     path::Path,
     sync::{Arc, Mutex, OnceLock},
-    thread,
-    time::Duration,
 };
 
 use bytes::Bytes;
 use object_store::{
     memory::InMemory, path::Path as ObjectPath, ObjectMeta, ObjectStore,
-    ObjectStoreExt, ObjectStoreScheme, PutMode, PutPayload, WriteMultipart,
+    ObjectStoreExt, ObjectStoreScheme, PutPayload, WriteMultipart,
 };
 use pyo3::{exceptions, PyResult};
 use tantivy::{
@@ -53,15 +50,13 @@ use url::Url;
 use crate::block_cache::{
     block_range, blocks_for, runs, BlockCache, FileKey, BLOCK_SIZE,
 };
+use crate::object_store_lock::LockTiming;
 
 /// Files that grow past this size are uploaded with a multipart upload
 /// instead of being held in memory until they are terminated.
 const MULTIPART_THRESHOLD: usize = 16 * 1024 * 1024;
 /// Upper bound on concurrently uploading parts for one file.
 const MAX_CONCURRENT_PARTS: usize = 8;
-/// Retry schedule for a blocking lock; matches tantivy's default.
-const LOCK_RETRIES: usize = 100;
-const LOCK_RETRY_WAIT: Duration = Duration::from_millis(100);
 
 const META_FILEPATH: &str = "meta.json";
 
@@ -72,7 +67,7 @@ const MAX_CACHED_READ: usize = 4 * 1024 * 1024;
 /// size. Polars' default for random-access reads.
 const DOWNLOAD_CHUNK_SIZE: usize = 8 * 1024 * 1024;
 
-fn runtime() -> &'static tokio::runtime::Runtime {
+pub(crate) fn runtime() -> &'static tokio::runtime::Runtime {
     static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
     RUNTIME.get_or_init(|| {
         tokio::runtime::Builder::new_multi_thread()
@@ -94,7 +89,7 @@ fn memory_store() -> Arc<dyn ObjectStore> {
     STORE.get_or_init(|| Arc::new(InMemory::new())).clone()
 }
 
-fn to_io_error(err: object_store::Error) -> io::Error {
+pub(crate) fn to_io_error(err: object_store::Error) -> io::Error {
     let kind = match err {
         object_store::Error::NotFound { .. } => io::ErrorKind::NotFound,
         object_store::Error::AlreadyExists { .. } => {
@@ -119,6 +114,7 @@ pub(crate) struct ObjectStoreDirectory {
     root: ObjectPath,
     uri: Arc<str>,
     watchers: Arc<WatchCallbackList>,
+    lock_timing: LockTiming,
 }
 
 impl fmt::Debug for ObjectStoreDirectory {
@@ -149,6 +145,7 @@ impl ObjectStoreDirectory {
             root,
             uri: uri.into(),
             watchers: Arc::default(),
+            lock_timing: LockTiming::from_env()?,
         })
     }
 
@@ -336,32 +333,12 @@ impl Directory for ObjectStoreDirectory {
         let location = self
             .location(&lock.filepath)
             .map_err(|e| LockError::IoError(Arc::new(e)))?;
-        let mut retries_left = if lock.is_blocking { LOCK_RETRIES } else { 0 };
-        loop {
-            let created = block_on(self.store.put_opts(
-                &location,
-                PutPayload::new(),
-                PutMode::Create.into(),
-            ));
-            match created {
-                Ok(_) => {
-                    return Ok(DirectoryLock::from(Box::new(LockGuard {
-                        store: self.store.clone(),
-                        location,
-                    })))
-                }
-                Err(object_store::Error::AlreadyExists { .. }) => {
-                    if retries_left == 0 {
-                        return Err(LockError::LockBusy);
-                    }
-                    retries_left -= 1;
-                    thread::sleep(LOCK_RETRY_WAIT);
-                }
-                Err(e) => {
-                    return Err(LockError::IoError(Arc::new(to_io_error(e))))
-                }
-            }
-        }
+        crate::object_store_lock::acquire(
+            &self.store,
+            location,
+            lock.is_blocking,
+            self.lock_timing,
+        )
     }
 
     fn watch(
@@ -369,20 +346,6 @@ impl Directory for ObjectStoreDirectory {
         watch_callback: WatchCallback,
     ) -> tantivy::Result<WatchHandle> {
         Ok(self.watchers.subscribe(watch_callback))
-    }
-}
-
-/// Deletes the lock object when the lock is released.
-struct LockGuard {
-    store: Arc<dyn ObjectStore>,
-    location: ObjectPath,
-}
-
-impl Drop for LockGuard {
-    fn drop(&mut self) {
-        if let Err(e) = block_on(self.store.delete(&self.location)) {
-            eprintln!("tantivy: failed to remove lock {}: {e}", self.location);
-        }
     }
 }
 
@@ -783,19 +746,6 @@ mod tests {
         w.write_all(b"data").unwrap();
         drop(w);
         assert!(!dir.exists(path).unwrap());
-    }
-
-    #[test]
-    fn lock_is_exclusive_until_released() {
-        let dir = memory_dir("memory:///unit/lock");
-        let lock = Lock {
-            filepath: PathBuf::from(".tantivy-writer.lock"),
-            is_blocking: false,
-        };
-        let held = dir.acquire_lock(&lock).unwrap();
-        assert!(matches!(dir.acquire_lock(&lock), Err(LockError::LockBusy)));
-        drop(held);
-        dir.acquire_lock(&lock).unwrap();
     }
 
     #[test]

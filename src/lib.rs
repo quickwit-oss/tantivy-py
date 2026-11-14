@@ -13,6 +13,8 @@ mod facet;
 mod index;
 #[cfg(feature = "object-store")]
 mod object_store_directory;
+#[cfg(feature = "object-store")]
+mod object_store_lock;
 mod parser_error;
 mod pre_tokenized;
 mod query;
