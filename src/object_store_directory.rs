@@ -736,7 +736,6 @@ impl Drop for ObjectStoreWriter {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
 
     use super::*;
 

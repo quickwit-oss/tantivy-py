@@ -8,6 +8,9 @@ __pycache__/
 tantivy.so
 tantivy.dylib
 tantivy/tantivy.cpython*.so
+# The extension maturin develop builds in place (abi3, free-threaded, Windows).
+tantivy/*.so
+tantivy/*.pyd
 tantivy.egg-info/
 .venv
 .envrc

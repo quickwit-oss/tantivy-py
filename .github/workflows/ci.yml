@@ -41,6 +41,49 @@ jobs:
       - name: Check Formatting
         run: cargo fmt --check
 
+  # The Rust unit tests cover the object store directory, its lock, cache and
+  # credential providers. The crate is a Python extension module, so its test
+  # binary is not linked against libpython by default; link it explicitly.
+  RustTests:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43
+        with:
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            crates.io:443
+            github.com:443
+            index.crates.io:443
+            objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+            static.crates.io:443
+            static.rust-lang.org:443
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # 7.1.0
+        with:
+          python-version: "3.13"
+
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: "stable"
+
+      - name: cargo test --features cloud
+        run: |
+          LIBDIR=$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')
+          VERSION=$(python -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+          export RUSTFLAGS="-C link-arg=-L$LIBDIR -C link-arg=-lpython$VERSION"
+          export LD_LIBRARY_PATH="$LIBDIR"
+          # The credential provider tests start an embedded interpreter.
+          export PYTHONHOME=$(python -c 'import sys; print(sys.base_prefix)')
+          cargo test --locked --features cloud
+
   Test:
     env:
       UNSAFE_PYO3_SKIP_VERSION_CHECK: ${{ matrix.unsafe-pyo3-skip-version-check }}

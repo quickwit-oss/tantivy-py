@@ -17,6 +17,10 @@ If no binary wheel is present for your operating system the bindings will be
 build from source, this means that Rust needs to be installed before building
 can succeed.
 
+Indexes can be stored on local disk, in memory, or in S3, Google Cloud Storage
+or Azure Blob Storage by passing a URI such as `s3://bucket/index` as the path.
+See [the how-to guide](https://tantivy-py.readthedocs.io/en/latest/howto.html).
+
 # Documentation
 
 Please see [the documentation](https://tantivy-py.readthedocs.io/en/latest/) for more information.

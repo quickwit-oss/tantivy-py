@@ -333,9 +333,8 @@ impl IndexWriter {
 ///     schema (Schema): The schema of the index.
 ///     path (str, optional): Where the index should be stored: a filesystem
 ///         path, or an object store URI such as `s3://bucket/prefix`,
-///         `gs://bucket/prefix` or `az://container/prefix` (object store URIs
-///         need a build with the `cloud` feature). If no path is provided,
-///         the index will be stored in memory.
+///         `gs://bucket/prefix` or `az://container/prefix`. If no path is
+///         provided, the index will be stored in memory.
 ///     reuse (bool, optional): Should we open an existing index if one exists
 ///         or always create a new one.
 ///     sort_by_field (str, optional): Store documents sorted by this field,
@@ -394,6 +393,8 @@ impl Index {
 
     #[new]
     #[pyo3(signature = (schema, path = None, reuse = true, sort_by_field = None, sort_order = Order::Asc, storage_options = None, credential_provider = None))]
+    // Mirrors the Python signature, which takes these as keyword arguments.
+    #[allow(clippy::too_many_arguments)]
     fn new(
         py: Python,
         schema: &Schema,

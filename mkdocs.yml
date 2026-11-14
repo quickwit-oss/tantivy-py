@@ -15,6 +15,7 @@ nav:
   - Reference:
       - Query Language: reference.md
       - API: api/tantivy/tantivy.md
+      - Credential providers: api/tantivy/credential_provider.md
   - Contributing: contributing.md
   - About: about.md
 theme: readthedocs

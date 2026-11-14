@@ -4,6 +4,8 @@ from types import TracebackType
 from typing import Any, Optional, Sequence, TypeAlias, TypeVar, Union
 from typing_extensions import Self
 
+from .credential_provider import CredentialProviderFunction
+
 
 class Schema:
     pass
@@ -545,12 +547,15 @@ class Index:
         sort_by_field: Optional[str] = None,
         sort_order: Order = Order.Asc,
         storage_options: Optional[dict[str, str]] = None,
+        credential_provider: Optional[CredentialProviderFunction] = None,
     ) -> Index:
         pass
 
     @staticmethod
     def open(
-        path: str, storage_options: Optional[dict[str, str]] = None
+        path: str,
+        storage_options: Optional[dict[str, str]] = None,
+        credential_provider: Optional[CredentialProviderFunction] = None,
     ) -> Index:
         pass
 
@@ -567,13 +572,17 @@ class Index:
 
     @staticmethod
     def exists(
-        path: str, storage_options: Optional[dict[str, str]] = None
+        path: str,
+        storage_options: Optional[dict[str, str]] = None,
+        credential_provider: Optional[CredentialProviderFunction] = None,
     ) -> bool:
         pass
 
     @staticmethod
     def is_compatible(
-        path: str, storage_options: Optional[dict[str, str]] = None
+        path: str,
+        storage_options: Optional[dict[str, str]] = None,
+        credential_provider: Optional[CredentialProviderFunction] = None,
     ) -> bool:
         pass
 
