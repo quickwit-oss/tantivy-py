@@ -348,6 +348,11 @@ impl IndexWriter {
 ///         store, such as credentials, region or endpoint, overriding the
 ///         provider's environment variables. Only valid with an object
 ///         store URI.
+///     credential_provider (callable, optional): Supplies object store
+///         credentials, for example `tantivy.CredentialProviderAWS()`. A
+///         callable taking no arguments and returning `(credentials,
+///         expiry)`, where `expiry` is a Unix timestamp or None. It is
+///         called again shortly before the credentials expire.
 ///
 /// If an index already exists it will be opened and reused. Raises OSError
 /// if there was a problem during the opening or creation of the index.
@@ -365,15 +370,19 @@ impl Index {
     ///     path (str): A filesystem path or an object store URI.
     ///     storage_options (dict[str, str], optional): Object store settings;
     ///         see `Index`.
+    ///     credential_provider (callable, optional): Supplies object store
+    ///         credentials; see `Index`.
     #[staticmethod]
-    #[pyo3(signature = (path, storage_options = None))]
+    #[pyo3(signature = (path, storage_options = None, credential_provider = None))]
     fn open(
         py: Python,
         path: &str,
         storage_options: Option<HashMap<String, String>>,
+        credential_provider: Option<Py<PyAny>>,
     ) -> PyResult<Index> {
         py.detach(move || {
-            let directory = open_directory(path, storage_options)?;
+            let directory =
+                open_directory(path, storage_options, credential_provider)?;
             let index = tv::Index::open(directory).map_err(to_pyerr)?;
 
             Index::register_custom_text_analyzers(&index);
@@ -384,7 +393,7 @@ impl Index {
     }
 
     #[new]
-    #[pyo3(signature = (schema, path = None, reuse = true, sort_by_field = None, sort_order = Order::Asc, storage_options = None))]
+    #[pyo3(signature = (schema, path = None, reuse = true, sort_by_field = None, sort_order = Order::Asc, storage_options = None, credential_provider = None))]
     fn new(
         py: Python,
         schema: &Schema,
@@ -393,6 +402,7 @@ impl Index {
         sort_by_field: Option<String>,
         sort_order: Order,
         storage_options: Option<HashMap<String, String>>,
+        credential_provider: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
         py.detach(move || {
             let settings = tv::IndexSettings {
@@ -406,7 +416,11 @@ impl Index {
             };
             let index = match path {
                 Some(p) => {
-                    let directory = open_directory(p, storage_options)?;
+                    let directory = open_directory(
+                        p,
+                        storage_options,
+                        credential_provider,
+                    )?;
                     if reuse {
                         tv::Index::builder()
                             .schema(schema.inner.clone())
@@ -420,9 +434,12 @@ impl Index {
                         )
                     }
                 }
-                None if storage_options.is_some() => {
+                None if storage_options.is_some()
+                    || credential_provider.is_some() =>
+                {
                     return Err(exceptions::PyValueError::new_err(
-                        "storage_options requires an object store URI as path",
+                        "storage_options and credential_provider require an \
+                         object store URI as path",
                     ))
                 }
                 None => tv::Index::builder()
@@ -532,19 +549,23 @@ impl Index {
     ///         an index.
     ///     storage_options (dict[str, str], optional): Object store settings;
     ///         see `Index`.
+    ///     credential_provider (callable, optional): Supplies object store
+    ///         credentials; see `Index`.
     ///
     /// Returns True if an index exists at the given path, False otherwise.
     ///
     /// Raises OSError if the directory cannot be opened.
     #[staticmethod]
-    #[pyo3(signature = (path, storage_options = None))]
+    #[pyo3(signature = (path, storage_options = None, credential_provider = None))]
     fn exists(
         py: Python,
         path: &str,
         storage_options: Option<HashMap<String, String>>,
+        credential_provider: Option<Py<PyAny>>,
     ) -> PyResult<bool> {
         py.detach(move || {
-            let directory = open_directory(path, storage_options)?;
+            let directory =
+                open_directory(path, storage_options, credential_provider)?;
             tv::Index::exists(&*directory).map_err(to_pyerr)
         })
     }
@@ -563,6 +584,8 @@ impl Index {
     ///         index.
     ///     storage_options (dict[str, str], optional): Object store settings;
     ///         see `Index`.
+    ///     credential_provider (callable, optional): Supplies object store
+    ///         credentials; see `Index`.
     ///
     /// Returns True if the index is compatible, False if it was built with an
     /// unsupported index format version.
@@ -570,14 +593,16 @@ impl Index {
     /// Raises ValueError if no index could be found at the given path or if it
     /// could not be read for any other reason.
     #[staticmethod]
-    #[pyo3(signature = (path, storage_options = None))]
+    #[pyo3(signature = (path, storage_options = None, credential_provider = None))]
     fn is_compatible(
         py: Python,
         path: &str,
         storage_options: Option<HashMap<String, String>>,
+        credential_provider: Option<Py<PyAny>>,
     ) -> PyResult<bool> {
         py.detach(move || {
-            let directory = open_directory(path, storage_options)?;
+            let directory =
+                open_directory(path, storage_options, credential_provider)?;
             match tv::Index::open(directory)
                 .and_then(|index| index.reader().map(|_| ()))
             {

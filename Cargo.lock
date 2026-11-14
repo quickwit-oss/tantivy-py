@@ -1927,6 +1927,7 @@ dependencies = [
  "itertools 0.15.0",
  "lru",
  "object_store",
+ "percent-encoding",
  "pyo3",
  "pyo3-build-config 0.30.1",
  "pythonize",

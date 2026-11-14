@@ -20,6 +20,14 @@
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use pyo3::Py;
+use pyo3::PyAny;
+
+use crate::credential_provider::{suggested_options, PyCredentialProvider};
+
+/// A Python credential provider, shared by every request the store makes.
+pub(crate) type CredentialFn = Option<Arc<Py<PyAny>>>;
+
 use object_store::{ClientOptions, ObjectStore};
 use pyo3::{exceptions, PyErr, PyResult};
 
@@ -62,6 +70,25 @@ pub(crate) fn install_crypto_provider() {
     let _ = rustls::crypto::ring::default_provider().install_default();
 }
 
+/// Options the credential provider suggests (see
+/// `credential_provider::suggested_options`), minus any the user set.
+fn options_with_suggestions(
+    options: HashMap<String, String>,
+    credentials: &CredentialFn,
+) -> PyResult<HashMap<String, String>> {
+    let Some(func) = credentials else {
+        return Ok(options);
+    };
+    let mut merged = options;
+    for (key, value) in suggested_options(func)? {
+        let taken = merged.keys().any(|k| k.eq_ignore_ascii_case(&key));
+        if !taken {
+            merged.insert(key, value);
+        }
+    }
+    Ok(merged)
+}
+
 /// HTTP client settings shared by every provider (from Polars'
 /// `get_client_options`).
 fn client_options() -> PyResult<ClientOptions> {
@@ -93,6 +120,7 @@ fn client_options() -> PyResult<ClientOptions> {
 pub(crate) fn build_aws(
     uri: &str,
     options: HashMap<String, String>,
+    credentials: CredentialFn,
 ) -> PyResult<Arc<dyn ObjectStore>> {
     use object_store::aws::{AmazonS3Builder, AmazonS3ConfigKey, Checksum};
 
@@ -100,10 +128,18 @@ pub(crate) fn build_aws(
         .with_client_options(client_options()?)
         .with_url(uri);
 
-    aws_files::fill_from_aws_files(&mut builder);
-
+    let options = options_with_suggestions(options, &credentials)?;
     for (key, value) in parse_options::<AmazonS3ConfigKey>("S3", options)? {
         builder = builder.with_config(key, value);
+    }
+    if let Some(func) = credentials {
+        builder =
+            builder.with_credentials(Arc::new(PyCredentialProvider::new(
+                func,
+                crate::credential_provider::parse_aws,
+            )));
+    } else {
+        aws_files::fill_from_aws_files(&mut builder);
     }
 
     let has_region = builder
@@ -151,13 +187,22 @@ pub(crate) fn build_aws(
 pub(crate) fn build_gcp(
     uri: &str,
     options: HashMap<String, String>,
+    credentials: CredentialFn,
 ) -> PyResult<Arc<dyn ObjectStore>> {
     use object_store::gcp::{GoogleCloudStorageBuilder, GoogleConfigKey};
 
     let mut builder = GoogleCloudStorageBuilder::from_env()
         .with_client_options(client_options()?);
+    let options = options_with_suggestions(options, &credentials)?;
     for (key, value) in parse_options::<GoogleConfigKey>("GCS", options)? {
         builder = builder.with_config(key, value);
+    }
+    if let Some(func) = credentials {
+        builder =
+            builder.with_credentials(Arc::new(PyCredentialProvider::new(
+                func,
+                crate::credential_provider::parse_gcp,
+            )));
     }
     let store = builder
         .with_url(uri)
@@ -170,14 +215,23 @@ pub(crate) fn build_gcp(
 pub(crate) fn build_azure(
     uri: &str,
     options: HashMap<String, String>,
+    credentials: CredentialFn,
 ) -> PyResult<Arc<dyn ObjectStore>> {
     use object_store::azure::{AzureConfigKey, MicrosoftAzureBuilder};
 
     // `from_env` may supply the storage account name.
     let mut builder = MicrosoftAzureBuilder::from_env()
         .with_client_options(client_options()?);
+    let options = options_with_suggestions(options, &credentials)?;
     for (key, value) in parse_options::<AzureConfigKey>("Azure", options)? {
         builder = builder.with_config(key, value);
+    }
+    if let Some(func) = credentials {
+        builder =
+            builder.with_credentials(Arc::new(PyCredentialProvider::new(
+                func,
+                crate::credential_provider::parse_azure,
+            )));
     }
     let store = builder
         .with_url(uri)

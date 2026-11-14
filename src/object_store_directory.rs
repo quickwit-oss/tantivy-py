@@ -218,11 +218,12 @@ impl ObjectStoreDirectory {
     pub(crate) fn open(
         uri: &str,
         options: HashMap<String, String>,
+        credential_provider: Option<pyo3::Py<pyo3::PyAny>>,
     ) -> PyResult<Self> {
         let url = Url::parse(uri).map_err(|e| value_error("Invalid URI", e))?;
         let (scheme, path) = ObjectStoreScheme::parse(&url)
             .map_err(|e| value_error("Unsupported URI", e))?;
-        let store = build_store(&scheme, uri, options)?;
+        let store = build_store(&scheme, uri, options, credential_provider)?;
         let root = ObjectPath::parse(path)
             .map_err(|e| value_error("Invalid path in URI", e))?;
         Ok(ObjectStoreDirectory {
@@ -272,27 +273,35 @@ fn build_store(
     scheme: &ObjectStoreScheme,
     uri: &str,
     options: HashMap<String, String>,
+    credential_provider: Option<pyo3::Py<pyo3::PyAny>>,
 ) -> PyResult<Arc<dyn ObjectStore>> {
-    // `uri` and `options` are unused when every provider feature is off.
+    // Unused when every provider feature is off.
     let _ = (uri, &options);
+    #[allow(unused_variables)]
+    let credentials = credential_provider.map(Arc::new);
     let store: Arc<dyn ObjectStore> = match scheme {
         ObjectStoreScheme::Memory => {
             if let Some(key) = options.keys().next() {
                 return Err(unknown_option("memory://", key));
             }
+            if credentials.is_some() {
+                return Err(exceptions::PyValueError::new_err(
+                    "memory:// does not take a credential_provider",
+                ));
+            }
             memory_store()
         }
         #[cfg(feature = "aws")]
         ObjectStoreScheme::AmazonS3 => {
-            crate::cloud_options::build_aws(uri, options)?
+            crate::cloud_options::build_aws(uri, options, credentials)?
         }
         #[cfg(feature = "gcp")]
         ObjectStoreScheme::GoogleCloudStorage => {
-            crate::cloud_options::build_gcp(uri, options)?
+            crate::cloud_options::build_gcp(uri, options, credentials)?
         }
         #[cfg(feature = "azure")]
         ObjectStoreScheme::MicrosoftAzure => {
-            crate::cloud_options::build_azure(uri, options)?
+            crate::cloud_options::build_azure(uri, options, credentials)?
         }
         other => {
             return Err(exceptions::PyValueError::new_err(format!(
@@ -732,7 +741,7 @@ mod tests {
     use super::*;
 
     fn memory_dir(prefix: &str) -> ObjectStoreDirectory {
-        ObjectStoreDirectory::open(prefix, HashMap::new()).unwrap()
+        ObjectStoreDirectory::open(prefix, HashMap::new(), None).unwrap()
     }
 
     #[test]
@@ -840,7 +849,9 @@ mod tests {
 
         let uri = "memory:///unit/watch_other_process";
         let writer = memory_dir(uri);
-        writer.atomic_write(Path::new(META_FILEPATH), b"v1").unwrap();
+        writer
+            .atomic_write(Path::new(META_FILEPATH), b"v1")
+            .unwrap();
 
         // A separate instance stands in for another process: it shares the
         // store but not the in-process broadcast.
@@ -861,7 +872,9 @@ mod tests {
         std::thread::sleep(Duration::from_millis(150));
         assert_eq!(fired.load(Ordering::SeqCst), 0, "no commit yet");
 
-        writer.atomic_write(Path::new(META_FILEPATH), b"v2").unwrap();
+        writer
+            .atomic_write(Path::new(META_FILEPATH), b"v2")
+            .unwrap();
         let deadline = std::time::Instant::now() + Duration::from_secs(5);
         while fired.load(Ordering::SeqCst) == 0 {
             assert!(std::time::Instant::now() < deadline, "watch never fired");
@@ -918,6 +931,6 @@ mod tests {
     fn rejects_unknown_memory_option() {
         let mut opts = HashMap::new();
         opts.insert("region".to_string(), "x".to_string());
-        assert!(ObjectStoreDirectory::open("memory:///x", opts).is_err());
+        assert!(ObjectStoreDirectory::open("memory:///x", opts, None).is_err());
     }
 }

@@ -43,13 +43,14 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 async-trait = { version = "0.1", optional = true }
 lru = { version = "0.18", optional = true }
 bytes = { version = "1", optional = true }
+percent-encoding = { version = "2", optional = true }
 
 [features]
 default = []
 # Internal: the object-store directory with only the in-memory backend
 # (`memory://`), used for tests. Enable `cloud` or a provider instead.
 object-store = ["dep:object_store", "object_store/tokio", "dep:tokio", "dep:url", "dep:lru", "dep:bytes", "dep:async-trait"]
-cloud-base = ["object-store", "dep:http", "dep:reqwest", "dep:rustls", "object_store/reqwest", "object_store/ring"]
+cloud-base = ["object-store", "dep:http", "dep:reqwest", "dep:rustls", "dep:percent-encoding", "object_store/reqwest", "object_store/ring"]
 aws = ["cloud-base", "object_store/aws-base"]
 gcp = ["cloud-base", "object_store/gcp-base"]
 azure = ["cloud-base", "object_store/azure-base"]

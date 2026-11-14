@@ -6,6 +6,8 @@ use pyo3::{exceptions, prelude::*, wrap_pymodule};
 mod block_cache;
 #[cfg(any(feature = "aws", feature = "gcp", feature = "azure"))]
 mod cloud_options;
+#[cfg(any(feature = "aws", feature = "gcp", feature = "azure"))]
+mod credential_provider;
 mod directory;
 mod document;
 mod explanation;

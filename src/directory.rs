@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 
-use pyo3::{exceptions, PyResult};
+use pyo3::{exceptions, Py, PyAny, PyResult};
 use tantivy as tv;
 use tantivy::directory::{Directory, MmapDirectory};
 
@@ -21,14 +21,20 @@ use crate::to_pyerr;
 pub(crate) fn open_directory(
     path: &str,
     storage_options: Option<HashMap<String, String>>,
+    credential_provider: Option<Py<PyAny>>,
 ) -> PyResult<Box<dyn Directory>> {
     match uri_scheme(path) {
         None => {
-            if storage_options.is_some() {
-                return Err(exceptions::PyValueError::new_err(
-                    "storage_options can only be used with an object store URI \
-                     such as 's3://bucket/path', not a filesystem path",
-                ));
+            for (given, name) in [
+                (storage_options.is_some(), "storage_options"),
+                (credential_provider.is_some(), "credential_provider"),
+            ] {
+                if given {
+                    return Err(exceptions::PyValueError::new_err(format!(
+                        "{name} can only be used with an object store URI \
+                         such as 's3://bucket/path', not a filesystem path"
+                    )));
+                }
             }
             // Convert through `TantivyError` so error messages match the ones
             // `Index::open_in_dir` produced before this function existed.
@@ -36,7 +42,9 @@ pub(crate) fn open_directory(
                 .map_err(|e| to_pyerr(tv::TantivyError::from(e)))?;
             Ok(Box::new(directory))
         }
-        Some(_scheme) => open_object_store(path, storage_options),
+        Some(_scheme) => {
+            open_object_store(path, storage_options, credential_provider)
+        }
     }
 }
 
@@ -44,10 +52,12 @@ pub(crate) fn open_directory(
 fn open_object_store(
     uri: &str,
     storage_options: Option<HashMap<String, String>>,
+    credential_provider: Option<Py<PyAny>>,
 ) -> PyResult<Box<dyn Directory>> {
     let directory = crate::object_store_directory::ObjectStoreDirectory::open(
         uri,
         storage_options.unwrap_or_default(),
+        credential_provider,
     )?;
     Ok(Box::new(directory))
 }
@@ -56,6 +66,7 @@ fn open_object_store(
 fn open_object_store(
     uri: &str,
     _storage_options: Option<HashMap<String, String>>,
+    _credential_provider: Option<Py<PyAny>>,
 ) -> PyResult<Box<dyn Directory>> {
     Err(exceptions::PyValueError::new_err(format!(
         "Cannot open '{uri}': this build of tantivy has no object store \

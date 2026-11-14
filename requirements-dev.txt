@@ -3,3 +3,6 @@ pdoc==16.0.0
 typing_extensions
 pytest>=4.0
 mktestdocs==0.2.1
+# S3 API emulator for tests/test_object_store_s3.py, which skips without it.
+moto[server]>=5.1
+boto3
