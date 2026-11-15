@@ -126,10 +126,14 @@ jobs:
             static.rust-lang.org:443
             objects.githubusercontent.com:443
             release-assets.githubusercontent.com:443
+            registry.npmjs.org:443
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+
+      # Azure Storage emulator for tests/test_object_store_azure.py.
+      - run: npm install -g azurite@3
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # 7.1.0
         with:

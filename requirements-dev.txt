@@ -6,3 +6,6 @@ mktestdocs==0.2.1
 # S3 API emulator for tests/test_object_store_s3.py, which skips without it.
 moto[server]>=5.1
 boto3
+# Creates containers for tests/test_object_store_azure.py, which runs against
+# Azurite (npm install -g azurite) and skips without either.
+azure-storage-blob
