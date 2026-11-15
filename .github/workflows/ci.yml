@@ -127,6 +127,9 @@ jobs:
             objects.githubusercontent.com:443
             release-assets.githubusercontent.com:443
             registry.npmjs.org:443
+            auth.docker.io:443
+            registry-1.docker.io:443
+            production.cloudflare.docker.com:443
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -134,6 +137,17 @@ jobs:
 
       # Azure Storage emulator for tests/test_object_store_azure.py.
       - run: npm install -g azurite@3
+
+      # GCS emulator for tests/test_object_store_gcs.py: the fork with XML API
+      # support that object_store's CI uses (fsouza/fake-gcs-server#1164),
+      # pinned by digest. Linux runners only, since they have Docker.
+      - name: Start fake-gcs-server
+        if: runner.os == 'Linux'
+        run: |
+          docker run -d -p 4443:4443 \
+            tustvold/fake-gcs-server@sha256:dcd3aeacc07c731f1336e90c2889be2af8626ae993ee1fe2c0ba042ebbeb5a04 \
+            -scheme http -backend memory -public-host localhost:4443
+          echo "TANTIVY_TEST_FAKE_GCS_URL=http://localhost:4443" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # 7.1.0
         with:

@@ -52,6 +52,8 @@ def azurite_url():
             "--inMemoryPersistence",
             # Newer Azure SDKs send API versions Azurite doesn't list yet.
             "--skipApiVersionCheck",
+            # Azurite otherwise sends usage telemetry to Microsoft.
+            "--disableTelemetry",
             "--blobHost",
             "127.0.0.1",
             "--blobPort",

@@ -260,3 +260,108 @@ def test_wrong_credentials_fail(uri, options, endpoint):
 def test_credential_provider_rejected_for_filesystem_path(tmp_path):
     with pytest.raises(ValueError, match="credential_provider"):
         Index(_schema(), path=str(tmp_path), credential_provider=lambda: ({}, None))
+
+
+class CountingS3:
+    """moto's S3 app behind a WSGI wrapper that logs every request and can
+    fail chosen ones. Adapted from Polars' tests
+    (py-polars/tests/unit/io/cloud/conftest.py, MIT License)."""
+
+    def __init__(self):
+        import threading
+
+        from moto.server import DomainDispatcherApplication, create_backend_app
+        from werkzeug.serving import make_server
+
+        app = DomainDispatcherApplication(create_backend_app)
+        self.log = []  # (method, path, range header)
+        # Called before moto; a true return value answers HTTP 500 instead.
+        self.fail_if = None
+        lock = threading.Lock()
+
+        def wrapper(environ, start_response):
+            entry = (
+                environ["REQUEST_METHOD"],
+                environ.get("PATH_INFO", ""),
+                environ.get("HTTP_RANGE", ""),
+            )
+            with lock:
+                self.log.append(entry)
+            if self.fail_if is not None and self.fail_if(entry):
+                start_response("500 Internal Server Error", [])
+                return [b""]
+            return app(environ, start_response)
+
+        self.server = make_server("127.0.0.1", 0, wrapper, threaded=True)
+        self.endpoint = f"http://127.0.0.1:{self.server.server_port}"
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+
+    def range_gets(self, since=0):
+        return [e for e in self.log[since:] if e[0] == "GET" and e[2]]
+
+
+@pytest.fixture
+def counting_s3():
+    s3 = CountingS3()
+    s3.thread.start()
+    client = boto3.client(
+        "s3",
+        endpoint_url=s3.endpoint,
+        region_name=REGION,
+        aws_access_key_id=KEY_ID,
+        aws_secret_access_key=SECRET,
+    )
+    client.create_bucket(Bucket="counted")
+    yield s3
+    s3.server.shutdown()
+
+
+def _counted_options(s3):
+    return {
+        "endpoint": s3.endpoint,
+        "region": REGION,
+        "aws_access_key_id": KEY_ID,
+        "aws_secret_access_key": SECRET,
+    }
+
+
+def test_repeated_searches_are_served_from_the_cache(counting_s3):
+    uri = f"s3://counted/{uuid.uuid4().hex[:8]}"
+    options = _counted_options(counting_s3)
+    _add(Index(_schema(), path=uri, storage_options=options), *[f"d{i}" for i in range(50)])
+
+    index = Index.open(uri, storage_options=options)
+    assert len(_titles(index)) == 50
+    assert counting_s3.range_gets(), "the first search reads from the store"
+
+    mark = len(counting_s3.log)
+    for _ in range(3):
+        assert len(_titles(index)) == 50
+    assert counting_s3.range_gets(mark) == [], "repeat searches hit the cache"
+
+    # A separately opened index shares the process-wide cache.
+    mark = len(counting_s3.log)
+    assert len(_titles(Index.open(uri, storage_options=options))) == 50
+    assert counting_s3.range_gets(mark) == []
+
+
+def test_failed_reads_are_retried(counting_s3):
+    uri = f"s3://counted/{uuid.uuid4().hex[:8]}"
+    options = _counted_options(counting_s3)
+    _add(Index(_schema(), path=uri, storage_options=options), "one", "two")
+
+    failures = []
+
+    def fail_first_two_meta_reads(entry):
+        # meta.json is read whole and never cached, so opening the index
+        # always fetches it; segment reads may already be in the cache.
+        method, path, _range = entry
+        if method == "GET" and path.endswith("/meta.json") and len(failures) < 2:
+            failures.append(entry)
+            return True
+        return False
+
+    counting_s3.fail_if = fail_first_two_meta_reads
+    index = Index.open(uri, storage_options=options)
+    assert _titles(index) == ["one", "two"]
+    assert len(failures) == 2, "the injected failures were hit and retried"

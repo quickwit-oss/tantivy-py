@@ -167,6 +167,29 @@ on Python 3.11:
 
     nox -s test-3.11 -- -k simple_search
 
+### Object store tests
+
+The object store tests run against local emulators of each cloud's API, and
+skip any emulator that isn't available:
+
+- **S3:** [moto](https://github.com/getmoto/moto), installed with the dev
+  requirements. Nothing else to do.
+- **Azure:** [Azurite](https://github.com/Azure/Azurite):
+  `npm install -g azurite`.
+- **Google Cloud Storage:** fake-gcs-server, in the fork with XML API support
+  that `object_store` also tests against. Either run its container and point
+  the tests at it:
+
+        docker run -d -p 4443:4443 tustvold/fake-gcs-server \
+            -scheme http -backend memory -public-host localhost:4443
+        export TANTIVY_TEST_FAKE_GCS_URL=http://localhost:4443
+
+    or build it from `github.com/tustvold/fake-gcs-server` (branch
+    `support-xml-api`) and set `TANTIVY_TEST_FAKE_GCS` to the binary.
+
+The emulator doesn't support conditional uploads, so the GCS writer-lock tests
+are skipped against it.
+
 ## Doctests
 
 [Doctests](https://docs.python.org/3/library/doctest.html) are automatically
