@@ -429,6 +429,10 @@ class SearchResult:
     def hits(self) -> list[tuple[Any, DocAddress]]:
         pass
 
+    @property
+    def count(self) -> int | None:
+        pass
+
 
 class Searcher:
     def search(
