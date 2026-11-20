@@ -41,6 +41,49 @@ jobs:
       - name: Check Formatting
         run: cargo fmt --check
 
+  # The Rust unit tests cover the object store directory, its lock, cache and
+  # credential providers. The crate is a Python extension module, so its test
+  # binary is not linked against libpython by default; link it explicitly.
+  RustTests:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43
+        with:
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            crates.io:443
+            github.com:443
+            index.crates.io:443
+            objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+            static.crates.io:443
+            static.rust-lang.org:443
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # 7.1.0
+        with:
+          python-version: "3.13"
+
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: "stable"
+
+      - name: cargo test --features cloud
+        run: |
+          LIBDIR=$(python -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')
+          VERSION=$(python -c 'import sys; print("%d.%d" % sys.version_info[:2])')
+          export RUSTFLAGS="-C link-arg=-L$LIBDIR -C link-arg=-lpython$VERSION"
+          export LD_LIBRARY_PATH="$LIBDIR"
+          # The credential provider tests start an embedded interpreter.
+          export PYTHONHOME=$(python -c 'import sys; print(sys.base_prefix)')
+          cargo test --locked --features cloud
+
   Test:
     env:
       UNSAFE_PYO3_SKIP_VERSION_CHECK: ${{ matrix.unsafe-pyo3-skip-version-check }}
@@ -83,10 +126,29 @@ jobs:
             static.rust-lang.org:443
             objects.githubusercontent.com:443
             release-assets.githubusercontent.com:443
+            registry.npmjs.org:443
+            auth.docker.io:443
+            registry-1.docker.io:443
+            production.cloudflare.docker.com:443
+            production.cloudfront.docker.com:443
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+
+      # Azure Storage emulator for tests/test_object_store_azure.py.
+      - run: npm install -g azurite@3
+
+      # GCS emulator for tests/test_object_store_gcs.py: the fork with XML API
+      # support that object_store's CI uses (fsouza/fake-gcs-server#1164),
+      # pinned by digest. Linux runners only, since they have Docker.
+      - name: Start fake-gcs-server
+        if: runner.os == 'Linux'
+        run: |
+          docker run -d -p 4443:4443 \
+            tustvold/fake-gcs-server@sha256:dcd3aeacc07c731f1336e90c2889be2af8626ae993ee1fe2c0ba042ebbeb5a04 \
+            -scheme http -backend memory -public-host localhost:4443
+          echo "TANTIVY_TEST_FAKE_GCS_URL=http://localhost:4443" >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # 7.1.0
         with:

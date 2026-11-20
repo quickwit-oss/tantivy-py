@@ -14,6 +14,12 @@ title: tantivy
                         <label class="view-source-button" for="mod-tantivy-view-source"><span>View Source</span></label>
 
                         <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos">1</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">.tantivy</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+</span><span id="L-2"><a href="#L-2"><span class="linenos">2</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">.credential_provider</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="L-3"><a href="#L-3"><span class="linenos">3</span></a>    <span class="n">CredentialProvider</span><span class="p">,</span>
+</span><span id="L-4"><a href="#L-4"><span class="linenos">4</span></a>    <span class="n">CredentialProviderAWS</span><span class="p">,</span>
+</span><span id="L-5"><a href="#L-5"><span class="linenos">5</span></a>    <span class="n">CredentialProviderAzure</span><span class="p">,</span>
+</span><span id="L-6"><a href="#L-6"><span class="linenos">6</span></a>    <span class="n">CredentialProviderGCP</span><span class="p">,</span>
+</span><span id="L-7"><a href="#L-7"><span class="linenos">7</span></a><span class="p">)</span>
 </span></pre></div>
 
 
