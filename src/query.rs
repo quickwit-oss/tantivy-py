@@ -815,13 +815,13 @@ impl Query {
     ///
     pub(crate) fn explain(
         &self,
+        py: Python,
         searcher: &Searcher,
         doc_address: &DocAddress,
     ) -> PyResult<Explanation> {
         let tantivy_doc_address = doc_address.into();
-        let explanation = self
-            .inner
-            .explain(&searcher.inner, tantivy_doc_address)
+        let explanation = py
+            .detach(|| self.inner.explain(&searcher.inner, tantivy_doc_address))
             .map_err(to_pyerr)?;
         Ok(Explanation::new(explanation))
     }

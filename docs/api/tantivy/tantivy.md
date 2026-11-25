@@ -1140,8 +1140,10 @@ including stemmer languages without a builtin stop word list.</p>
 
 <ul>
 <li><strong>schema (Schema):</strong>  The schema of the index.</li>
-<li><strong>path (str, optional):</strong>  The path where the index should be stored. If
-no path is provided, the index will be stored in memory.</li>
+<li><strong>path (str, optional):</strong>  Where the index should be stored: a filesystem
+path, or an object store URI such as <code>s3://bucket/prefix</code>,
+<code>gs://bucket/prefix</code> or <code>az://container/prefix</code>. If no path is
+provided, the index will be stored in memory.</li>
 <li><strong>reuse (bool, optional):</strong>  Should we open an existing index if one exists
 or always create a new one.</li>
 <li><strong>sort_by_field (str, optional):</strong>  Store documents sorted by this field,
@@ -1150,6 +1152,15 @@ float, date, text or bytes. Applies only when the index is
 created: an existing index that is opened keeps its own sorting.</li>
 <li><strong>sort_order (Order, optional):</strong>  The direction of <code>sort_by_field</code>.
 Defaults to <code><a href="#Order.Asc">Order.Asc</a></code>.</li>
+<li><strong>storage_options (dict[str, str], optional):</strong>  Settings for the object
+store, such as credentials, region or endpoint, overriding the
+provider's environment variables. Only valid with an object
+store URI.</li>
+<li><strong>credential_provider (callable, optional):</strong>  Supplies object store
+credentials, for example <code>tantivy.CredentialProviderAWS()</code>. A
+callable taking no arguments and returning <code>(credentials,
+expiry)</code>, where <code>expiry</code> is a Unix timestamp or None. It is
+called again shortly before the credentials expire.</li>
 </ul>
 
 <p>If an index already exists it will be opened and reused. Raises OSError
@@ -1185,7 +1196,7 @@ reader should create.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">exists</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span></span><span class="return-annotation">):</span></span>
+        <span class="name">exists</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span>, </span><span class="param"><span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span>, </span><span class="param"><span class="n">credential_provider</span><span class="o">=</span><span class="kc">None</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1196,7 +1207,12 @@ reader should create.</li>
 <h6 id="arguments">Arguments:</h6>
 
 <ul>
-<li><strong>path:</strong>  The path where tantivy will search for an index.</li>
+<li><strong>path:</strong>  The path or object store URI where tantivy will search for
+an index.</li>
+<li><strong>storage_options (dict[str, str], optional):</strong>  Object store settings;
+see <code><a href="#Index">Index</a></code>.</li>
+<li><strong>credential_provider (callable, optional):</strong>  Supplies object store
+credentials; see <code><a href="#Index">Index</a></code>.</li>
 </ul>
 
 <p>Returns True if an index exists at the given path, False otherwise.</p>
@@ -1210,7 +1226,7 @@ reader should create.</li>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">is_compatible</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span></span><span class="return-annotation">):</span></span>
+        <span class="name">is_compatible</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span>, </span><span class="param"><span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span>, </span><span class="param"><span class="n">credential_provider</span><span class="o">=</span><span class="kc">None</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
@@ -1228,7 +1244,12 @@ rebuilding it).</p>
 <h6 id="arguments">Arguments:</h6>
 
 <ul>
-<li><strong>path (str):</strong>  The directory containing the index.</li>
+<li><strong>path (str):</strong>  The directory or object store URI containing the
+index.</li>
+<li><strong>storage_options (dict[str, str], optional):</strong>  Object store settings;
+see <code><a href="#Index">Index</a></code>.</li>
+<li><strong>credential_provider (callable, optional):</strong>  Supplies object store
+credentials; see <code><a href="#Index">Index</a></code>.</li>
 </ul>
 
 <p>Returns True if the index is compatible, False if it was built with an
@@ -1244,13 +1265,23 @@ could not be read for any other reason.</p>
                                 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">open</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span></span><span class="return-annotation">):</span></span>
+        <span class="name">open</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">path</span>, </span><span class="param"><span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span>, </span><span class="param"><span class="n">credential_provider</span><span class="o">=</span><span class="kc">None</span></span><span class="return-annotation">):</span></span>
 
         
     </div>
     <a class="headerlink" href="#Index.open"></a>
     
-            <div class="docstring"><p>The type of the None singleton.</p>
+            <div class="docstring"><p>Open an existing index.</p>
+
+<h6 id="arguments">Arguments:</h6>
+
+<ul>
+<li><strong>path (str):</strong>  A filesystem path or an object store URI.</li>
+<li><strong>storage_options (dict[str, str], optional):</strong>  Object store settings;
+see <code><a href="#Index">Index</a></code>.</li>
+<li><strong>credential_provider (callable, optional):</strong>  Supplies object store
+credentials; see <code><a href="#Index">Index</a></code>.</li>
+</ul>
 </div>
 
 

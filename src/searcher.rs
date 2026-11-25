@@ -698,6 +698,7 @@ impl Searcher {
     #[pyo3(signature = (field_name, doc_addresses))]
     fn fast_field_values(
         &self,
+        py: Python,
         field_name: &str,
         doc_addresses: Vec<DocAddress>,
     ) -> PyResult<Vec<Option<FastFieldValue>>> {
@@ -730,40 +731,43 @@ impl Searcher {
 
         // Pre-open one Column per segment so it is not reopened per document.
         // Column::first() returns Option<T>, so no sentinel value is needed.
-        match field_type {
-            tv::schema::Type::U64 => read_fast_field_column_values!(
-                segment_readers,
-                field_name,
-                doc_addresses,
-                u64,
-                FastFieldValue::U64
-            ),
-            tv::schema::Type::I64 => read_fast_field_column_values!(
-                segment_readers,
-                field_name,
-                doc_addresses,
-                i64,
-                FastFieldValue::I64
-            ),
-            tv::schema::Type::F64 => read_fast_field_column_values!(
-                segment_readers,
-                field_name,
-                doc_addresses,
-                f64,
-                FastFieldValue::F64
-            ),
-            tv::schema::Type::Bool => read_fast_field_column_values!(
-                segment_readers,
-                field_name,
-                doc_addresses,
-                bool,
-                FastFieldValue::Bool
-            ),
-            _ => Err(PyValueError::new_err(format!(
-                "Field '{field_name}' has unsupported type for fast field access. \
-                 Only u64, i64, f64, and bool fast fields are supported."
-            ))),
-        }
+        // Opening the columns reads from the index, which may be remote.
+        py.detach(move || {
+            match field_type {
+                tv::schema::Type::U64 => read_fast_field_column_values!(
+                    segment_readers,
+                    field_name,
+                    doc_addresses,
+                    u64,
+                    FastFieldValue::U64
+                ),
+                tv::schema::Type::I64 => read_fast_field_column_values!(
+                    segment_readers,
+                    field_name,
+                    doc_addresses,
+                    i64,
+                    FastFieldValue::I64
+                ),
+                tv::schema::Type::F64 => read_fast_field_column_values!(
+                    segment_readers,
+                    field_name,
+                    doc_addresses,
+                    f64,
+                    FastFieldValue::F64
+                ),
+                tv::schema::Type::Bool => read_fast_field_column_values!(
+                    segment_readers,
+                    field_name,
+                    doc_addresses,
+                    bool,
+                    FastFieldValue::Bool
+                ),
+                _ => Err(PyValueError::new_err(format!(
+                    "Field '{field_name}' has unsupported type for fast field access. \
+                     Only u64, i64, f64, and bool fast fields are supported."
+                ))),
+            }
+        })
     }
 
     /// Walk the term dictionary for `field_name` and return all terms that

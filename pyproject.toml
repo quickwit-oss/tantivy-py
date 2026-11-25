@@ -9,7 +9,7 @@ description = "Official Python bindings for the Tantivy search engine"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "licenses/polars-LICENSE"]
 authors = [
     { name = "Damir Jelić", email="poljar@termina.org.uk" },
     { name = "Caleb Hattingh", email = "code@cjrh.info" },
@@ -26,6 +26,9 @@ Changelog = "https://github.com/quickwit-oss/tantivy-py/releases"
 
 [tool.maturin]
 bindings = "pyo3"
+# Every wheel and sdist build includes object store support (s3://, gs://,
+# az://). It adds about 4 MB to the wheel; a plain `cargo build` leaves it out.
+features = ["cloud"]
 
 [tool.pytest.ini_options]
 # Set the durations option and doctest modules
