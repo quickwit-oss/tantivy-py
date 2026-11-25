@@ -9,6 +9,13 @@ class Schema:
     pass
 
 
+class DateTimePrecision(Enum):
+    Seconds = 1
+    Milliseconds = 2
+    Microseconds = 3
+    Nanoseconds = 4
+
+
 class SchemaBuilder:
     @staticmethod
     def is_valid_field_name(name: str) -> bool:
@@ -69,6 +76,7 @@ class SchemaBuilder:
         stored: bool = False,
         indexed: bool = False,
         fast: bool = False,
+        precision: DateTimePrecision = DateTimePrecision.Seconds,
     ) -> SchemaBuilder:
         pass
 

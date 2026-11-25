@@ -24,7 +24,7 @@ use pre_tokenized::{PreTokenizedString, Token};
 use query::{Occur, Query};
 use query_grammar::{parse_query, parse_query_lenient};
 use schema::{FieldType, Schema};
-use schemabuilder::SchemaBuilder;
+use schemabuilder::{DateTimePrecision, SchemaBuilder};
 use searcher::{DocAddress, Order, SearchResult, Searcher};
 use snippet::{Snippet, SnippetGenerator};
 use tokenizer::{Filter, TextAnalyzer, TextAnalyzerBuilder, Tokenizer};
@@ -73,6 +73,7 @@ use tokenizer::{Filter, TextAnalyzer, TextAnalyzerBuilder, Tokenizer};
 fn tantivy(_py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<Order>()?;
     m.add_class::<Schema>()?;
+    m.add_class::<DateTimePrecision>()?;
     m.add_class::<SchemaBuilder>()?;
     m.add_class::<Searcher>()?;
     m.add_class::<SearchResult>()?;
