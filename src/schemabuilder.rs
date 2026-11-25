@@ -8,6 +8,27 @@ use tantivy::schema::{
     self, BytesOptions, DateOptions, IpAddrOptions, JsonObjectOptions, INDEXED,
 };
 
+/// Enum representing precision for fast date field truncation.
+#[pyclass(from_py_object, frozen, module = "tantivy.tantivy")]
+#[derive(Clone, Copy, PartialEq)]
+pub(crate) enum DateTimePrecision {
+    Seconds,
+    Milliseconds,
+    Microseconds,
+    Nanoseconds,
+}
+
+impl From<DateTimePrecision> for schema::DateTimePrecision {
+    fn from(precision: DateTimePrecision) -> Self {
+        match precision {
+            DateTimePrecision::Seconds => Self::Seconds,
+            DateTimePrecision::Milliseconds => Self::Milliseconds,
+            DateTimePrecision::Microseconds => Self::Microseconds,
+            DateTimePrecision::Nanoseconds => Self::Nanoseconds,
+        }
+    }
+}
+
 /// Tantivy has a very strict schema.
 /// You need to specify in advance whether a field is indexed or not,
 /// stored or not.
@@ -291,20 +312,33 @@ impl SchemaBuilder {
     ///         field is a column-oriented fashion storage for tantivy. It is
     ///         designed for the fast random access of some document fields
     ///         given a document id.
+    ///     precision (DateTimePrecision, optional): Precision of the values
+    ///         in the fast field, which is used for sorting, range queries
+    ///         and aggregations. Has no effect if `fast` is False. Indexed
+    ///         values are always truncated to seconds and stored values keep
+    ///         their full precision. Defaults to DateTimePrecision.Seconds.
+    ///         (note: Python `datetime` has microsecond resolution).
     ///
     /// Returns the associated field handle.
     /// Raises a ValueError if there was an error with the field creation.
-    #[pyo3(signature = (name, stored = false, indexed = false, fast = false))]
+    #[pyo3(signature = (
+        name,
+        stored = false,
+        indexed = false,
+        fast = false,
+        precision = DateTimePrecision::Seconds
+    ))]
     fn add_date_field(
         &mut self,
         name: &str,
         stored: bool,
         indexed: bool,
         fast: bool,
+        precision: DateTimePrecision,
     ) -> PyResult<Self> {
         let builder = &mut self.builder;
 
-        let mut opts = DateOptions::default();
+        let mut opts = DateOptions::default().set_precision(precision.into());
         if stored {
             opts = opts.set_stored();
         }

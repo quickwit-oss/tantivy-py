@@ -165,3 +165,44 @@ def test_bounds_round_trip_through_index():
     hits = searcher.search(tantivy.Query.all_query(), 10).hits
     stored = {searcher.doc(address).get_first("d") for _, address in hits}
     assert stored == set(bounds)
+
+
+@pytest.mark.parametrize(
+    ("precision", "sort_ms", "range_hits"),
+    [
+        (tantivy.DateTimePrecision.Seconds, [0, 0, 0], 0),
+        (tantivy.DateTimePrecision.Milliseconds, [100, 200, 300], 1),
+    ],
+)
+def test_add_date_field_precision(precision, sort_ms, range_hits):
+    schema = (
+        tantivy.SchemaBuilder()
+        .add_date_field("d", fast=True, precision=precision)
+        .build()
+    )
+    index = tantivy.Index(schema)
+    writer = index.writer(heap_size=15_000_000, num_threads=1)
+    base = datetime.datetime(2020, 1, 1, tzinfo=UTC)
+    for ms in (300, 100, 200):
+        doc = tantivy.Document(d=base + datetime.timedelta(milliseconds=ms))
+        writer.add_document(doc)
+    writer.commit()
+    index.reload()
+    searcher = index.searcher()
+
+    hits = searcher.search(
+        tantivy.Query.all_query(),
+        10,
+        order_by_field="d",
+        order=tantivy.Order.Asc,
+    ).hits
+    assert [key % 10**9 // 10**6 for key, _ in hits] == sort_ms
+
+    query = tantivy.Query.range_query(
+        schema,
+        "d",
+        tantivy.FieldType.Date,
+        base + datetime.timedelta(milliseconds=150),
+        base + datetime.timedelta(milliseconds=250),
+    )
+    assert len(searcher.search(query, 10).hits) == range_hits
