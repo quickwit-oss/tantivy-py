@@ -206,3 +206,56 @@ def test_add_date_field_precision(precision, sort_ms, range_hits):
         base + datetime.timedelta(milliseconds=250),
     )
     assert len(searcher.search(query, 10).hits) == range_hits
+
+
+def test_sub_second_date_term_matches_indexed_field():
+    # The inverted index keeps whole seconds, so exact-match lookups must
+    # find a document by the sub-second datetime it was added with.
+    schema = tantivy.SchemaBuilder().add_date_field("d", indexed=True).build()
+    index = tantivy.Index(schema)
+    writer = index.writer(heap_size=15_000_000, num_threads=1)
+    value = datetime.datetime(2020, 1, 1, 0, 0, 5, 678000, tzinfo=UTC)
+    writer.add_document(tantivy.Document(d=value))
+    writer.commit()
+    index.reload()
+    searcher = index.searcher()
+
+    query = tantivy.Query.term_query(schema, "d", value)
+    assert len(searcher.search(query, 10).hits) == 1
+    query = tantivy.Query.term_set_query(schema, "d", [value])
+    assert len(searcher.search(query, 10).hits) == 1
+    assert searcher.doc_freq("d", value) == 1
+
+    writer.delete_documents_by_term("d", value)
+    writer.commit()
+    index.reload()
+    assert index.searcher().num_docs == 0
+
+
+@pytest.mark.parametrize(
+    "precision",
+    [tantivy.DateTimePrecision.Seconds, tantivy.DateTimePrecision.Milliseconds],
+)
+def test_sub_second_date_term_matches_fast_only_field(precision):
+    # Without scoring (and for deletes), a term on a fast-only field is
+    # matched against the fast column, which keeps the field's own precision.
+    schema = (
+        tantivy.SchemaBuilder()
+        .add_date_field("d", indexed=False, fast=True, precision=precision)
+        .build()
+    )
+    index = tantivy.Index(schema)
+    writer = index.writer(heap_size=15_000_000, num_threads=1)
+    value = datetime.datetime(2020, 1, 1, 0, 0, 5, 678123, tzinfo=UTC)
+    writer.add_document(tantivy.Document(d=value))
+    writer.commit()
+    index.reload()
+
+    query = tantivy.Query.term_query(schema, "d", value)
+    hits = index.searcher().search(query, 10, order_by_field="d").hits
+    assert len(hits) == 1
+
+    writer.delete_documents_by_term("d", value)
+    writer.commit()
+    index.reload()
+    assert index.searcher().num_docs == 0
