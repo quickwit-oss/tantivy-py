@@ -216,7 +216,7 @@ impl IndexWriter {
                 Value::U64(num) => Term::from_field_u64(field, num),
                 Value::I64(num) => Term::from_field_i64(field, num),
                 Value::F64(num) => Term::from_field_f64(field, num),
-                Value::Date(d) => Term::from_field_date(field, d),
+                Value::Date(d) => crate::make_date_term(&self.schema, field, d),
                 Value::Facet(facet) => Term::from_facet(field, &facet),
                 Value::Bytes(_) => {
                     return Err(exceptions::PyValueError::new_err(format!(

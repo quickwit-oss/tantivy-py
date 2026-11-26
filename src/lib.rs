@@ -195,6 +195,24 @@ pub(crate) fn make_text_term(
     make_term(schema, field_name, field_value)
 }
 
+/// Builds a date term truncated to the precision it is looked up at: the
+/// inverted index keeps whole seconds, while a fast-only field (which
+/// TermQuery scans instead when scoring is off, as deletes do) keeps the
+/// field's own precision.
+pub(crate) fn make_date_term(
+    schema: &tv::schema::Schema,
+    field: tv::schema::Field,
+    date: tv::DateTime,
+) -> tv::Term {
+    let precision = match schema.get_field_entry(field).field_type() {
+        tv::schema::FieldType::Date(opts) if !opts.is_indexed() => {
+            opts.get_precision()
+        }
+        _ => tv::schema::DATE_TIME_PRECISION_INDEXED,
+    };
+    Term::from_field_date(field, date.truncate(precision))
+}
+
 pub(crate) fn make_term(
     schema: &tv::schema::Schema,
     field_name: &str,
@@ -228,7 +246,7 @@ pub(crate) fn make_term(
         Value::U64(num) => Term::from_field_u64(field, num),
         Value::I64(num) => Term::from_field_i64(field, num),
         Value::F64(num) => Term::from_field_f64(field, num),
-        Value::Date(d) => Term::from_field_date(field, d),
+        Value::Date(d) => make_date_term(schema, field, d),
         Value::Facet(facet) => Term::from_facet(field, &facet),
         Value::Bool(b) => Term::from_field_bool(field, b),
         Value::IpAddr(i) => Term::from_field_ip_addr(field, i),
