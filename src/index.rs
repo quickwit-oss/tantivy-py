@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use pyo3::{exceptions, prelude::*, types::PyAny};
 
 use crate::{
-    document::{extract_value, Document},
+    document::{extract_value_for_type, Document},
     get_field,
     parser_error::QueryParserErrorIntoPy,
     query::Query,
@@ -204,7 +204,13 @@ impl IndexWriter {
         field_value: &Bound<PyAny>,
     ) -> PyResult<u64> {
         let field = get_field(&self.schema, field_name)?;
-        let value = extract_value(field_value)?;
+        // Extract by the schema's field type, as make_term does. extract_value()
+        // makes any int an i64 and any str text, so an int on a u64 or f64
+        // field, or an IP string, built a term that matched nothing.
+        let field_type =
+            self.schema.get_field_entry(field).field_type().value_type();
+        let value =
+            extract_value_for_type(field_value, field_type, field_name)?;
         py.detach(move || {
             let term = match value {
                 Value::Null => {

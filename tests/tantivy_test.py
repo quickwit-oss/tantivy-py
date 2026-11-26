@@ -717,6 +717,39 @@ class TestUpdateClass(object):
         result = ram_index.searcher().search(query)
         assert len(result.hits) == 0
 
+    @pytest.mark.parametrize(
+        "field, value",
+        [
+            ("iid", 7),
+            ("uid", 7),
+            ("score", 2.0),
+            ("score", 2),
+            ("ip", "10.0.0.1"),
+        ],
+    )
+    def test_delete_documents_by_term_typed_fields(self, field, value):
+        schema = (
+            SchemaBuilder()
+            .add_integer_field("iid", indexed=True)
+            .add_unsigned_field("uid", indexed=True)
+            .add_float_field("score", indexed=True)
+            .add_ip_addr_field("ip", indexed=True)
+            .build()
+        )
+        index = Index(schema)
+        writer = index.writer(15_000_000, 1)
+        writer.add_document(
+            Document.from_dict(
+                {"iid": 7, "uid": 7, "score": 2.0, "ip": "10.0.0.1"}, schema
+            )
+        )
+        writer.commit()
+
+        writer.delete_documents_by_term(field, value)
+        writer.commit()
+        index.reload()
+        assert index.searcher().num_docs == 0
+
 
 class TestFromDiskClass(object):
     def test_opens_from_dir_invalid_schema(self, dir_index):
